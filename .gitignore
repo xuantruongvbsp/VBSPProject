@@ -1,0 +1,33 @@
+# Dependencies & build output
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Claude / MCP / dev tooling
+.claude/
+.mcp.json
+CLAUDE.md
+plans/
+_inspect/
+
+# PII — published datasets generated from Báo cáo 31
+public/published.json
+public/published-period.json
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+
+# Excel data files (defense in depth)
+*.xlsx
+*.xls
+*.XLSX
+*.XLS

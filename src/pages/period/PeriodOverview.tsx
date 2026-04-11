@@ -1,0 +1,475 @@
+import { useMemo } from 'react';
+import {
+  ArrowRight,
+  TrendingUp,
+  TrendingDown,
+  AlertTriangle,
+  CheckCircle2,
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { FilterBar } from '@/components/filters/FilterBar';
+import { InfoPopover } from '@/components/ui/InfoPopover';
+import { ExportMenu } from '@/components/export/ExportMenu';
+import { DeltaCard } from '@/components/period/DeltaCard';
+import { usePeriodFilterStore } from '@/store/usePeriodFilterStore';
+import { usePeriodCompare } from './usePeriodCompare';
+import { fmtCompact, fmtCurrency, fmtDate, fmtNumber, fmtPercent } from '@/lib/format';
+import { cn } from '@/lib/utils';
+
+/**
+ * Trang đầu của ứng dụng so sánh — "Diễn biến". Tập trung vào các chỉ
+ * tiêu cốt lõi mà người quản lý PGD quan tâm khi nhìn diễn biến giữa
+ * hai kỳ:
+ *  - 8 KPI deltas
+ *  - Roll rate / Cure rate
+ *  - Vòng đời khế ước (KƯ T-1 → tất toán / duy trì / mới → KƯ T)
+ *  - Vòng đời khách hàng (KH T-1 → rời / còn / mới → KH T)
+ *  - Quality stacked bar (Trong hạn / Quá hạn / Khoanh)
+ */
+export function PeriodOverviewPage() {
+  const {
+    hasData,
+    prevDate,
+    currDate,
+    kpiDelta,
+    rollCure,
+    lifecycle,
+    qualityPrev,
+    qualityCurr,
+    loanJoin,
+    customerJoin,
+    currRows,
+  } = usePeriodCompare();
+
+  if (!hasData) {
+    return (
+      <div className="flex h-full items-center justify-center p-6 text-sm text-slate-500">
+        Chưa có dữ liệu so sánh.
+      </div>
+    );
+  }
+
+  const { prev, curr } = kpiDelta;
+
+  const collisionWarning = loanJoin.collisions > 0;
+
+  return (
+    <div className="space-y-5 p-6">
+      <header className="space-y-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-slate-900">Diễn biến danh mục</h1>
+            <InfoPopover metricKey="pagePeriodOverview" />
+          </div>
+          <ExportMenu
+            pageTitle="Diễn biến danh mục — So sánh hai kỳ"
+            subtitle={`${fmtDate(prevDate)} → ${fmtDate(currDate)} · ${fmtNumber(currRows.length)} khế ước kỳ sau`}
+            rows={currRows}
+            kpi={kpiDelta.curr}
+            size="sm"
+          />
+        </div>
+        <p className="text-sm text-slate-600">
+          So sánh{' '}
+          <span className="font-semibold text-slate-800">{fmtDate(prevDate)}</span>{' '}
+          <ArrowRight className="inline h-3.5 w-3.5 text-period-600" />{' '}
+          <span className="font-semibold text-period-700">{fmtDate(currDate)}</span> · áp dụng các bộ lọc bên dưới đồng thời cho cả hai kỳ
+        </p>
+      </header>
+
+      <Card>
+        <CardContent className="py-3">
+          <FilterBar useStore={usePeriodFilterStore} accent="period" />
+        </CardContent>
+      </Card>
+
+      {collisionWarning && (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            Phát hiện <strong>{loanJoin.collisions}</strong> cặp khế ước trùng khóa (cùng số khế
+            ước + mã KH) trong nguồn. Số liệu vẫn được tính nhưng nên kiểm tra lại tệp gốc để
+            tránh bỏ sót bản ghi.
+          </div>
+        </div>
+      )}
+
+      {/* 8 KPI deltas */}
+      <section className="space-y-2">
+        <div className="flex items-center gap-2">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            8 chỉ tiêu cốt lõi · Δ giữa hai kỳ
+          </h2>
+          <InfoPopover metricKey="periodKpiDeltas" />
+        </div>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <DeltaCard
+          label="Tổng dư nợ"
+          prevValue={prev.tongDuNo}
+          currValue={curr.tongDuNo}
+          formatter={fmtCompact}
+          tone="good-up"
+        />
+        <DeltaCard
+          label="Số khế ước"
+          prevValue={prev.soKheUoc}
+          currValue={curr.soKheUoc}
+          formatter={(n) => fmtNumber(Math.round(n))}
+          tone="neutral"
+        />
+        <DeltaCard
+          label="Số khách hàng"
+          prevValue={prev.soKhachHang}
+          currValue={curr.soKhachHang}
+          formatter={(n) => fmtNumber(Math.round(n))}
+          tone="neutral"
+        />
+        <DeltaCard
+          label="Tỷ lệ NQH"
+          prevValue={prev.tyLeNoQuaHan}
+          currValue={curr.tyLeNoQuaHan}
+          formatter={(n) => fmtPercent(n, 3)}
+          primary="abs"
+          tone="bad-up"
+        />
+        <DeltaCard
+          label="Dư nợ quá hạn"
+          prevValue={prev.duNoQuaHan}
+          currValue={curr.duNoQuaHan}
+          formatter={fmtCompact}
+          tone="bad-up"
+        />
+        <DeltaCard
+          label="Dư nợ khoanh"
+          prevValue={prev.duNoKhoanh}
+          currValue={curr.duNoKhoanh}
+          formatter={fmtCompact}
+          tone="bad-up"
+        />
+        <DeltaCard
+          label="Lãi tồn TH"
+          prevValue={prev.laiTonTH}
+          currValue={curr.laiTonTH}
+          formatter={fmtCompact}
+          tone="bad-up"
+        />
+        <DeltaCard
+          label="Mức vay BQ"
+          prevValue={prev.mucVayBQ}
+          currValue={curr.mucVayBQ}
+          formatter={fmtCompact}
+          tone="neutral"
+        />
+        </div>
+      </section>
+
+      {/* Roll rate + Cure rate */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <Card className="border-rose-200 bg-rose-50/30">
+          <CardContent className="space-y-2 p-5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="rounded-md bg-rose-100 p-1.5 text-rose-700">
+                  <TrendingDown className="h-4 w-4" />
+                </div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-rose-700">
+                  Roll rate (chuyển xấu)
+                </div>
+              </div>
+              <InfoPopover metricKey="periodRollRate" />
+            </div>
+            <div className="text-3xl font-bold tracking-tight text-rose-800">
+              {(rollCure.rollRate * 100).toFixed(3)}%
+            </div>
+            <div className="text-xs text-slate-600">
+              Σ dư nợ <strong>quá hạn kỳ sau</strong> của các khế ước vốn{' '}
+              <strong>trong hạn ở kỳ trước</strong>, chia cho tổng dư nợ trong hạn kỳ trước.
+            </div>
+            <div className="rounded-md bg-white/70 px-3 py-2 text-[11px] text-slate-600">
+              Cơ sở: {fmtCurrency(rollCure.baseTrongHanT1)} dư nợ trong hạn ở {fmtDate(prevDate)} ·{' '}
+              {fmtNumber(rollCure.rollCount)} khế ước rơi vào quá hạn
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-emerald-200 bg-emerald-50/30">
+          <CardContent className="space-y-2 p-5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="rounded-md bg-emerald-100 p-1.5 text-emerald-700">
+                  <TrendingUp className="h-4 w-4" />
+                </div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                  Cure rate (phục hồi)
+                </div>
+              </div>
+              <InfoPopover metricKey="periodCureRate" />
+            </div>
+            <div className="text-3xl font-bold tracking-tight text-emerald-800">
+              {(rollCure.cureRate * 100).toFixed(3)}%
+            </div>
+            <div className="text-xs text-slate-600">
+              Σ dư nợ <strong>trong hạn kỳ sau</strong> của các khế ước vốn{' '}
+              <strong>quá hạn ở kỳ trước</strong>, chia cho tổng dư nợ quá hạn kỳ trước.
+            </div>
+            <div className="rounded-md bg-white/70 px-3 py-2 text-[11px] text-slate-600">
+              Cơ sở: {fmtCurrency(rollCure.baseQuaHanT1)} dư nợ quá hạn ở {fmtDate(prevDate)} ·{' '}
+              {fmtNumber(rollCure.cureCount)} khế ước phục hồi
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Lifecycle: loans + customers */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Vòng đời khế ước</CardTitle>
+              <InfoPopover metricKey="periodLifecycleLoans" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <FlowDiagram
+              prevLabel={`KƯ ${fmtDate(prevDate)}`}
+              currLabel={`KƯ ${fmtDate(currDate)}`}
+              prevTotal={lifecycle.prevTotalLoans}
+              currTotal={lifecycle.currTotalLoans}
+              segments={[
+                {
+                  key: 'closed',
+                  label: 'Đã tất toán',
+                  count: lifecycle.closedLoans,
+                  color: 'slate',
+                  side: 'left',
+                },
+                {
+                  key: 'retained',
+                  label: 'Duy trì',
+                  count: lifecycle.retainedLoans,
+                  color: 'period',
+                  side: 'middle',
+                },
+                {
+                  key: 'new',
+                  label: 'Khế ước mới',
+                  count: lifecycle.newLoans,
+                  color: 'emerald',
+                  side: 'right',
+                },
+              ]}
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Vòng đời khách hàng</CardTitle>
+              <InfoPopover metricKey="periodLifecycleCustomers" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <FlowDiagram
+              prevLabel={`KH ${fmtDate(prevDate)}`}
+              currLabel={`KH ${fmtDate(currDate)}`}
+              prevTotal={lifecycle.prevTotalCustomers}
+              currTotal={lifecycle.currTotalCustomers}
+              segments={[
+                {
+                  key: 'churned',
+                  label: 'Đã rời danh mục',
+                  count: lifecycle.churnedCustomers,
+                  color: 'slate',
+                  side: 'left',
+                },
+                {
+                  key: 'retained',
+                  label: 'Còn vay',
+                  count: lifecycle.retainedCustomers,
+                  color: 'period',
+                  side: 'middle',
+                  badge:
+                    lifecycle.reactivatedCustomers > 0
+                      ? `+${fmtNumber(lifecycle.reactivatedCustomers)} kích hoạt lại`
+                      : undefined,
+                },
+                {
+                  key: 'new',
+                  label: 'Khách hàng mới',
+                  count: lifecycle.newCustomers,
+                  color: 'emerald',
+                  side: 'right',
+                },
+              ]}
+            />
+            {customerJoin.reactivatedCount > 0 && (
+              <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-800">
+                <CheckCircle2 className="h-3 w-3" />
+                {fmtNumber(customerJoin.reactivatedCount)} khách hàng đã ngừng giao dịch ≥ 6 tháng
+                quay trở lại
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quality stacked bar prev vs curr */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Cơ cấu chất lượng dư nợ</CardTitle>
+            <InfoPopover metricKey="periodQualityComposition" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <QualityStackedBars prev={qualityPrev} curr={qualityCurr} prevDate={prevDate} currDate={currDate} />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ─── Sub-components (chỉ dùng trong trang này) ───────────────────────────────
+
+interface FlowSegment {
+  key: string;
+  label: string;
+  count: number;
+  color: 'slate' | 'period' | 'emerald';
+  side: 'left' | 'middle' | 'right';
+  badge?: string;
+}
+
+function FlowDiagram({
+  prevLabel,
+  currLabel,
+  prevTotal,
+  currTotal,
+  segments,
+}: {
+  prevLabel: string;
+  currLabel: string;
+  prevTotal: number;
+  currTotal: number;
+  segments: FlowSegment[];
+}) {
+  const closed = segments.find((s) => s.side === 'left');
+  const retained = segments.find((s) => s.side === 'middle');
+  const newSeg = segments.find((s) => s.side === 'right');
+
+  const colorMap = {
+    slate: 'bg-slate-100 text-slate-700 ring-slate-200',
+    period: 'bg-period-100 text-period-800 ring-period-200',
+    emerald: 'bg-emerald-100 text-emerald-700 ring-emerald-200',
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 items-center gap-3">
+        <div className="text-center">
+          <div className="text-[10px] uppercase tracking-wide text-slate-500">{prevLabel}</div>
+          <div className="text-2xl font-bold text-slate-900">{fmtNumber(prevTotal)}</div>
+        </div>
+        <div className="text-center text-[10px] text-slate-400">→</div>
+        <div className="text-center">
+          <div className="text-[10px] uppercase tracking-wide text-period-700">{currLabel}</div>
+          <div className="text-2xl font-bold text-period-800">{fmtNumber(currTotal)}</div>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {[closed, retained, newSeg].map((s) => {
+          if (!s) return null;
+          return (
+            <div
+              key={s.key}
+              className={cn(
+                'rounded-lg p-3 text-center ring-1',
+                colorMap[s.color]
+              )}
+            >
+              <div className="text-[10px] font-semibold uppercase tracking-wide opacity-75">
+                {s.label}
+              </div>
+              <div className="text-xl font-bold">{fmtNumber(s.count)}</div>
+              {s.badge && <div className="mt-1 text-[10px] font-semibold">{s.badge}</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function QualityStackedBars({
+  prev,
+  curr,
+  prevDate,
+  currDate,
+}: {
+  prev: { trongHan: number; quaHan: number; khoanh: number; total: number };
+  curr: { trongHan: number; quaHan: number; khoanh: number; total: number };
+  prevDate: Date | null;
+  currDate: Date | null;
+}) {
+  const max = Math.max(prev.total, curr.total, 1);
+
+  const Row = ({
+    label,
+    snap,
+  }: {
+    label: string;
+    snap: { trongHan: number; quaHan: number; khoanh: number; total: number };
+  }) => {
+    const widthPct = (snap.total / max) * 100;
+    const thPct = snap.total > 0 ? (snap.trongHan / snap.total) * 100 : 0;
+    const qhPct = snap.total > 0 ? (snap.quaHan / snap.total) * 100 : 0;
+    const khPct = snap.total > 0 ? (snap.khoanh / snap.total) * 100 : 0;
+    return (
+      <div>
+        <div className="mb-1 flex items-baseline justify-between">
+          <span className="text-xs font-semibold text-slate-700">{label}</span>
+          <span className="text-[11px] text-slate-500">{fmtCurrency(snap.total)}</span>
+        </div>
+        <div className="relative h-7 w-full overflow-hidden rounded-md bg-slate-100">
+          <div
+            className="absolute inset-y-0 left-0 flex"
+            style={{ width: `${widthPct}%` }}
+          >
+            <div
+              style={{ width: `${thPct}%` }}
+              className="bg-emerald-400"
+              title={`Trong hạn ${fmtCurrency(snap.trongHan)}`}
+            />
+            <div
+              style={{ width: `${qhPct}%` }}
+              className="bg-rose-500"
+              title={`Quá hạn ${fmtCurrency(snap.quaHan)}`}
+            />
+            <div
+              style={{ width: `${khPct}%` }}
+              className="bg-amber-400"
+              title={`Khoanh ${fmtCurrency(snap.khoanh)}`}
+            />
+          </div>
+        </div>
+        <div className="mt-1 grid grid-cols-3 text-[10px] text-slate-500">
+          <span>
+            Trong hạn: <strong className="text-emerald-700">{fmtPercent(thPct)}</strong>
+          </span>
+          <span className="text-center">
+            Quá hạn: <strong className="text-rose-600">{fmtPercent(qhPct)}</strong>
+          </span>
+          <span className="text-right">
+            Khoanh: <strong className="text-amber-700">{fmtPercent(khPct)}</strong>
+          </span>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <Row label={`Kỳ trước · ${fmtDate(prevDate)}`} snap={prev} />
+      <Row label={`Kỳ sau · ${fmtDate(currDate)}`} snap={curr} />
+    </div>
+  );
+}

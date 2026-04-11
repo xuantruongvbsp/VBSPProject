@@ -1,0 +1,94 @@
+// Nút "Xuất bản dữ liệu" — chỉ hiện cho chủ sở hữu trên thanh bên của
+// hai vỏ ứng dụng. Khi bấm sẽ gửi toàn bộ rows hiện tại đến endpoint
+// nội bộ của vite-plugin-publish, ghi thành tệp tĩnh trong public/.
+
+import { useState } from 'react';
+import { Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { useDataStore } from '@/store/useDataStore';
+import { usePeriodStore } from '@/store/usePeriodStore';
+import { publishSnapshot, publishPeriod } from '@/lib/publish';
+
+interface Props {
+  kind: 'snapshot' | 'period';
+}
+
+type State =
+  | { phase: 'idle' }
+  | { phase: 'busy' }
+  | { phase: 'done' }
+  | { phase: 'error'; msg: string };
+
+export function PublishButton({ kind }: Props) {
+  const [state, setState] = useState<State>({ phase: 'idle' });
+  const snapshotRows = useDataStore((s) => s.rows);
+  const snapshotDate = useDataStore((s) => s.ngaySoLieu);
+  const periodPrev = usePeriodStore((s) => s.prev);
+  const periodCurr = usePeriodStore((s) => s.curr);
+
+  const canPublish =
+    kind === 'snapshot'
+      ? snapshotRows.length > 0
+      : !!(periodPrev && periodCurr);
+
+  const handleClick = async () => {
+    if (state.phase === 'busy') return;
+    setState({ phase: 'busy' });
+    try {
+      if (kind === 'snapshot') {
+        await publishSnapshot(snapshotRows, snapshotDate);
+      } else if (periodPrev && periodCurr) {
+        await publishPeriod(periodPrev, periodCurr);
+      }
+      setState({ phase: 'done' });
+      setTimeout(() => setState({ phase: 'idle' }), 2500);
+    } catch (e) {
+      setState({
+        phase: 'error',
+        msg: e instanceof Error ? e.message : 'Lỗi không xác định',
+      });
+    }
+  };
+
+  const label = (() => {
+    if (state.phase === 'busy') return 'Đang xuất bản…';
+    if (state.phase === 'done') return 'Đã xuất bản';
+    return 'Xuất bản cho người xem';
+  })();
+
+  const Icon = (() => {
+    if (state.phase === 'busy') return Loader2;
+    if (state.phase === 'done') return CheckCircle2;
+    if (state.phase === 'error') return AlertCircle;
+    return Send;
+  })();
+
+  const colorClass = (() => {
+    if (state.phase === 'done')
+      return 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100';
+    if (state.phase === 'error')
+      return 'border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100';
+    return 'border-brand-300 bg-brand-50 text-brand-700 hover:bg-brand-100';
+  })();
+
+  return (
+    <div>
+      <button
+        type="button"
+        disabled={!canPublish || state.phase === 'busy'}
+        onClick={handleClick}
+        className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${colorClass}`}
+        title="Lưu dữ liệu hiện tại để mọi người xem có thể xem qua URL"
+      >
+        <Icon
+          className={`h-3.5 w-3.5 ${state.phase === 'busy' ? 'animate-spin' : ''}`}
+        />
+        {label}
+      </button>
+      {state.phase === 'error' && (
+        <div className="mt-1 text-[10px] text-rose-600" title={state.msg}>
+          {state.msg.length > 60 ? state.msg.slice(0, 60) + '…' : state.msg}
+        </div>
+      )}
+    </div>
+  );
+}
