@@ -15,7 +15,7 @@ import {
   BarChart3,
   Percent,
   LayoutGrid,
-  PieChart as PieChartIcon,
+
   Activity,
   Table,
 } from 'lucide-react';
@@ -45,7 +45,7 @@ import { LoanDetailDrawer } from '@/components/detail/LoanDetailDrawer';
 import { ChartSwitcher, type ChartTypeOption } from '@/components/ui/ChartSwitcher';
 import type { StackedChartType } from '@/components/charts/StackedStatus';
 import type { BarGroupChartType } from '@/components/charts/BarByGroup';
-import type { DonutChartType } from '@/components/charts/DonutByField';
+
 import type { LineChartType } from '@/components/charts/LineDisbursement';
 import type { HistogramChartType } from '@/components/charts/HistogramAmount';
 import type { HeatmapChartType } from '@/components/charts/HeatmapMaturity';
@@ -63,12 +63,7 @@ const BAR_GROUP_OPTS: ChartTypeOption<BarGroupChartType>[] = [
   { id: 'bar', icon: AlignLeft, tooltip: 'Biểu đồ thanh' },
   { id: 'treemap', icon: LayoutGrid, tooltip: 'Bản đồ cây' },
 ];
-const DONUT_OPTS: ChartTypeOption<DonutChartType>[] = [
-  { id: 'donut', icon: PieChartIcon, tooltip: 'Biểu đồ tròn' },
-  { id: 'bar', icon: BarChart2, tooltip: 'Biểu đồ cột' },
-  { id: 'hbar', icon: AlignLeft, tooltip: 'Thanh ngang' },
-  { id: 'treemap', icon: LayoutGrid, tooltip: 'Bản đồ cây' },
-];
+
 const LINE_OPTS: ChartTypeOption<LineChartType>[] = [
   { id: 'area', icon: Activity, tooltip: 'Biểu đồ vùng' },
   { id: 'line', icon: TrendingUp, tooltip: 'Biểu đồ đường' },
@@ -113,7 +108,7 @@ export function OverviewPage() {
   const [dormantExporting, setDormantExporting] = useState(false);
   const [stackedType, setStackedType] = useState<StackedChartType>('stacked');
   const [barGroupType, setBarGroupType] = useState<BarGroupChartType>('bar');
-  const [donutType, setDonutType] = useState<DonutChartType>('donut');
+
   const [lineType, setLineType] = useState<LineChartType>('area');
   const [histType, setHistType] = useState<HistogramChartType>('bar');
   const [heatType, setHeatType] = useState<HeatmapChartType>('heatmap');
@@ -408,7 +403,6 @@ export function OverviewPage() {
             <div className="flex items-center justify-between gap-2">
               <CardTitle>Cơ cấu khách hàng</CardTitle>
               <div className="flex items-center gap-1">
-                <ChartSwitcher options={DONUT_OPTS} value={donutType} onChange={setDonutType} />
                 <select
                   value={donutField}
                   onChange={(e) => setDonutField(e.target.value as any)}
@@ -426,7 +420,7 @@ export function OverviewPage() {
             <DonutByField
               data={byClassification}
               onClick={(v) => drillTo(donutField as FilterField, v)}
-              chartType={donutType}
+              chartType={'donut'}
             />
           </CardContent>
         </Card>
