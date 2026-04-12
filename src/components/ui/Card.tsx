@@ -8,7 +8,7 @@ export const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      'rounded-xl border border-slate-200 bg-white shadow-sm',
+      'rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800',
       className
     )}
     {...props}
@@ -23,7 +23,7 @@ export function CardHeader({
   return (
     <div
       className={cn(
-        'flex flex-col gap-1 border-b border-slate-100 px-5 py-4',
+        'flex flex-col gap-1 border-b border-slate-100 px-5 py-4 dark:border-slate-700',
         className
       )}
       {...props}
@@ -38,7 +38,7 @@ export function CardTitle({
   return (
     <h3
       className={cn(
-        'text-sm font-semibold uppercase tracking-wide text-slate-700',
+        'text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200',
         className
       )}
       {...props}
@@ -51,7 +51,7 @@ export function CardDescription({
   ...props
 }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
-    <p className={cn('text-xs text-slate-500', className)} {...props} />
+    <p className={cn('text-xs text-slate-500 dark:text-slate-400', className)} {...props} />
   );
 }
 

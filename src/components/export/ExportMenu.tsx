@@ -208,7 +208,7 @@ export function ExportMenu(props: ExportMenuProps): React.ReactElement {
           align="end"
           sideOffset={6}
           className={cn(
-            'z-50 w-60 rounded-md border border-slate-200 bg-white p-1 shadow-lg',
+            'z-50 w-60 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-1 shadow-lg',
             'focus:outline-none'
           )}
         >
@@ -226,7 +226,7 @@ export function ExportMenu(props: ExportMenuProps): React.ReactElement {
             onClick={onClickPdf}
             disabled={busy}
           />
-          <div className="my-1 h-px bg-slate-100" />
+          <div className="my-1 h-px bg-slate-100 dark:bg-slate-700" />
           <MenuItem
             icon={<Download className="h-4 w-4 text-slate-600" />}
             label="Xuất cả hai định dạng"
@@ -262,15 +262,15 @@ function MenuItem({
       disabled={disabled}
       className={cn(
         'flex w-full items-start gap-3 rounded-sm px-2.5 py-2 text-left text-sm',
-        'hover:bg-slate-50 focus:bg-slate-100 focus:outline-none',
+        'hover:bg-slate-50 dark:hover:bg-slate-700 focus:bg-slate-100 dark:focus:bg-slate-700 focus:outline-none',
         'disabled:cursor-not-allowed disabled:opacity-50'
       )}
     >
       <span className="mt-0.5 shrink-0">{icon}</span>
       <span className="flex flex-col">
-        <span className="font-medium text-slate-800">{label}</span>
+        <span className="font-medium text-slate-800 dark:text-slate-100">{label}</span>
         {description ? (
-          <span className="text-xs text-slate-500">{description}</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">{description}</span>
         ) : null}
       </span>
     </button>

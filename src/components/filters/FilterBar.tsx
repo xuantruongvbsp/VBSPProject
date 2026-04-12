@@ -112,17 +112,17 @@ function ChipItem({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white py-1 pl-1.5 pr-1 text-xs font-medium text-slate-700 shadow-sm"
+      className="flex items-center gap-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 py-1 pl-1.5 pr-1 text-xs font-medium text-slate-700 dark:text-slate-200 shadow-sm"
     >
       <span
         {...attributes}
         {...listeners}
-        className="cursor-grab text-slate-400 hover:text-slate-600"
+        className="cursor-grab text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
       >
         <GripVertical className="h-3.5 w-3.5" />
       </span>
       <button onClick={onClick} className="flex items-center gap-1">
-        <span className="text-slate-500">{FIELD_LABEL[filter.field]}:</span>
+        <span className="text-slate-500 dark:text-slate-400">{FIELD_LABEL[filter.field]}:</span>
         <span className={accent === 'period' ? 'text-period-700' : 'text-brand-700'}>
           {filter.values.length === 0
             ? 'tất cả'
@@ -133,7 +133,7 @@ function ChipItem({
       </button>
       <button
         onClick={onRemove}
-        className="rounded-full p-0.5 text-slate-400 hover:bg-rose-100 hover:text-rose-600"
+        className="rounded-full p-0.5 text-slate-400 dark:text-slate-500 hover:bg-rose-100 dark:hover:bg-rose-900/30 hover:text-rose-600"
       >
         <X className="h-3 w-3" />
       </button>
@@ -190,13 +190,13 @@ export function FilterBar({ useStore, accent = 'brand' }: FilterBarProps = {}) {
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
           <input
             value={search.q}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Tìm theo tên KH, CMND, số khế ước..."
             className={cn(
-              'h-8 w-72 rounded-md border border-slate-200 bg-white pl-7 pr-3 text-xs text-slate-700 outline-none focus:ring-1',
+              'h-8 w-72 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 pl-7 pr-3 text-xs text-slate-700 dark:text-slate-200 outline-none focus:ring-1',
               focusRing
             )}
           />
@@ -226,7 +226,7 @@ export function FilterBar({ useStore, accent = 'brand' }: FilterBarProps = {}) {
             <Plus className="h-3.5 w-3.5" /> Thêm bộ lọc
           </Button>
           {adderOpen && (
-            <div className="absolute left-0 top-9 z-30 w-64 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
+            <div className="absolute left-0 top-9 z-30 w-64 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-1 shadow-lg">
               {availableFields.map((f) => (
                 <button
                   key={f}
@@ -245,7 +245,7 @@ export function FilterBar({ useStore, accent = 'brand' }: FilterBarProps = {}) {
                       if (target) setEditing(target.id);
                     }, 0);
                   }}
-                  className="flex w-full items-center rounded px-3 py-1.5 text-left text-xs text-slate-700 hover:bg-slate-50"
+                  className="flex w-full items-center rounded px-3 py-1.5 text-left text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
                 >
                   {FIELD_LABEL[f]}
                 </button>
@@ -301,12 +301,12 @@ function ValuePicker({
   const set = new Set(selected);
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+    <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 shadow-sm">
       <div className="mb-2 flex items-center justify-between">
-        <div className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
           Chọn giá trị: {FIELD_LABEL[field]}
         </div>
-        <button onClick={onClose} className="text-xs text-slate-500 hover:text-rose-600">
+        <button onClick={onClose} className="text-xs text-slate-500 dark:text-slate-400 hover:text-rose-600">
           Đóng
         </button>
       </div>
@@ -315,7 +315,7 @@ function ValuePicker({
         onChange={(e) => setQ(e.target.value)}
         placeholder="Tìm trong danh sách..."
         className={cn(
-          'mb-2 h-8 w-full rounded-md border border-slate-200 px-2 text-xs outline-none',
+          'mb-2 h-8 w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 text-xs text-slate-700 dark:text-slate-200 outline-none',
           accent === 'period' ? 'focus:border-period-400' : 'focus:border-brand-400'
         )}
       />
@@ -335,9 +335,9 @@ function ValuePicker({
                 'flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs',
                 active
                   ? accent === 'period'
-                    ? 'bg-period-50 text-period-800'
-                    : 'bg-brand-50 text-brand-800'
-                  : 'text-slate-700 hover:bg-slate-50'
+                    ? 'bg-period-50 text-period-800 dark:bg-period-900/40 dark:text-period-200'
+                    : 'bg-brand-50 text-brand-800 dark:bg-brand-900/40 dark:text-brand-200'
+                  : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700'
               )}
             >
               <span className="truncate">{o}</span>
@@ -350,16 +350,16 @@ function ValuePicker({
           );
         })}
         {filtered.length === 0 && (
-          <div className="px-2 py-4 text-center text-xs text-slate-400">
+          <div className="px-2 py-4 text-center text-xs text-slate-400 dark:text-slate-500">
             Không có giá trị
           </div>
         )}
       </div>
-      <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-2 text-xs">
-        <span className="text-slate-500">Đã chọn: {selected.length}</span>
+      <div className="mt-2 flex items-center justify-between border-t border-slate-100 dark:border-slate-700 pt-2 text-xs">
+        <span className="text-slate-500 dark:text-slate-400">Đã chọn: {selected.length}</span>
         <button
           onClick={() => onChange([])}
-          className="text-slate-500 hover:text-rose-600"
+          className="text-slate-500 dark:text-slate-400 hover:text-rose-600"
         >
           Bỏ chọn tất cả
         </button>

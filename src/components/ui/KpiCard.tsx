@@ -10,34 +10,34 @@ export type Trend = 'up' | 'down' | 'flat';
 
 const toneMap: Record<Tone, { card: string; label: string; value: string; chip: string }> = {
   default: {
-    card: 'bg-white ring-1 ring-slate-200',
-    label: 'text-slate-600',
-    value: 'text-slate-900',
-    chip: 'bg-slate-100 text-slate-700',
+    card: 'bg-white ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700',
+    label: 'text-slate-600 dark:text-slate-400',
+    value: 'text-slate-900 dark:text-slate-100',
+    chip: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300',
   },
   primary: {
-    card: 'bg-brand-50 ring-1 ring-brand-200',
-    label: 'text-brand-700',
-    value: 'text-brand-900',
-    chip: 'bg-brand-100 text-brand-800',
+    card: 'bg-brand-50 ring-1 ring-brand-200 dark:bg-brand-900/30 dark:ring-brand-800',
+    label: 'text-brand-700 dark:text-brand-300',
+    value: 'text-brand-900 dark:text-brand-100',
+    chip: 'bg-brand-100 text-brand-800 dark:bg-brand-800/50 dark:text-brand-200',
   },
   success: {
-    card: 'bg-emerald-50 ring-1 ring-emerald-200',
-    label: 'text-emerald-700',
-    value: 'text-emerald-900',
-    chip: 'bg-emerald-100 text-emerald-800',
+    card: 'bg-emerald-50 ring-1 ring-emerald-200 dark:bg-emerald-900/30 dark:ring-emerald-800',
+    label: 'text-emerald-700 dark:text-emerald-300',
+    value: 'text-emerald-900 dark:text-emerald-100',
+    chip: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-800/50 dark:text-emerald-200',
   },
   warning: {
-    card: 'bg-amber-50 ring-1 ring-amber-200',
-    label: 'text-amber-700',
-    value: 'text-amber-900',
-    chip: 'bg-amber-100 text-amber-800',
+    card: 'bg-amber-50 ring-1 ring-amber-200 dark:bg-amber-900/30 dark:ring-amber-800',
+    label: 'text-amber-700 dark:text-amber-300',
+    value: 'text-amber-900 dark:text-amber-100',
+    chip: 'bg-amber-100 text-amber-800 dark:bg-amber-800/50 dark:text-amber-200',
   },
   danger: {
-    card: 'bg-rose-50 ring-1 ring-rose-200',
-    label: 'text-rose-700',
-    value: 'text-rose-900',
-    chip: 'bg-rose-100 text-rose-800',
+    card: 'bg-rose-50 ring-1 ring-rose-200 dark:bg-rose-900/30 dark:ring-rose-800',
+    label: 'text-rose-700 dark:text-rose-300',
+    value: 'text-rose-900 dark:text-rose-100',
+    chip: 'bg-rose-100 text-rose-800 dark:bg-rose-800/50 dark:text-rose-200',
   },
 };
 
@@ -110,7 +110,7 @@ export function KpiCard({
               {value}
             </div>
           )}
-          {caption && <div className="text-xs text-slate-500">{caption}</div>}
+          {caption && <div className="text-xs text-slate-500 dark:text-slate-400">{caption}</div>}
         </div>
         <div className="flex flex-col items-end gap-2">
           {icon && (

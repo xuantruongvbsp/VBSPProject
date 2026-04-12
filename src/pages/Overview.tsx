@@ -10,6 +10,14 @@ import {
   UserX,
   FileText,
   Download,
+  AlignLeft,
+  BarChart2,
+  BarChart3,
+  Percent,
+  LayoutGrid,
+  PieChart as PieChartIcon,
+  Activity,
+  Table,
 } from 'lucide-react';
 import { applyFilters, useDataStore, type FilterField } from '@/store/useDataStore';
 import {
@@ -34,8 +42,47 @@ import { LineDisbursement } from '@/components/charts/LineDisbursement';
 import { HistogramAmount } from '@/components/charts/HistogramAmount';
 import { HeatmapMaturity } from '@/components/charts/HeatmapMaturity';
 import { LoanDetailDrawer } from '@/components/detail/LoanDetailDrawer';
+import { ChartSwitcher, type ChartTypeOption } from '@/components/ui/ChartSwitcher';
+import type { StackedChartType } from '@/components/charts/StackedStatus';
+import type { BarGroupChartType } from '@/components/charts/BarByGroup';
+import type { DonutChartType } from '@/components/charts/DonutByField';
+import type { LineChartType } from '@/components/charts/LineDisbursement';
+import type { HistogramChartType } from '@/components/charts/HistogramAmount';
+import type { HeatmapChartType } from '@/components/charts/HeatmapMaturity';
 import { cn } from '@/lib/utils';
 import type { LoanRecord } from '@/lib/types';
+
+/* ── Chart type options ────────────────────────────────────────────── */
+const STACKED_OPTS: ChartTypeOption<StackedChartType>[] = [
+  { id: 'stacked', icon: AlignLeft, tooltip: 'Thanh xếp chồng' },
+  { id: 'grouped', icon: BarChart3, tooltip: 'Thanh nhóm' },
+  { id: 'percent', icon: Percent, tooltip: 'Thanh tỷ lệ 100%' },
+  { id: 'treemap', icon: LayoutGrid, tooltip: 'Bản đồ cây' },
+];
+const BAR_GROUP_OPTS: ChartTypeOption<BarGroupChartType>[] = [
+  { id: 'bar', icon: AlignLeft, tooltip: 'Biểu đồ thanh' },
+  { id: 'treemap', icon: LayoutGrid, tooltip: 'Bản đồ cây' },
+];
+const DONUT_OPTS: ChartTypeOption<DonutChartType>[] = [
+  { id: 'donut', icon: PieChartIcon, tooltip: 'Biểu đồ tròn' },
+  { id: 'bar', icon: BarChart2, tooltip: 'Biểu đồ cột' },
+  { id: 'hbar', icon: AlignLeft, tooltip: 'Thanh ngang' },
+  { id: 'treemap', icon: LayoutGrid, tooltip: 'Bản đồ cây' },
+];
+const LINE_OPTS: ChartTypeOption<LineChartType>[] = [
+  { id: 'area', icon: Activity, tooltip: 'Biểu đồ vùng' },
+  { id: 'line', icon: TrendingUp, tooltip: 'Biểu đồ đường' },
+  { id: 'bar', icon: BarChart2, tooltip: 'Biểu đồ cột' },
+];
+const HIST_OPTS: ChartTypeOption<HistogramChartType>[] = [
+  { id: 'bar', icon: BarChart2, tooltip: 'Biểu đồ cột' },
+  { id: 'hbar', icon: AlignLeft, tooltip: 'Thanh ngang' },
+  { id: 'area', icon: Activity, tooltip: 'Biểu đồ vùng' },
+];
+const HEAT_OPTS: ChartTypeOption<HeatmapChartType>[] = [
+  { id: 'heatmap', icon: Table, tooltip: 'Bảng nhiệt' },
+  { id: 'stackedBar', icon: BarChart2, tooltip: 'Cột xếp chồng theo năm' },
+];
 
 /**
  * Các khoảng phân nhóm khách hàng ngừng giao dịch (đơn vị: tháng).
@@ -64,6 +111,12 @@ export function OverviewPage() {
   const [dormantBucket, setDormantBucket] = useState<DormantBucketId>('all');
   const [detail, setDetail] = useState<LoanRecord | null>(null);
   const [dormantExporting, setDormantExporting] = useState(false);
+  const [stackedType, setStackedType] = useState<StackedChartType>('stacked');
+  const [barGroupType, setBarGroupType] = useState<BarGroupChartType>('bar');
+  const [donutType, setDonutType] = useState<DonutChartType>('donut');
+  const [lineType, setLineType] = useState<LineChartType>('area');
+  const [histType, setHistType] = useState<HistogramChartType>('bar');
+  const [heatType, setHeatType] = useState<HeatmapChartType>('heatmap');
 
   // Drill-down: áp bộ lọc theo trường rồi điều hướng sang Tra cứu chi tiết.
   const drillTo = useCallback(
@@ -97,6 +150,22 @@ export function OverviewPage() {
       const lastDay = new Date(y, m, 0).getDate();
       const end = `${yStr}-${mStr}-${String(lastDay).padStart(2, '0')}`;
       drillDownRange('ngayVay', [start, end]);
+      navigate('/snapshot/du-lieu');
+    },
+    [drillDownRange, navigate]
+  );
+
+  // Drill-down theo tháng đáo hạn (heatmap).
+  const drillByMaturity = useCallback(
+    (ym: string) => {
+      const [yStr, mStr] = ym.split('-');
+      const y = Number(yStr);
+      const m = Number(mStr);
+      if (!y || !m) return;
+      const start = `${yStr}-${mStr}-01`;
+      const lastDay = new Date(y, m, 0).getDate();
+      const end = `${yStr}-${mStr}-${String(lastDay).padStart(2, '0')}`;
+      drillDownRange('ngayDaoHan', [start, end]);
       navigate('/snapshot/du-lieu');
     },
     [drillDownRange, navigate]
@@ -171,10 +240,10 @@ export function OverviewPage() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-slate-900">Tổng quan danh mục tín dụng</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Tổng quan danh mục tín dụng</h1>
           <InfoPopover metricKey="pageOverview" />
         </div>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-600 dark:text-slate-400">
           Thống kê toàn bộ {filtered.length.toLocaleString('vi-VN')} khế ước theo các bộ lọc đang
           áp dụng
         </p>
@@ -262,7 +331,10 @@ export function OverviewPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Dư nợ theo Đơn vị ủy thác</CardTitle>
-              <InfoPopover metricKey="chartDvut" />
+              <div className="flex items-center gap-1">
+                <ChartSwitcher options={STACKED_OPTS} value={stackedType} onChange={setStackedType} />
+                <InfoPopover metricKey="chartDvut" />
+              </div>
             </div>
           </CardHeader>
           <CardContent id="chart-dvut">
@@ -270,6 +342,7 @@ export function OverviewPage() {
               data={byDVUT}
               limit={6}
               onClick={(v) => drillTo('tenDVUT', v)}
+              chartType={stackedType}
             />
           </CardContent>
         </Card>
@@ -277,7 +350,10 @@ export function OverviewPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Dư nợ theo Chương trình tín dụng</CardTitle>
-              <InfoPopover metricKey="chartProgram" />
+              <div className="flex items-center gap-1">
+                <ChartSwitcher options={BAR_GROUP_OPTS} value={barGroupType} onChange={setBarGroupType} />
+                <InfoPopover metricKey="chartProgram" />
+              </div>
             </div>
           </CardHeader>
           <CardContent id="chart-program">
@@ -285,6 +361,7 @@ export function OverviewPage() {
               data={byProgram}
               limit={10}
               onClick={(v) => drillTo('tenChuongTrinh', v)}
+              chartType={barGroupType}
             />
           </CardContent>
         </Card>
@@ -295,13 +372,17 @@ export function OverviewPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Phân bố mức vay</CardTitle>
-            <InfoPopover metricKey="chartHistogram" />
+            <div className="flex items-center gap-1">
+              <ChartSwitcher options={HIST_OPTS} value={histType} onChange={setHistType} />
+              <InfoPopover metricKey="chartHistogram" />
+            </div>
           </div>
         </CardHeader>
         <CardContent id="chart-histogram">
           <HistogramAmount
             data={histogram}
             onClick={(b) => drillByMucVay([b.min, b.max])}
+            chartType={histType}
           />
         </CardContent>
       </Card>
@@ -312,11 +393,14 @@ export function OverviewPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Giải ngân theo thời gian (theo tháng)</CardTitle>
-              <InfoPopover metricKey="chartTimeSeries" />
+              <div className="flex items-center gap-1">
+                <ChartSwitcher options={LINE_OPTS} value={lineType} onChange={setLineType} />
+                <InfoPopover metricKey="chartTimeSeries" />
+              </div>
             </div>
           </CardHeader>
           <CardContent id="chart-timeseries">
-            <LineDisbursement data={ts} onClick={drillByMonth} />
+            <LineDisbursement data={ts} onClick={drillByMonth} chartType={lineType} />
           </CardContent>
         </Card>
         <Card>
@@ -324,10 +408,11 @@ export function OverviewPage() {
             <div className="flex items-center justify-between gap-2">
               <CardTitle>Cơ cấu khách hàng</CardTitle>
               <div className="flex items-center gap-1">
+                <ChartSwitcher options={DONUT_OPTS} value={donutType} onChange={setDonutType} />
                 <select
                   value={donutField}
                   onChange={(e) => setDonutField(e.target.value as any)}
-                  className="h-7 rounded border border-slate-200 bg-white px-2 text-[11px] text-slate-700 outline-none focus:border-brand-400"
+                  className="h-7 rounded border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 text-[11px] text-slate-700 dark:text-slate-200 outline-none focus:border-brand-400 dark:focus:border-brand-500"
                 >
                   <option value="phanLoai">Theo phân loại</option>
                   <option value="gioiTinh">Theo giới tính</option>
@@ -341,6 +426,7 @@ export function OverviewPage() {
             <DonutByField
               data={byClassification}
               onClick={(v) => drillTo(donutField as FilterField, v)}
+              chartType={donutType}
             />
           </CardContent>
         </Card>
@@ -352,11 +438,14 @@ export function OverviewPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Lịch đáo hạn theo tháng</CardTitle>
-              <InfoPopover metricKey="chartMaturity" />
+              <div className="flex items-center gap-1">
+                <ChartSwitcher options={HEAT_OPTS} value={heatType} onChange={setHeatType} />
+                <InfoPopover metricKey="chartMaturity" />
+              </div>
             </div>
           </CardHeader>
           <CardContent id="chart-maturity">
-            <HeatmapMaturity data={maturity} />
+            <HeatmapMaturity data={maturity} chartType={heatType} onClick={drillByMaturity} />
           </CardContent>
         </Card>
         <Card>
@@ -369,8 +458,8 @@ export function OverviewPage() {
           <CardContent id="chart-top-customers" className="p-0">
             <div className="scrollbar-thin max-h-[420px] overflow-y-auto">
               <table className="w-full text-xs">
-                <thead className="sticky top-0 bg-slate-50">
-                  <tr className="text-left text-slate-500">
+                <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800">
+                  <tr className="text-left text-slate-500 dark:text-slate-400">
                     <th className="px-3 py-2">#</th>
                     <th className="px-3 py-2">Khách hàng</th>
                     <th className="px-3 py-2 text-right">Tổng dư nợ</th>
@@ -381,16 +470,16 @@ export function OverviewPage() {
                     <tr
                       key={r.soKheUoc + i}
                       onClick={() => setDetail(r)}
-                      className="cursor-pointer border-t border-slate-100 hover:bg-brand-50"
+                      className="cursor-pointer border-t border-slate-100 dark:border-slate-700 hover:bg-brand-50 dark:hover:bg-brand-900/20"
                     >
-                      <td className="px-3 py-2 text-slate-500">{i + 1}</td>
+                      <td className="px-3 py-2 text-slate-500 dark:text-slate-400">{i + 1}</td>
                       <td className="px-3 py-2">
-                        <div className="font-medium text-slate-800">{r.tenKH}</div>
-                        <div className="text-[10px] text-slate-500">
+                        <div className="font-medium text-slate-800 dark:text-slate-100">{r.tenKH}</div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400">
                           {r.tenPGD} · {r.tenDVUT}
                         </div>
                       </td>
-                      <td className="px-3 py-2 text-right font-semibold text-slate-900">
+                      <td className="px-3 py-2 text-right font-semibold text-slate-900 dark:text-slate-100">
                         {fmtCurrency(r.tongDuNo)}
                       </td>
                     </tr>
@@ -408,7 +497,7 @@ export function OverviewPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <CardTitle>Khách hàng ngừng giao dịch</CardTitle>
-              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+              <span className="rounded-full bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
                 {fmtNumber(dormant.length)} khách hàng
               </span>
             </div>
@@ -416,7 +505,7 @@ export function OverviewPage() {
               <span className="text-[11px] font-medium text-slate-500">
                 Khoảng thời gian không phát sinh giao dịch
               </span>
-              <div className="inline-flex rounded-md border border-slate-200 bg-slate-50 p-0.5 text-xs">
+              <div className="inline-flex rounded-md border border-slate-200 bg-slate-50 p-0.5 text-xs dark:border-slate-600 dark:bg-slate-700">
                 {DORMANT_BUCKETS.map((b) => {
                   const active = dormantBucket === b.id;
                   return (
@@ -427,8 +516,8 @@ export function OverviewPage() {
                       className={cn(
                         'rounded px-3 py-1 font-medium transition-colors',
                         active
-                          ? 'bg-white text-slate-900 shadow-sm'
-                          : 'text-slate-600 hover:text-slate-800'
+                          ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-slate-100 shadow-sm'
+                          : 'text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100'
                       )}
                     >
                       {b.label}
@@ -447,9 +536,9 @@ export function OverviewPage() {
                 }
                 aria-label="Xuất khách hàng ngừng giao dịch"
                 className={cn(
-                  'inline-flex h-7 items-center gap-1 rounded-md border border-slate-200 bg-white px-2 text-[11px] font-medium text-slate-600 shadow-sm transition-colors',
-                  'hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700',
-                  'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-slate-200 disabled:hover:bg-white disabled:hover:text-slate-600'
+                  'inline-flex h-7 items-center gap-1 rounded-md border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 text-[11px] font-medium text-slate-600 dark:text-slate-300 shadow-sm transition-colors',
+                  'hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 dark:hover:border-brand-500 dark:hover:bg-brand-900/30 dark:hover:text-brand-300',
+                  'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-slate-200 dark:disabled:hover:border-slate-600 disabled:hover:bg-white dark:disabled:hover:bg-slate-800 disabled:hover:text-slate-600 dark:disabled:hover:text-slate-300'
                 )}
               >
                 <Download className={cn('h-3.5 w-3.5', dormantExporting && 'animate-pulse')} />
@@ -472,8 +561,8 @@ export function OverviewPage() {
           ) : (
             <div className="scrollbar-thin max-h-[480px] overflow-y-auto">
               <table className="w-full text-xs">
-                <thead className="sticky top-0 bg-slate-50">
-                  <tr className="text-left text-slate-500">
+                <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800">
+                  <tr className="text-left text-slate-500 dark:text-slate-400">
                     <th className="px-3 py-2">#</th>
                     <th className="px-3 py-2">Khách hàng</th>
                     <th className="px-3 py-2">PGD · ĐVUT</th>
@@ -491,31 +580,31 @@ export function OverviewPage() {
                       <tr
                         key={d.maKH}
                         onClick={() => record && setDetail(record)}
-                        className="cursor-pointer border-t border-slate-100 hover:bg-amber-50"
+                        className="cursor-pointer border-t border-slate-100 dark:border-slate-700 hover:bg-amber-50 dark:hover:bg-amber-900/20"
                       >
-                        <td className="px-3 py-2 text-slate-500">{i + 1}</td>
+                        <td className="px-3 py-2 text-slate-500 dark:text-slate-400">{i + 1}</td>
                         <td className="px-3 py-2">
-                          <div className="font-medium text-slate-800">{d.tenKH}</div>
-                          <div className="text-[10px] text-slate-500">{d.maKH}</div>
+                          <div className="font-medium text-slate-800 dark:text-slate-100">{d.tenKH}</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400">{d.maKH}</div>
                         </td>
-                        <td className="px-3 py-2 text-slate-600">
+                        <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
                           <div>{d.tenPGD}</div>
-                          <div className="text-[10px] text-slate-500">{d.tenDVUT}</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400">{d.tenDVUT}</div>
                         </td>
-                        <td className="max-w-[220px] truncate px-3 py-2 text-slate-600">
+                        <td className="max-w-[220px] truncate px-3 py-2 text-slate-600 dark:text-slate-300">
                           {d.tenChuongTrinh}
                         </td>
-                        <td className="px-3 py-2 text-right text-slate-700">
+                        <td className="px-3 py-2 text-right text-slate-700 dark:text-slate-300">
                           {fmtNumber(d.soKheUoc)}
                         </td>
-                        <td className="px-3 py-2 text-right font-semibold text-slate-900">
+                        <td className="px-3 py-2 text-right font-semibold text-slate-900 dark:text-slate-100">
                           {fmtCurrency(d.tongDuNo)}
                         </td>
-                        <td className="px-3 py-2 text-right text-slate-600">
+                        <td className="px-3 py-2 text-right text-slate-600 dark:text-slate-300">
                           {fmtDate(d.ngayHoatDongCuoi)}
                         </td>
                         <td className="px-3 py-2 text-right">
-                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                          <span className="rounded-full bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-300">
                             {fmtNumber(d.daysSince)} ngày
                           </span>
                         </td>
@@ -525,7 +614,7 @@ export function OverviewPage() {
                 </tbody>
               </table>
               {dormant.length > 200 && (
-                <div className="border-t border-slate-100 px-3 py-2 text-center text-[10px] text-slate-500">
+                <div className="border-t border-slate-100 dark:border-slate-700 px-3 py-2 text-center text-[10px] text-slate-500 dark:text-slate-400">
                   Hiển thị 200 / {fmtNumber(dormant.length)} khách hàng. Sử dụng bộ lọc phía trên
                   để thu hẹp danh sách.
                 </div>

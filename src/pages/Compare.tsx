@@ -1,15 +1,5 @@
 import { useMemo, useState } from 'react';
-import {
-  Radar,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  ResponsiveContainer,
-  Legend,
-  Tooltip,
-} from 'recharts';
-import { ArrowRight, GitCompare } from 'lucide-react';
+import { ArrowRight, GitCompare, Radar as RadarIcon, BarChart3, AlignLeft, Minus } from 'lucide-react';
 import { applyFilters, useDataStore, FIELD_LABEL, type FilterField } from '@/store/useDataStore';
 import { computeKpi, distinctValues } from '@/lib/metrics';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -20,6 +10,18 @@ import { FilterBar } from '@/components/filters/FilterBar';
 import { fmtCompact, fmtCurrency, fmtNumber, fmtPercent } from '@/lib/format';
 import type { LoanRecord } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { ChartSwitcher, type ChartTypeOption } from '@/components/ui/ChartSwitcher';
+import { RadarCompare, type RadarChartType } from '@/components/charts/RadarCompare';
+import { RankingBars, type RankingChartType } from '@/components/charts/RankingBars';
+
+const RADAR_OPTS: ChartTypeOption<RadarChartType>[] = [
+  { id: 'radar', icon: RadarIcon, tooltip: 'Biểu đồ radar' },
+  { id: 'groupedBar', icon: BarChart3, tooltip: 'Biểu đồ cột nhóm' },
+];
+const RANKING_OPTS: ChartTypeOption<RankingChartType>[] = [
+  { id: 'bar', icon: AlignLeft, tooltip: 'Thanh ngang' },
+  { id: 'lollipop', icon: Minus, tooltip: 'Biểu đồ kẹo mút' },
+];
 
 const DIM_FIELDS: FilterField[] = [
   'tenPGD',
@@ -68,6 +70,8 @@ export function ComparePage() {
   const [parent, setParent] = useState<{ field: FilterField; value: string } | null>(null);
   const [subDimension, setSubDimension] = useState<FilterField>('tenDVUT');
   const [picked, setPicked] = useState<string[]>([]);
+  const [radarType, setRadarType] = useState<RadarChartType>('radar');
+  const [rankingType, setRankingType] = useState<RankingChartType>('bar');
 
   const baseFiltered = useMemo(
     () => applyFilters(rows, filters, ranges, search),
@@ -141,10 +145,10 @@ export function ComparePage() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-slate-900">Báo cáo so sánh</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Báo cáo so sánh</h1>
           <InfoPopover metricKey="pageCompare" />
         </div>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-600 dark:text-slate-300">
           So sánh giữa các đối tượng (PGD, Đơn vị ủy thác, Chương trình…) hoặc bên trong một đối
           tượng đã chọn
         </p>
@@ -159,7 +163,7 @@ export function ComparePage() {
       <Card>
         <CardContent className="space-y-4 py-4">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="inline-flex rounded-md border border-slate-200 bg-slate-50 p-0.5 text-xs">
+            <div className="inline-flex rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-0.5 text-xs">
               <button
                 onClick={() => {
                   setMode('between');
@@ -167,7 +171,7 @@ export function ComparePage() {
                 }}
                 className={cn(
                   'rounded px-3 py-1.5 font-medium',
-                  mode === 'between' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+                  mode === 'between' ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-slate-100 shadow-sm' : 'text-slate-600 dark:text-slate-300'
                 )}
               >
                 Giữa các đối tượng
@@ -179,7 +183,7 @@ export function ComparePage() {
                 }}
                 className={cn(
                   'rounded px-3 py-1.5 font-medium',
-                  mode === 'within' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+                  mode === 'within' ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-slate-100 shadow-sm' : 'text-slate-600 dark:text-slate-300'
                 )}
               >
                 Trong cùng đối tượng
@@ -188,14 +192,14 @@ export function ComparePage() {
 
             {mode === 'between' ? (
               <>
-                <span className="text-xs text-slate-500">Tiêu chí so sánh:</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">Tiêu chí so sánh:</span>
                 <select
                   value={dimension}
                   onChange={(e) => {
                     setDimension(e.target.value as FilterField);
                     setPicked([]);
                   }}
-                  className="h-8 rounded border border-slate-200 bg-white px-2 text-xs text-slate-700"
+                  className="h-8 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 text-xs text-slate-700 dark:text-slate-200"
                 >
                   {DIM_FIELDS.map((f) => (
                     <option key={f} value={f}>
@@ -206,11 +210,11 @@ export function ComparePage() {
               </>
             ) : (
               <>
-                <span className="text-xs text-slate-500">Đối tượng cha:</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">Đối tượng cha:</span>
                 <select
                   value={parent?.field ?? 'tenPGD'}
                   onChange={(e) => setParent({ field: e.target.value as FilterField, value: '' })}
-                  className="h-8 rounded border border-slate-200 bg-white px-2 text-xs"
+                  className="h-8 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 text-xs dark:text-slate-200"
                 >
                   {DIM_FIELDS.map((f) => (
                     <option key={f} value={f}>
@@ -226,22 +230,22 @@ export function ComparePage() {
                       value: e.target.value,
                     })
                   }
-                  className="h-8 rounded border border-slate-200 bg-white px-2 text-xs"
+                  className="h-8 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 text-xs dark:text-slate-200"
                 >
                   <option value="">— Chọn —</option>
                   {distinctValues(baseFiltered, parent?.field ?? 'tenPGD').map((v) => (
                     <option key={v}>{v}</option>
                   ))}
                 </select>
-                <ArrowRight className="h-3 w-3 text-slate-400" />
-                <span className="text-xs text-slate-500">So sánh theo:</span>
+                <ArrowRight className="h-3 w-3 text-slate-400 dark:text-slate-500" />
+                <span className="text-xs text-slate-500 dark:text-slate-400">So sánh theo:</span>
                 <select
                   value={subDimension}
                   onChange={(e) => {
                     setSubDimension(e.target.value as FilterField);
                     setPicked([]);
                   }}
-                  className="h-8 rounded border border-slate-200 bg-white px-2 text-xs"
+                  className="h-8 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 text-xs dark:text-slate-200"
                 >
                   {DIM_FIELDS.filter((f) => f !== parent?.field).map((f) => (
                     <option key={f} value={f}>
@@ -254,7 +258,7 @@ export function ComparePage() {
           </div>
 
           <div>
-            <div className="mb-1.5 text-xs font-semibold text-slate-600">
+            <div className="mb-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300">
               Chọn đối tượng để so sánh (tối đa 6)
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -271,7 +275,7 @@ export function ComparePage() {
                       'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
                       active
                         ? 'border-brand-700 bg-brand-700 text-white'
-                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
                     )}
                   >
                     {o}
@@ -279,7 +283,7 @@ export function ComparePage() {
                 );
               })}
               {options.length === 0 && (
-                <span className="text-xs text-slate-400">Không có giá trị</span>
+                <span className="text-xs text-slate-400 dark:text-slate-500">Không có giá trị</span>
               )}
             </div>
             {picked.length > 0 && (
@@ -293,11 +297,11 @@ export function ComparePage() {
 
       {groups.length === 0 ? (
         <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-16 text-center text-slate-500">
+          <CardContent className="flex flex-col items-center gap-3 py-16 text-center text-slate-500 dark:text-slate-400">
             <div className="rounded-full bg-brand-100 p-4 text-brand-700">
               <GitCompare className="h-8 w-8" />
             </div>
-            <div className="text-sm font-semibold text-slate-700">
+            <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
               Vui lòng chọn ít nhất 2 đối tượng để bắt đầu so sánh
             </div>
             <div className="text-xs">
@@ -318,9 +322,9 @@ export function ComparePage() {
             <CardContent id="compare-delta-table" className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
-                  <thead className="bg-slate-50">
+                  <thead className="bg-slate-50 dark:bg-slate-800">
                     <tr className="text-left">
-                      <th className="px-4 py-2 font-semibold text-slate-600">Chỉ tiêu</th>
+                      <th className="px-4 py-2 font-semibold text-slate-600 dark:text-slate-300">Chỉ tiêu</th>
                       {groups.map((g, i) => (
                         <th key={g.label} className="px-4 py-2 text-right font-semibold">
                           <div className="flex items-center justify-end gap-2">
@@ -328,9 +332,9 @@ export function ComparePage() {
                               className="h-2 w-2 rounded-full"
                               style={{ background: palette[i % palette.length] }}
                             />
-                            <span className="truncate text-slate-800">{g.label}</span>
+                            <span className="truncate text-slate-800 dark:text-slate-100">{g.label}</span>
                             {i === 0 && (
-                              <span className="rounded bg-slate-200 px-1 text-[9px] uppercase text-slate-600">
+                              <span className="rounded bg-slate-200 dark:bg-slate-700 px-1 text-[9px] uppercase text-slate-600 dark:text-slate-300">
                                 gốc
                               </span>
                             )}
@@ -341,8 +345,8 @@ export function ComparePage() {
                   </thead>
                   <tbody>
                     {KPI_ROWS.map((kpi) => (
-                      <tr key={kpi.key} className="border-t border-slate-100">
-                        <td className="px-4 py-2 font-medium text-slate-700">{kpi.label}</td>
+                      <tr key={kpi.key} className="border-t border-slate-100 dark:border-slate-700">
+                        <td className="px-4 py-2 font-medium text-slate-700 dark:text-slate-200">{kpi.label}</td>
                         {groups.map((g, i) => {
                           const v = kpi.pick(g.kpi);
                           const d = deltaVsFirst(i, kpi);
@@ -351,7 +355,7 @@ export function ComparePage() {
                           const good = d !== null && (kpi.invert ? d < 0 : d > 0);
                           return (
                             <td key={i} className="px-4 py-2 text-right">
-                              <div className="font-semibold text-slate-900">{kpi.fmt(v)}</div>
+                              <div className="font-semibold text-slate-900 dark:text-slate-100">{kpi.fmt(v)}</div>
                               {d !== null && (
                                 <div
                                   className={cn(
@@ -379,32 +383,14 @@ export function ComparePage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Biểu đồ radar (chỉ số chuẩn hóa)</CardTitle>
-                  <InfoPopover metricKey="compareRadar" />
+                  <div className="flex items-center gap-1">
+                    <ChartSwitcher options={RADAR_OPTS} value={radarType} onChange={setRadarType} />
+                    <InfoPopover metricKey="compareRadar" />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent id="compare-radar">
-                <ResponsiveContainer width="100%" height={360}>
-                  <RadarChart data={radarData} outerRadius={120}>
-                    <PolarGrid stroke="#e2e8f0" />
-                    <PolarAngleAxis dataKey="metric" tick={{ fontSize: 10, fill: '#475569' }} />
-                    <PolarRadiusAxis angle={90} tick={{ fontSize: 9 }} />
-                    {groups.map((g, i) => (
-                      <Radar
-                        key={g.label}
-                        name={g.label}
-                        dataKey={g.label}
-                        stroke={palette[i % palette.length]}
-                        fill={palette[i % palette.length]}
-                        fillOpacity={0.2}
-                      />
-                    ))}
-                    <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
-                  </RadarChart>
-                </ResponsiveContainer>
-                <div className="mt-1 text-[10px] text-slate-500">
-                  Mỗi chỉ tiêu được chuẩn hóa theo giá trị lớn nhất trong nhóm so sánh (max = 100).
-                </div>
+                <RadarCompare data={radarData} groups={groups} chartType={radarType} />
               </CardContent>
             </Card>
 
@@ -428,7 +414,10 @@ export function ComparePage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Xếp hạng theo từng chỉ tiêu</CardTitle>
-                <InfoPopover metricKey="compareRanking" />
+                <div className="flex items-center gap-1">
+                  <ChartSwitcher options={RANKING_OPTS} value={rankingType} onChange={setRankingType} />
+                  <InfoPopover metricKey="compareRanking" />
+                </div>
               </div>
             </CardHeader>
             <CardContent id="compare-ranking">
@@ -441,30 +430,14 @@ export function ComparePage() {
                       idx: i,
                     }))
                     .sort((a, b) => (kpi.invert ? a.v - b.v : b.v - a.v));
-                  const max = Math.max(...sorted.map((s) => s.v), 1);
                   return (
-                    <div key={kpi.key} className="rounded-lg border border-slate-100 p-3">
-                      <div className="mb-2 text-xs font-semibold text-slate-700">{kpi.label}</div>
-                      <div className="space-y-1.5">
-                        {sorted.map((s) => (
-                          <div key={s.label} className="flex items-center gap-2">
-                            <div className="w-24 truncate text-[10px] text-slate-600">{s.label}</div>
-                            <div className="relative h-2 flex-1 rounded-full bg-slate-100">
-                              <div
-                                className="absolute inset-y-0 left-0 rounded-full"
-                                style={{
-                                  width: `${(s.v / max) * 100}%`,
-                                  background: palette[s.idx % palette.length],
-                                }}
-                              />
-                            </div>
-                            <div className="w-20 text-right text-[10px] font-semibold text-slate-700">
-                              {kpi.fmt(s.v)}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <RankingBars
+                      key={kpi.key}
+                      kpiLabel={kpi.label}
+                      items={sorted}
+                      fmt={kpi.fmt}
+                      chartType={rankingType}
+                    />
                   );
                 })}
               </div>
@@ -488,8 +461,8 @@ function ProgramBreakdown({
 
   return (
     <table className="w-full text-xs">
-      <thead className="sticky top-0 bg-slate-50">
-        <tr className="text-left text-slate-500">
+      <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800">
+        <tr className="text-left text-slate-500 dark:text-slate-400">
           <th className="px-3 py-2">Chương trình</th>
           {groups.map((g, i) => (
             <th key={g.label} className="px-3 py-2 text-right">
@@ -504,14 +477,14 @@ function ProgramBreakdown({
       </thead>
       <tbody>
         {programs.map((p) => (
-          <tr key={p} className="border-t border-slate-100">
-            <td className="max-w-[220px] truncate px-3 py-1.5 text-slate-700">{p}</td>
+          <tr key={p} className="border-t border-slate-100 dark:border-slate-700">
+            <td className="max-w-[220px] truncate px-3 py-1.5 text-slate-700 dark:text-slate-200">{p}</td>
             {groups.map((g, i) => {
               const sum = g.rows
                 .filter((r) => r.tenChuongTrinh === p)
                 .reduce((s, r) => s + r.tongDuNo, 0);
               return (
-                <td key={i} className="px-3 py-1.5 text-right text-slate-800">
+                <td key={i} className="px-3 py-1.5 text-right text-slate-800 dark:text-slate-100">
                   {sum > 0 ? fmtCompact(sum) : '—'}
                 </td>
               );

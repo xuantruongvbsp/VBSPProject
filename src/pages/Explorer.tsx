@@ -89,10 +89,10 @@ export function ExplorerPage() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-slate-900">Tra cứu chi tiết khế ước</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Tra cứu chi tiết khế ước</h1>
           <InfoPopover metricKey="pageExplorer" />
         </div>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-600 dark:text-slate-400">
           {sorted.length.toLocaleString('vi-VN')} khế ước · Nhấn vào dòng để xem toàn bộ thông tin chi tiết
         </p>
       </header>
@@ -109,7 +109,7 @@ export function ExplorerPage() {
           className="scrollbar-thin h-[calc(100vh-280px)] overflow-auto"
         >
           <div style={{ width: totalWidth }}>
-            <div className="sticky top-0 z-10 flex border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600">
+            <div className="sticky top-0 z-10 flex border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
               {COLS.map((c) => {
                 const active = sort.key === c.key;
                 return (
@@ -124,9 +124,9 @@ export function ExplorerPage() {
                     }
                     style={{ width: c.width }}
                     className={cn(
-                      'flex items-center gap-1 px-3 py-2 hover:bg-slate-100',
+                      'flex items-center gap-1 px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700',
                       c.align === 'right' && 'justify-end',
-                      active && 'text-brand-700'
+                      active && 'text-brand-700 dark:text-brand-400'
                     )}
                   >
                     {c.label}
@@ -154,7 +154,7 @@ export function ExplorerPage() {
                       height: vi.size,
                       width: '100%',
                     }}
-                    className="flex cursor-pointer border-b border-slate-100 text-xs hover:bg-brand-50"
+                    className="flex cursor-pointer border-b border-slate-100 text-xs hover:bg-brand-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-brand-900/20"
                   >
                     {COLS.map((c) => (
                       <div
@@ -162,7 +162,7 @@ export function ExplorerPage() {
                         style={{ width: c.width }}
                         className={cn(
                           'flex items-center truncate px-3',
-                          c.align === 'right' && 'justify-end font-medium text-slate-900'
+                          c.align === 'right' && 'justify-end font-medium text-slate-900 dark:text-slate-100'
                         )}
                       >
                         {c.render ? c.render(r) : String(r[c.key] ?? '')}

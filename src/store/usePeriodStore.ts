@@ -70,7 +70,7 @@ interface State {
   consumePendingDrill: () => PendingDrill | null;
 }
 
-const EMPTY_RANGES: RangeFilters = { mucVay: null, laiSuat: null, ngayVay: null };
+const EMPTY_RANGES: RangeFilters = { mucVay: null, laiSuat: null, ngayVay: null, ngayDaoHan: null };
 
 export const usePeriodStore = create<State>((set, get) => ({
   prev: null,

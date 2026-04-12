@@ -31,6 +31,7 @@ export interface RangeFilters {
   mucVay: [number, number] | null;
   laiSuat: [number, number] | null;
   ngayVay: [string, string] | null; // ISO yyyy-mm-dd
+  ngayDaoHan: [string, string] | null; // ISO yyyy-mm-dd (ngayDHGiaHan ?? ngayDHHopDong)
 }
 
 export type RangeKey = keyof RangeFilters;
@@ -85,7 +86,7 @@ export const useDataStore = create<State>((set) => ({
   isLoading: false,
   error: null,
   filters: [],
-  ranges: { mucVay: null, laiSuat: null, ngayVay: null },
+  ranges: { mucVay: null, laiSuat: null, ngayVay: null, ngayDaoHan: null },
   search: { q: '' },
   drillRangeKeys: [],
 
@@ -97,7 +98,7 @@ export const useDataStore = create<State>((set) => ({
       rows: [],
       ngaySoLieu: null,
       filters: [],
-      ranges: { mucVay: null, laiSuat: null, ngayVay: null },
+      ranges: { mucVay: null, laiSuat: null, ngayVay: null, ngayDaoHan: null },
       search: { q: '' },
       drillRangeKeys: [],
       error: null,
@@ -129,7 +130,7 @@ export const useDataStore = create<State>((set) => ({
   clearFilters: () =>
     set({
       filters: [],
-      ranges: { mucVay: null, laiSuat: null, ngayVay: null },
+      ranges: { mucVay: null, laiSuat: null, ngayVay: null, ngayDaoHan: null },
       search: { q: '' },
       drillRangeKeys: [],
     }),
@@ -209,6 +210,17 @@ export function applyFilters(
     out = out.filter((r) => {
       if (!r.ngayVay) return false;
       const t = r.ngayVay.getTime();
+      return t >= ad && t <= bd;
+    });
+  }
+  if (ranges.ngayDaoHan) {
+    const [a, b] = ranges.ngayDaoHan;
+    const ad = new Date(a).getTime();
+    const bd = new Date(b).getTime();
+    out = out.filter((r) => {
+      const d = r.ngayDHGiaHan ?? r.ngayDHHopDong;
+      if (!d) return false;
+      const t = d.getTime();
       return t >= ad && t <= bd;
     });
   }

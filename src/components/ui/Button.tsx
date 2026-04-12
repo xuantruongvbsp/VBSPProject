@@ -10,8 +10,8 @@ const buttonVariants = cva(
         default:
           'bg-brand-700 text-white shadow-sm hover:bg-brand-800',
         outline:
-          'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50',
-        ghost: 'text-slate-600 hover:bg-slate-100',
+          'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700',
+        ghost: 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700',
         danger: 'bg-rose-600 text-white hover:bg-rose-700',
       },
       size: {
