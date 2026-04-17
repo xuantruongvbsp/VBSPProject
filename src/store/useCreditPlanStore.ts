@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { PlanEntry, ActualSummary, PlanVsActual } from '../lib/credit-plan-types';
+import type {
+  PlanEntry,
+  ActualSummary,
+  PlanVsActual,
+  Nq11XaSummary,
+  Nq11MatchXa,
+} from '../lib/credit-plan-types';
+import { mergeNq11IntoActuals } from '../data/credit-plan-parser';
 
 interface CreditPlanState {
   // Plan entries (manual CRUD)
@@ -14,8 +21,31 @@ interface CreditPlanState {
   actuals: ActualSummary[];
   actualDate: string | null;
   actualTotalRows: number;
-  setActuals: (summaries: ActualSummary[], date: string | null, totalRows: number) => void;
+  /** Kết quả match NQ11 với Báo cáo 31 — tính lúc import Báo cáo 31 */
+  nq11MatchByXa: Nq11MatchXa[];
+  setActuals: (
+    summaries: ActualSummary[],
+    date: string | null,
+    totalRows: number,
+    nq11MatchByXa?: Nq11MatchXa[]
+  ) => void;
   clearActuals: () => void;
+
+  // NQ11 (món vay GQVL không được cho vay quay vòng)
+  nq11Summaries: Nq11XaSummary[];
+  nq11MonVayIds: string[];
+  nq11Date: string | null;
+  nq11TotalRows: number;
+  setNq11: (
+    summaries: Nq11XaSummary[],
+    monVayIds: string[],
+    date: string | null,
+    totalRows: number
+  ) => void;
+  clearNq11: () => void;
+
+  // Computed: actuals after merging NQ11 split
+  getMergedActuals: () => ActualSummary[];
 
   // Computed: plan vs actual
   getPlanVsActual: () => PlanVsActual[];
@@ -36,12 +66,39 @@ export const useCreditPlanStore = create<CreditPlanState>()(
       actuals: [],
       actualDate: null,
       actualTotalRows: 0,
-      setActuals: (summaries, date, totalRows) =>
-        set({ actuals: summaries, actualDate: date, actualTotalRows: totalRows }),
-      clearActuals: () => set({ actuals: [], actualDate: null, actualTotalRows: 0 }),
+      nq11MatchByXa: [],
+      setActuals: (summaries, date, totalRows, nq11MatchByXa) =>
+        set({
+          actuals: summaries,
+          actualDate: date,
+          actualTotalRows: totalRows,
+          nq11MatchByXa: nq11MatchByXa ?? [],
+        }),
+      clearActuals: () =>
+        set({ actuals: [], actualDate: null, actualTotalRows: 0, nq11MatchByXa: [] }),
+
+      nq11Summaries: [],
+      nq11MonVayIds: [],
+      nq11Date: null,
+      nq11TotalRows: 0,
+      setNq11: (summaries, monVayIds, date, totalRows) =>
+        set({
+          nq11Summaries: summaries,
+          nq11MonVayIds: monVayIds,
+          nq11Date: date,
+          nq11TotalRows: totalRows,
+        }),
+      clearNq11: () =>
+        set({ nq11Summaries: [], nq11MonVayIds: [], nq11Date: null, nq11TotalRows: 0 }),
+
+      getMergedActuals: () => {
+        const { actuals, nq11Summaries } = get();
+        return mergeNq11IntoActuals(actuals, nq11Summaries);
+      },
 
       getPlanVsActual: () => {
-        const { plans, actuals } = get();
+        const { plans } = get();
+        const actuals = get().getMergedActuals();
         const key = (maXa: string, nguonVon: string, ct: string) =>
           `${maXa}|${nguonVon}|${ct}`;
 
@@ -100,6 +157,11 @@ export const useCreditPlanStore = create<CreditPlanState>()(
         actuals: s.actuals,
         actualDate: s.actualDate,
         actualTotalRows: s.actualTotalRows,
+        nq11Summaries: s.nq11Summaries,
+        nq11MonVayIds: s.nq11MonVayIds,
+        nq11Date: s.nq11Date,
+        nq11TotalRows: s.nq11TotalRows,
+        nq11MatchByXa: s.nq11MatchByXa,
       }),
     }
   )

@@ -23,6 +23,8 @@ export function CreditPlanShell() {
   const plans = useCreditPlanStore((s) => s.plans);
   const actuals = useCreditPlanStore((s) => s.actuals);
   const actualDate = useCreditPlanStore((s) => s.actualDate);
+  const nq11Summaries = useCreditPlanStore((s) => s.nq11Summaries);
+  const nq11TotalRows = useCreditPlanStore((s) => s.nq11TotalRows);
   const { theme, toggle: toggleTheme } = useThemeStore();
 
   return (
@@ -94,6 +96,11 @@ export function CreditPlanShell() {
               ? `${actuals.length} nhóm thực tế · ${actualDate ?? ''}`
               : 'Chưa nhập dữ liệu thực tế'}
           </div>
+          {nq11Summaries.length > 0 && (
+            <div className="mt-1 text-xs text-rose-600 dark:text-rose-400">
+              NQ11: {nq11TotalRows.toLocaleString('vi-VN')} món / {nq11Summaries.length} xã
+            </div>
+          )}
         </div>
       </aside>
 

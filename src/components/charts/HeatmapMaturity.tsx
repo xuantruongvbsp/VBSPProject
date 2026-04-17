@@ -36,11 +36,6 @@ const MONTH_COLORS = [
 
 export function HeatmapMaturity({ data, chartType = 'heatmap', onClick }: Props) {
   const cc = useChartColors();
-  if (!data.length) return <div className="p-6 text-center text-xs text-slate-400 dark:text-slate-500">Không có dữ liệu đáo hạn</div>;
-
-  const max = Math.max(...data.map((d) => d.count), 1);
-  const totalCount = data.reduce((s, d) => s + d.count, 0);
-  const totalDuNo = data.reduce((s, d) => s + d.tongDuNo, 0);
 
   const byYear = useMemo(() => {
     const m = new Map<string, { month: number; v: typeof data[number] }[]>();
@@ -54,7 +49,7 @@ export function HeatmapMaturity({ data, chartType = 'heatmap', onClick }: Props)
   }, [data]);
 
   const years = useMemo(() => Array.from(byYear.keys()).sort(), [byYear]);
-  const months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  const months = useMemo(() => [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], []);
 
   /* stacked bar data: one row per year, T1..T12 as keys */
   const stackedData = useMemo(() => {
@@ -68,7 +63,19 @@ export function HeatmapMaturity({ data, chartType = 'heatmap', onClick }: Props)
       }
       return row;
     });
-  }, [years, byYear, chartType]);
+  }, [years, byYear, chartType, months]);
+
+  if (!data.length) {
+    return (
+      <div className="p-6 text-center text-xs text-slate-400 dark:text-slate-500">
+        Không có dữ liệu đáo hạn
+      </div>
+    );
+  }
+
+  const max = Math.max(...data.map((d) => d.count), 1);
+  const totalCount = data.reduce((s, d) => s + d.count, 0);
+  const totalDuNo = data.reduce((s, d) => s + d.tongDuNo, 0);
 
   if (chartType === 'stackedBar') {
     return (

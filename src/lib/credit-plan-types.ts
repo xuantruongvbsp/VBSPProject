@@ -32,6 +32,59 @@ export interface ActualImportResult {
   summaries: ActualSummary[];
   ngaySoLieu: string | null;
   totalRows: number;
+  /** Nếu truyền nq11Ids cho parser — đây là kết quả match theo xã */
+  nq11MatchByXa?: Nq11MatchXa[];
+}
+
+/** Thu hồi NQ11 theo xã — kết quả match giữa SK_GQVL và Báo cáo 31 */
+export interface Nq11MatchXa {
+  maXa: string;
+  tenXa: string;
+  /** Tổng dư nợ của các món NQ11 đã match trong Báo cáo 31 hiện tại */
+  matchedTongDuNo: number;
+  /** Số món NQ11 tìm thấy trong Báo cáo 31 */
+  matchedSoMon: number;
+  /** Số món trong SK_GQVL nhưng KHÔNG tìm thấy trong Báo cáo 31
+   *  (thường là đã tất toán — coi như thu hồi hoàn toàn) */
+  missingSoMon: number;
+}
+
+/** Tóm tắt file SK_GQVL (loan-level, phân nhóm theo xã).
+ *  Cần split theo CAPQLV để biết trừ từ 03A hay 03B khi merge vào báo cáo. */
+export interface Nq11XaSummary {
+  maXa: string;
+  tenXa: string;
+  /** Tổng NQ11 của xã (tất cả loan trong xã) */
+  tongDuNo: number;
+  duNoTrongHan: number;
+  duNoQuaHan: number;
+  duNoKhoanh: number;
+  tongGiaiNgan: number;
+  soMonVay: number;
+  /** Phần bắt nguồn từ Cấp QLV ≠ 21 (sẽ trừ từ 03A) */
+  from03A_tongDuNo: number;
+  from03A_duNoTrongHan: number;
+  from03A_duNoQuaHan: number;
+  from03A_duNoKhoanh: number;
+  from03A_tongGiaiNgan: number;
+  from03A_soMonVay: number;
+  /** Phần bắt nguồn từ Cấp QLV = 21 (sẽ trừ từ 03B) */
+  from03B_tongDuNo: number;
+  from03B_duNoTrongHan: number;
+  from03B_duNoQuaHan: number;
+  from03B_duNoKhoanh: number;
+  from03B_tongGiaiNgan: number;
+  from03B_soMonVay: number;
+  /** Danh sách Mã món vay thuộc xã này (theo thứ tự trong file) */
+  monVayIds: string[];
+}
+
+/** Kết quả parse file SK_GQVL */
+export interface Nq11ImportResult {
+  summariesByXa: Nq11XaSummary[];
+  monVayIds: string[];
+  ngaySoLieu: string | null;
+  totalRows: number;
 }
 
 /** So sánh plan vs actual cho 1 nhóm */
@@ -66,12 +119,14 @@ export const NGUON_VON_LIST = [
  * CT 03 (GQVL) với NV=1 (Trung ương) được tách thành:
  *   03A = Nguồn Ngân sách TW cấp (Cấp QLV ≠ NHCSXH)
  *   03B = Nguồn NHCSXH huy động  (Cấp QLV = 21/NHCSXH)
+ *   03N = Món vay NQ11 (không được cho vay quay vòng) — tách ra từ 03A/03B
  */
 export const CHUONG_TRINH_LIST = [
   { ma: '01', ten: 'Cho vay ưu đãi hộ nghèo' },
   { ma: '02', ten: 'Cho vay hộ cận nghèo theo QĐ 15' },
   { ma: '03A', ten: 'Cho vay GQVL — Ngân sách TW cấp' },
   { ma: '03B', ten: 'Cho vay GQVL — NHCSXH huy động' },
+  { ma: '03N', ten: 'Cho vay GQVL — NQ11' },
   { ma: '03', ten: 'Cho vay giải quyết việc làm (gộp)', hidden: true },
   { ma: '04', ten: 'Cho vay hộ mới thoát nghèo theo QĐ 28' },
   { ma: '06', ten: 'Cho vay nước sạch và vệ sinh môi trường nông thôn' },

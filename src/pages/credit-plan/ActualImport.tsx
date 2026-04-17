@@ -1,9 +1,9 @@
-import { useState, useCallback } from 'react';
-import { Upload, FileSpreadsheet, Trash2, AlertCircle } from 'lucide-react';
+import { useState, useCallback, Fragment } from 'react';
+import { Upload, Trash2, AlertCircle, BanIcon, ChevronRight, ChevronDown } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
-import { parseActualFile } from '@/data/credit-plan-parser';
+import { parseActualFile, parseNq11File } from '@/data/credit-plan-parser';
 import { nguonVonLabel } from '@/lib/credit-plan-types';
 
 function fmtMoney(n: number) {
@@ -15,10 +15,27 @@ function fmtMoneyFull(n: number) {
 }
 
 export function ActualImport() {
-  const { actuals, actualDate, actualTotalRows, setActuals, clearActuals } = useCreditPlanStore();
+  const {
+    actuals,
+    actualDate,
+    actualTotalRows,
+    setActuals,
+    clearActuals,
+    nq11Summaries,
+    nq11MonVayIds,
+    nq11Date,
+    nq11TotalRows,
+    setNq11,
+    clearNq11,
+    getMergedActuals,
+  } = useCreditPlanStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [nq11Loading, setNq11Loading] = useState(false);
+  const [nq11Error, setNq11Error] = useState<string | null>(null);
+  const [nq11DragOver, setNq11DragOver] = useState(false);
+  const [nq11Expanded, setNq11Expanded] = useState<Record<string, boolean>>({});
 
   const handleFile = useCallback(async (file: File) => {
     if (!file.name.match(/\.xlsx?$/i)) {
@@ -28,14 +45,32 @@ export function ActualImport() {
     setLoading(true);
     setError(null);
     try {
-      const result = await parseActualFile(file);
-      setActuals(result.summaries, result.ngaySoLieu, result.totalRows);
+      const idSet = nq11MonVayIds.length > 0 ? new Set(nq11MonVayIds) : undefined;
+      const result = await parseActualFile(file, idSet);
+      setActuals(result.summaries, result.ngaySoLieu, result.totalRows, result.nq11MatchByXa);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Lỗi đọc file');
     } finally {
       setLoading(false);
     }
-  }, [setActuals]);
+  }, [setActuals, nq11MonVayIds]);
+
+  const handleNq11File = useCallback(async (file: File) => {
+    if (!file.name.match(/\.xlsx?$/i)) {
+      setNq11Error('Chỉ hỗ trợ file Excel (.xlsx, .xls)');
+      return;
+    }
+    setNq11Loading(true);
+    setNq11Error(null);
+    try {
+      const result = await parseNq11File(file);
+      setNq11(result.summariesByXa, result.monVayIds, result.ngaySoLieu, result.totalRows);
+    } catch (e) {
+      setNq11Error(e instanceof Error ? e.message : 'Lỗi đọc file');
+    } finally {
+      setNq11Loading(false);
+    }
+  }, [setNq11]);
 
   const onDrop = useCallback(
     (e: React.DragEvent) => {
@@ -56,9 +91,31 @@ export function ActualImport() {
     [handleFile]
   );
 
-  // Aggregate by xa for summary
+  const onNq11Drop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setNq11DragOver(false);
+      const file = e.dataTransfer.files[0];
+      if (file) handleNq11File(file);
+    },
+    [handleNq11File]
+  );
+
+  const onNq11FileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) handleNq11File(file);
+      e.target.value = '';
+    },
+    [handleNq11File]
+  );
+
+  // Actuals đã merge NQ11 để hiển thị bảng chi tiết
+  const mergedActuals = getMergedActuals();
+
+  // Aggregate by xa for summary (dùng merged actuals để tổng khớp với báo cáo)
   const byXa = new Map<string, { tenXa: string; tongDuNo: number; soMon: number }>();
-  for (const a of actuals) {
+  for (const a of mergedActuals) {
     const existing = byXa.get(a.maXa);
     if (existing) {
       existing.tongDuNo += a.tongDuNo;
@@ -68,8 +125,10 @@ export function ActualImport() {
     }
   }
 
-  const totalDuNo = actuals.reduce((s, a) => s + a.tongDuNo, 0);
-  const totalMon = actuals.reduce((s, a) => s + a.soMonVay, 0);
+  const totalDuNo = mergedActuals.reduce((s, a) => s + a.tongDuNo, 0);
+  const totalMon = mergedActuals.reduce((s, a) => s + a.soMonVay, 0);
+  const nq11TotalDuNo = nq11Summaries.reduce((s, a) => s + a.tongDuNo, 0);
+  const nq11TotalMon = nq11Summaries.reduce((s, a) => s + a.soMonVay, 0);
 
   return (
     <div className="space-y-6 p-6">
@@ -126,6 +185,187 @@ export function ActualImport() {
           {error && (
             <div className="mt-3 flex items-center gap-2 rounded-md bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-900/30 dark:text-rose-300">
               <AlertCircle className="h-4 w-4" /> {error}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* NQ11 — Sao kê món vay GQVL không được cho vay quay vòng */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <BanIcon className="h-4 w-4 text-rose-600" />
+              Cho vay GQVL — NQ11 (không được cho vay quay vòng)
+            </CardTitle>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              File SK_GQVL_*.xlsx — danh sách món vay bị đánh dấu NQ11. Match bằng "Mã món vay".
+              Số liệu sẽ được tách ra khỏi 03A / 03B trong báo cáo.
+            </p>
+          </div>
+          {nq11Summaries.length > 0 && (
+            <Button variant="outline" onClick={clearNq11}>
+              <Trash2 className="h-4 w-4" /> Xóa NQ11
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent>
+          <div
+            onDragOver={(e) => { e.preventDefault(); setNq11DragOver(true); }}
+            onDragLeave={() => setNq11DragOver(false)}
+            onDrop={onNq11Drop}
+            className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors ${
+              nq11DragOver
+                ? 'border-rose-400 bg-rose-50 dark:bg-rose-900/20'
+                : 'border-slate-300 dark:border-slate-600'
+            }`}
+          >
+            {nq11Loading ? (
+              <div className="flex items-center gap-3 text-slate-500">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-rose-600 border-t-transparent" />
+                Đang đọc file NQ11...
+              </div>
+            ) : (
+              <>
+                <Upload className="mb-2 h-8 w-8 text-slate-400" />
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Kéo thả file SK_GQVL vào đây
+                </p>
+                <p className="mt-1 text-xs text-slate-500">hoặc</p>
+                <label className="mt-2 cursor-pointer rounded-md bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700">
+                  Chọn file NQ11
+                  <input type="file" accept=".xlsx,.xls" className="hidden" onChange={onNq11FileSelect} />
+                </label>
+              </>
+            )}
+          </div>
+
+          {nq11Error && (
+            <div className="mt-3 flex items-center gap-2 rounded-md bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-900/30 dark:text-rose-300">
+              <AlertCircle className="h-4 w-4" /> {nq11Error}
+            </div>
+          )}
+
+          {nq11Summaries.length > 0 && (
+            <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div className="rounded-md bg-slate-50 px-3 py-2 dark:bg-slate-800">
+                <div className="text-[11px] uppercase tracking-wide text-slate-500">Tổng dư nợ NQ11</div>
+                <div className="text-lg font-bold text-rose-600">{fmtMoney(nq11TotalDuNo)}</div>
+                <div className="text-[11px] text-slate-500">triệu đồng</div>
+              </div>
+              <div className="rounded-md bg-slate-50 px-3 py-2 dark:bg-slate-800">
+                <div className="text-[11px] uppercase tracking-wide text-slate-500">Số món vay</div>
+                <div className="text-lg font-bold text-slate-900 dark:text-white">
+                  {nq11TotalMon.toLocaleString('vi-VN')}
+                </div>
+                <div className="text-[11px] text-slate-500">{nq11MonVayIds.length.toLocaleString('vi-VN')} Mã món vay</div>
+              </div>
+              <div className="rounded-md bg-slate-50 px-3 py-2 dark:bg-slate-800">
+                <div className="text-[11px] uppercase tracking-wide text-slate-500">Số xã</div>
+                <div className="text-lg font-bold text-slate-900 dark:text-white">
+                  {nq11Summaries.length}
+                </div>
+              </div>
+              <div className="rounded-md bg-slate-50 px-3 py-2 dark:bg-slate-800">
+                <div className="text-[11px] uppercase tracking-wide text-slate-500">Ngày số liệu</div>
+                <div className="text-lg font-bold text-slate-900 dark:text-white">{nq11Date ?? '—'}</div>
+                <div className="text-[11px] text-slate-500">{nq11TotalRows.toLocaleString('vi-VN')} dòng</div>
+              </div>
+            </div>
+          )}
+
+          {nq11Summaries.length > 0 && (
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
+                    <th className="w-8 px-2 py-2"></th>
+                    <th className="px-3 py-2 font-medium text-slate-600 dark:text-slate-300">Xã</th>
+                    <th className="px-3 py-2 text-right font-medium text-slate-600 dark:text-slate-300">Món</th>
+                    <th className="px-3 py-2 text-right font-medium text-slate-600 dark:text-slate-300">Tổng dư nợ</th>
+                    <th className="px-3 py-2 text-right font-medium text-slate-600 dark:text-slate-300">Từ 03A</th>
+                    <th className="px-3 py-2 text-right font-medium text-slate-600 dark:text-slate-300">Từ 03B</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {nq11Summaries.map((s) => {
+                    const open = !!nq11Expanded[s.maXa];
+                    return (
+                      <Fragment key={s.maXa}>
+                        <tr className="border-b border-slate-100 dark:border-slate-700">
+                          <td className="px-2 py-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setNq11Expanded((prev) => ({ ...prev, [s.maXa]: !prev[s.maXa] }))
+                              }
+                              className="rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"
+                              aria-label={open ? 'Ẩn Mã món vay' : 'Xem Mã món vay'}
+                            >
+                              {open ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                            </button>
+                          </td>
+                          <td className="px-3 py-2 text-slate-900 dark:text-white">
+                            {s.tenXa} ({s.maXa})
+                          </td>
+                          <td className="px-3 py-2 text-right text-slate-600 dark:text-slate-300">
+                            {s.soMonVay.toLocaleString('vi-VN')}
+                          </td>
+                          <td className="px-3 py-2 text-right font-mono font-semibold text-rose-600">
+                            {fmtMoneyFull(s.tongDuNo)}
+                          </td>
+                          <td className="px-3 py-2 text-right font-mono text-slate-500">
+                            {s.from03A_tongDuNo > 0 ? fmtMoneyFull(s.from03A_tongDuNo) : '—'}
+                            {s.from03A_soMonVay > 0 && (
+                              <span className="ml-1 text-[11px] text-slate-400">
+                                ({s.from03A_soMonVay})
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-right font-mono text-slate-500">
+                            {s.from03B_tongDuNo > 0 ? fmtMoneyFull(s.from03B_tongDuNo) : '—'}
+                            {s.from03B_soMonVay > 0 && (
+                              <span className="ml-1 text-[11px] text-slate-400">
+                                ({s.from03B_soMonVay})
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                        {open && (
+                          <tr className="border-b border-slate-100 dark:border-slate-700">
+                            <td></td>
+                            <td colSpan={5} className="bg-slate-50 px-3 py-2 dark:bg-slate-800/40">
+                              <div className="text-[11px] uppercase tracking-wide text-slate-500">
+                                Danh sách Mã món vay ({(s.monVayIds ?? []).length})
+                              </div>
+                              {(s.monVayIds ?? []).length === 0 ? (
+                                <div className="mt-1 text-[11px] italic text-slate-400">
+                                  Dữ liệu NQ11 đã lưu trước đây không chứa Mã món vay. Vui lòng bấm "Xóa NQ11" và tải lại file SK_GQVL.
+                                </div>
+                              ) : (
+                                <div className="mt-1 flex flex-wrap gap-1.5">
+                                  {(s.monVayIds ?? []).map((id) => (
+                                    <code
+                                      key={id}
+                                      className="rounded bg-white px-2 py-0.5 font-mono text-[11px] text-slate-700 ring-1 ring-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-700"
+                                    >
+                                      {id}
+                                    </code>
+                                  ))}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </CardContent>
@@ -221,7 +461,7 @@ export function ActualImport() {
                     </tr>
                   </thead>
                   <tbody>
-                    {actuals.map((a) => (
+                    {mergedActuals.map((a) => (
                       <tr key={`${a.maXa}-${a.maNguonVon}-${a.maChuongTrinh}`} className="border-b border-slate-100 dark:border-slate-700">
                         <td className="px-4 py-2 text-slate-900 dark:text-white">{a.tenXa}</td>
                         <td className="px-4 py-2 text-slate-600 dark:text-slate-300">{nguonVonLabel(a.maNguonVon)}</td>

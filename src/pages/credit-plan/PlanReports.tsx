@@ -12,9 +12,10 @@ import {
   Pie,
   Cell,
 } from 'recharts';
+import { BanIcon } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
-import { nguonVonLabel, xaLabel } from '@/lib/credit-plan-types';
+import { nguonVonLabel } from '@/lib/credit-plan-types';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
@@ -40,7 +41,50 @@ export function PlanReports() {
   const plans = useCreditPlanStore((s) => s.plans);
   const actuals = useCreditPlanStore((s) => s.actuals);
   const getPlanVsActual = useCreditPlanStore((s) => s.getPlanVsActual);
+  const nq11Summaries = useCreditPlanStore((s) => s.nq11Summaries);
+  const nq11MatchByXa = useCreditPlanStore((s) => s.nq11MatchByXa);
+  const nq11Date = useCreditPlanStore((s) => s.nq11Date);
+  const actualDate = useCreditPlanStore((s) => s.actualDate);
   const [groupBy, setGroupBy] = useState<'xa' | 'chuongtrinh' | 'nguonvon'>('xa');
+
+  // Báo cáo thu hồi NQ11: ghép nq11Summaries (gốc từ SK_GQVL) với nq11MatchByXa (từ Báo cáo 31)
+  const nq11Recovery = useMemo(() => {
+    if (nq11Summaries.length === 0) return [];
+    const matchMap = new Map(nq11MatchByXa.map((m) => [m.maXa, m]));
+    const rows = nq11Summaries.map((s) => {
+      const matched = matchMap.get(s.maXa);
+      const tongDuNo = s.tongDuNo;
+      const hasMatch = !!matched;
+      // Còn lại = số dư hiện tại trong Báo cáo 31 (của các món NQ11)
+      const conLai = hasMatch ? matched!.matchedTongDuNo : null;
+      // Đã thu hồi = SK_GQVL ban đầu − số dư còn lại
+      const daThuHoi = hasMatch ? tongDuNo - matched!.matchedTongDuNo : null;
+      return {
+        maXa: s.maXa,
+        tenXa: s.tenXa,
+        tongDuNo,
+        daThuHoi,
+        conLai,
+        soMonNQ11: s.soMonVay,
+        soMonMatched: matched?.matchedSoMon ?? 0,
+        hasMatch,
+      };
+    });
+    return rows;
+  }, [nq11Summaries, nq11MatchByXa]);
+
+  const nq11RecoveryTotals = useMemo(() => {
+    return nq11Recovery.reduce(
+      (acc, r) => ({
+        tongDuNo: acc.tongDuNo + r.tongDuNo,
+        daThuHoi: acc.daThuHoi + (r.daThuHoi ?? 0),
+        conLai: acc.conLai + (r.conLai ?? 0),
+        soMonNQ11: acc.soMonNQ11 + r.soMonNQ11,
+        soMonMatched: acc.soMonMatched + r.soMonMatched,
+      }),
+      { tongDuNo: 0, daThuHoi: 0, conLai: 0, soMonNQ11: 0, soMonMatched: 0 }
+    );
+  }, [nq11Recovery]);
 
   const comparison = useMemo(() => getPlanVsActual(), [getPlanVsActual, plans, actuals]);
 
@@ -111,6 +155,89 @@ export function PlanReports() {
           So sánh kế hoạch dư nợ với dư nợ thực tế theo từng nhóm
         </p>
       </div>
+
+      {/* Báo cáo thu hồi NQ11 */}
+      {nq11Summaries.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BanIcon className="h-4 w-4 text-rose-600" />
+              Báo cáo thu hồi NQ11 — Cho vay GQVL
+            </CardTitle>
+            <CardDescription>
+              Tổng dư nợ: từ SK_GQVL ({nq11Date ?? '—'}).
+              {' '}Còn lại: dư nợ hiện tại của các món NQ11 trong Báo cáo 31
+              {actualDate ? ` (${actualDate})` : ''} — khớp theo Mã món vay.
+              {' '}Đã thu hồi = Tổng dư nợ − Còn lại.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            {nq11MatchByXa.length === 0 && (
+              <div className="mx-4 mb-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+                Chưa có dữ liệu match — Báo cáo 31 đang được tải sẽ match theo "Mã món vay".
+                Nếu bạn upload NQ11 sau Báo cáo 31, hãy tải lại Báo cáo 31 để làm mới bảng này.
+              </div>
+            )}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
+                    <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Xã</th>
+                    <th className="px-4 py-3 text-right font-medium text-rose-600">Tổng dư nợ</th>
+                    <th className="px-4 py-3 text-right font-medium text-emerald-600">Dư nợ đã thu hồi</th>
+                    <th className="px-4 py-3 text-right font-medium text-amber-600">Dư nợ còn lại</th>
+                    <th className="px-4 py-3 text-right font-medium text-slate-500">Món NQ11 / Match</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {nq11Recovery.map((r) => (
+                    <tr
+                      key={r.maXa}
+                      className="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50"
+                    >
+                      <td className="px-4 py-2 text-slate-900 dark:text-white">
+                        {r.tenXa} ({r.maXa})
+                      </td>
+                      <td className="px-4 py-2 text-right font-mono text-rose-600">
+                        {fmtMoney(r.tongDuNo)}
+                      </td>
+                      <td className="px-4 py-2 text-right font-mono text-emerald-600">
+                        {r.hasMatch ? fmtMoney(r.daThuHoi!) : <span className="text-slate-300">—</span>}
+                      </td>
+                      <td className="px-4 py-2 text-right font-mono font-semibold text-amber-700 dark:text-amber-400">
+                        {r.hasMatch ? fmtMoney(r.conLai!) : <span className="text-slate-300">—</span>}
+                      </td>
+                      <td className="px-4 py-2 text-right text-xs text-slate-500">
+                        {r.soMonNQ11.toLocaleString('vi-VN')} / {r.soMonMatched.toLocaleString('vi-VN')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                {nq11Recovery.length > 0 && (
+                  <tfoot>
+                    <tr className="border-t-2 border-slate-300 bg-slate-50 font-semibold dark:border-slate-600 dark:bg-slate-800">
+                      <td className="px-4 py-2.5 text-slate-700 dark:text-slate-200">Tổng cộng</td>
+                      <td className="px-4 py-2.5 text-right font-mono text-rose-600">
+                        {fmtMoney(nq11RecoveryTotals.tongDuNo)}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-mono text-emerald-600">
+                        {fmtMoney(nq11RecoveryTotals.daThuHoi)}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-mono text-amber-700 dark:text-amber-400">
+                        {fmtMoney(nq11RecoveryTotals.conLai)}
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-xs text-slate-500">
+                        {nq11RecoveryTotals.soMonNQ11.toLocaleString('vi-VN')} /{' '}
+                        {nq11RecoveryTotals.soMonMatched.toLocaleString('vi-VN')}
+                      </td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* KPI cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">

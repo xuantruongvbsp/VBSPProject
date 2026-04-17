@@ -196,6 +196,7 @@ export function heatmapDaoHan(
     map.set(key, cur);
   }
   return Array.from(map.entries())
+    .filter(([, v]) => v.tongDuNo > 0)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([ym, v]) => ({ ym, ...v }));
 }
