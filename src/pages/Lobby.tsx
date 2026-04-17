@@ -5,10 +5,12 @@ import {
   ArrowRight,
   FileSpreadsheet,
   GitCompareArrows,
+  ClipboardList,
   CheckCircle2,
 } from 'lucide-react';
 import { useDataStore } from '@/store/useDataStore';
 import { usePeriodStore } from '@/store/usePeriodStore';
+import { useCreditPlanStore } from '@/store/useCreditPlanStore';
 import { useAuthStore, useIsOwner } from '@/store/useAuthStore';
 import { listRecentFiles } from '@/lib/recent-files';
 import { listRecentPeriodPairs } from '@/lib/recent-period-pairs';
@@ -27,6 +29,8 @@ export function Lobby() {
   const snapshotDate = useDataStore((s) => s.ngaySoLieu);
   const periodPrev = usePeriodStore((s) => s.prev);
   const periodCurr = usePeriodStore((s) => s.curr);
+  const creditPlans = useCreditPlanStore((s) => s.plans);
+  const creditActuals = useCreditPlanStore((s) => s.actuals);
   const isOwner = useIsOwner();
   const logout = useAuthStore((s) => s.logout);
 
@@ -51,6 +55,7 @@ export function Lobby() {
 
   const snapshotLoaded = snapshotRows.length > 0;
   const periodLoaded = !!(periodPrev && periodCurr);
+  const creditPlanHasData = creditPlans.length > 0 || creditActuals.length > 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 px-6 py-12">
@@ -74,7 +79,7 @@ export function Lobby() {
           Chọn chế độ phân tích
         </h2>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           {/* Card 1: Snapshot */}
           <button
             type="button"
@@ -189,10 +194,59 @@ export function Lobby() {
               </span>
             </div>
           </button>
+
+          {/* Card 3: Credit Plan */}
+          <button
+            type="button"
+            onClick={() => navigate('/credit-plan')}
+            className={cn(
+              'group relative flex flex-col gap-4 rounded-2xl border-2 bg-white p-7 text-left shadow-sm transition-all',
+              'hover:-translate-y-0.5 hover:shadow-lg',
+              creditPlanHasData
+                ? 'border-plan-300 ring-2 ring-plan-100'
+                : 'border-slate-200 hover:border-plan-300'
+            )}
+          >
+            <div className="flex items-start justify-between">
+              <div className="rounded-xl bg-plan-100 p-3 text-plan-700 transition-colors group-hover:bg-plan-200">
+                <ClipboardList className="h-7 w-7" />
+              </div>
+              {creditPlanHasData && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                  <CheckCircle2 className="h-3 w-3" /> Đã có dữ liệu
+                </span>
+              )}
+            </div>
+
+            <div>
+              <h3 className="text-xl font-bold text-slate-900">Kế hoạch tín dụng</h3>
+              <p className="mt-2 text-sm text-slate-600">
+                Quản lý kế hoạch dư nợ theo quyết định, nhập dữ liệu thực tế từ Báo cáo 31,
+                so sánh kế hoạch vs thực tế theo xã, chương trình, nguồn vốn.
+              </p>
+            </div>
+
+            <ul className="space-y-1 text-xs text-slate-500">
+              <li>• Nhập kế hoạch: Số QĐ · Ngày QĐ · Xã · Chương trình · Số tiền</li>
+              <li>• Nhập thực tế từ file Excel Báo cáo 31</li>
+              <li>• Báo cáo so sánh KH vs TT · Tỷ lệ hoàn thành · Biểu đồ</li>
+            </ul>
+
+            <div className="mt-auto flex items-center justify-between pt-3">
+              <span className="text-[11px] text-slate-500">
+                {creditPlanHasData
+                  ? `${creditPlans.length} mục KH · ${creditActuals.length} nhóm TT`
+                  : 'Chưa có dữ liệu — nhập kế hoạch ở bước tiếp theo'}
+              </span>
+              <span className="inline-flex items-center gap-1 text-sm font-semibold text-plan-700 group-hover:gap-2 group-hover:transition-all">
+                Vào ứng dụng <ArrowRight className="h-4 w-4" />
+              </span>
+            </div>
+          </button>
         </div>
 
         <p className="mt-10 text-center text-[11px] text-slate-400">
-          Hai ứng dụng độc lập — bộ lọc và dữ liệu được giữ riêng biệt.
+          Ba ứng dụng độc lập — bộ lọc và dữ liệu được giữ riêng biệt.
         </p>
 
         <div className="mt-2 text-center">

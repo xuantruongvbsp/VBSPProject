@@ -17,6 +17,10 @@ import { PeriodMoversPage } from '@/pages/period/PeriodMovers';
 import { PeriodOrgGroupsPage } from '@/pages/period/PeriodOrgGroups';
 import { PeriodExplorerPage } from '@/pages/period/PeriodExplorer';
 import { PeriodOutreachPage } from '@/pages/period/PeriodOutreach';
+import { CreditPlanShell } from '@/components/layout/CreditPlanShell';
+import { PlanManager } from '@/pages/credit-plan/PlanManager';
+import { ActualImport } from '@/pages/credit-plan/ActualImport';
+import { PlanReports } from '@/pages/credit-plan/PlanReports';
 
 /**
  * Lớp bao trang ngoài cùng cho ứng dụng "Phân tích một kỳ" (snapshot).
@@ -74,6 +78,13 @@ export default function App() {
 
       {/* Ứng dụng Phân tích một kỳ */}
       <Route path="/snapshot/*" element={<SnapshotApp />} />
+
+      {/* Ứng dụng Kế hoạch tín dụng */}
+      <Route path="/credit-plan" element={<CreditPlanShell />}>
+        <Route index element={<PlanManager />} />
+        <Route path="actual" element={<ActualImport />} />
+        <Route path="reports" element={<PlanReports />} />
+      </Route>
 
       {/* Ứng dụng So sánh giữa hai kỳ */}
       <Route path="/period" element={<PeriodShell />}>
