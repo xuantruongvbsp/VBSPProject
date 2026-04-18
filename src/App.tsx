@@ -21,6 +21,7 @@ import { CreditPlanShell } from '@/components/layout/CreditPlanShell';
 import { PlanManager } from '@/pages/credit-plan/PlanManager';
 import { ActualImport } from '@/pages/credit-plan/ActualImport';
 import { PlanReports } from '@/pages/credit-plan/PlanReports';
+import { DecisionManager } from '@/pages/credit-plan/DecisionManager';
 
 /**
  * Lớp bao trang ngoài cùng cho ứng dụng "Phân tích một kỳ" (snapshot).
@@ -81,7 +82,9 @@ export default function App() {
 
       {/* Ứng dụng Kế hoạch tín dụng */}
       <Route path="/credit-plan" element={<CreditPlanShell />}>
-        <Route index element={<PlanManager />} />
+        <Route index element={<Navigate to="decisions" replace />} />
+        <Route path="decisions" element={<DecisionManager />} />
+        <Route path="plans" element={<PlanManager />} />
         <Route path="actual" element={<ActualImport />} />
         <Route path="reports" element={<PlanReports />} />
       </Route>

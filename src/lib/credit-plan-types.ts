@@ -1,12 +1,33 @@
-/** Một dòng trong kế hoạch tín dụng (nhập thủ công hoặc parse từ PDF) */
+/** Trạng thái quyết định */
+export type DecisionStatus = 'draft' | 'active' | 'archived';
+
+/** Metadata của file PDF đính kèm — Blob thực tế nằm trong IndexedDB. */
+export interface DecisionAttachment {
+  fileName: string;
+  size: number;      // bytes
+  mime: string;      // thường là application/pdf
+  uploadedAt: string; // ISO timestamp
+}
+
+/** Một Quyết định giao kế hoạch tín dụng — gom các dòng kế hoạch cùng (số QĐ, NV). */
+export interface Decision {
+  id: string;
+  soQD: string;                 // Số Quyết Định
+  ngayQD: string;               // Ngày ký QĐ (yyyy-mm-dd)
+  tenQD: string;                // Tên / trích yếu
+  maNguonVon: string;           // 1 = Trung ương, 2 = Địa phương
+  ngayHieuLuc?: string;         // Ngày hiệu lực (yyyy-mm-dd)
+  trangThai: DecisionStatus;    // draft | active | archived
+  ghiChu?: string;              // Ghi chú
+  attachment?: DecisionAttachment; // PDF kèm theo (blob trong IndexedDB)
+}
+
+/** Một dòng trong kế hoạch tín dụng — tham chiếu tới Decision để lấy QĐ & NV. */
 export interface PlanEntry {
   id: string;
-  soQD: string;         // Số Quyết Định
-  ngayQD: string;       // Ngày Quyết Định (yyyy-mm-dd)
-  tenQD: string;        // Tên Quyết Định
+  decisionId: string;   // FK → Decision.id
   maXa: string;         // Mã xã
   tenXa: string;        // Tên xã
-  maNguonVon: string;   // 1 = Trung ương, 2 = Địa phương
   maChuongTrinh: string;
   tenChuongTrinh: string;
   soTien: number;       // Triệu đồng
@@ -142,6 +163,18 @@ export const CHUONG_TRINH_LIST = [
 
 /** Danh sách chương trình hiển thị (ẩn mục gộp 03) */
 export const CHUONG_TRINH_VISIBLE = CHUONG_TRINH_LIST.filter((c) => !('hidden' in c && c.hidden));
+
+/** Chương trình hiển thị theo Nguồn vốn.
+ *  - NV=1 (Trung ương): 03 được tách thành 03A/03B/03N → ẩn mục gộp 03.
+ *  - NV=2 (Địa phương): giữ nguyên 03 (không tách) → ẩn 03A/03B/03N.
+ *  - Khi chưa chọn NV: dùng danh sách mặc định (như NV=1).
+ */
+export function visibleProgramsFor(maNguonVon: string): { ma: string; ten: string }[] {
+  if (maNguonVon === '2') {
+    return CHUONG_TRINH_LIST.filter((c) => !['03A', '03B', '03N'].includes(c.ma));
+  }
+  return [...CHUONG_TRINH_VISIBLE];
+}
 
 export function nguonVonLabel(ma: string): string {
   return NGUON_VON_LIST.find((n) => n.ma === ma)?.ten ?? ma;

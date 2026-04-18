@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type {
+  Decision,
   PlanEntry,
   ActualSummary,
   PlanVsActual,
@@ -8,9 +9,16 @@ import type {
   Nq11MatchXa,
 } from '../lib/credit-plan-types';
 import { mergeNq11IntoActuals } from '../data/credit-plan-parser';
+import { deleteAttachmentBlob } from '../lib/decision-attachments';
 
 interface CreditPlanState {
-  // Plan entries (manual CRUD)
+  // Decisions (gom các dòng kế hoạch cùng QĐ)
+  decisions: Decision[];
+  addDecision: (d: Decision) => void;
+  updateDecision: (id: string, updates: Partial<Decision>) => void;
+  deleteDecision: (id: string) => void;
+
+  // Plan entries (reference decisionId)
   plans: PlanEntry[];
   addPlan: (entry: PlanEntry) => void;
   updatePlan: (id: string, updates: Partial<PlanEntry>) => void;
@@ -51,9 +59,73 @@ interface CreditPlanState {
   getPlanVsActual: () => PlanVsActual[];
 }
 
+/** Migration: legacy plan rows với soQD/ngayQD/tenQD/maNguonVon được tách thành decisions + plan (decisionId). */
+function migrateLegacyPlans(
+  legacyPlans: Array<PlanEntry & Partial<{ soQD: string; ngayQD: string; tenQD: string; maNguonVon: string }>>,
+): { decisions: Decision[]; plans: PlanEntry[] } {
+  const decisions: Decision[] = [];
+  const plans: PlanEntry[] = [];
+  const keyToId = new Map<string, string>();
+
+  for (const row of legacyPlans) {
+    // Đã migrate rồi — giữ nguyên
+    if ((row as PlanEntry).decisionId) {
+      plans.push(row as PlanEntry);
+      continue;
+    }
+    const soQD = row.soQD ?? '';
+    const ngayQD = row.ngayQD ?? '';
+    const tenQD = row.tenQD ?? '';
+    const maNguonVon = row.maNguonVon ?? '';
+    const key = `${soQD}|${ngayQD}|${maNguonVon}`;
+
+    let decisionId = keyToId.get(key);
+    if (!decisionId) {
+      decisionId = crypto.randomUUID();
+      keyToId.set(key, decisionId);
+      decisions.push({
+        id: decisionId,
+        soQD,
+        ngayQD,
+        tenQD,
+        maNguonVon,
+        trangThai: 'active',
+      });
+    }
+
+    plans.push({
+      id: row.id,
+      decisionId,
+      maXa: row.maXa,
+      tenXa: row.tenXa,
+      maChuongTrinh: row.maChuongTrinh,
+      tenChuongTrinh: row.tenChuongTrinh,
+      soTien: row.soTien,
+    });
+  }
+
+  return { decisions, plans };
+}
+
 export const useCreditPlanStore = create<CreditPlanState>()(
   persist(
     (set, get) => ({
+      decisions: [],
+      addDecision: (d) => set((s) => ({ decisions: [...s.decisions, d] })),
+      updateDecision: (id, updates) =>
+        set((s) => ({
+          decisions: s.decisions.map((d) => (d.id === id ? { ...d, ...updates } : d)),
+        })),
+      deleteDecision: (id) => {
+        // Cascade: dọn file PDF đính kèm trong IndexedDB (best-effort)
+        void deleteAttachmentBlob(id).catch(() => undefined);
+        set((s) => ({
+          decisions: s.decisions.filter((d) => d.id !== id),
+          // Cascade: xóa luôn các dòng kế hoạch tham chiếu decision này
+          plans: s.plans.filter((p) => p.decisionId !== id),
+        }));
+      },
+
       plans: [],
       addPlan: (entry) => set((s) => ({ plans: [...s.plans, entry] })),
       updatePlan: (id, updates) =>
@@ -97,20 +169,23 @@ export const useCreditPlanStore = create<CreditPlanState>()(
       },
 
       getPlanVsActual: () => {
-        const { plans } = get();
+        const { plans, decisions } = get();
         const actuals = get().getMergedActuals();
+        const decById = new Map(decisions.map((d) => [d.id, d]));
         const key = (maXa: string, nguonVon: string, ct: string) =>
           `${maXa}|${nguonVon}|${ct}`;
 
-        // Aggregate plans by key
-        const planMap = new Map<string, { total: number; entry: PlanEntry }>();
+        // Aggregate plans by (xã, NV-from-decision, chương trình)
+        const planMap = new Map<string, { total: number; entry: PlanEntry; nv: string }>();
         for (const p of plans) {
-          const k = key(p.maXa, p.maNguonVon, p.maChuongTrinh);
+          const dec = decById.get(p.decisionId);
+          if (!dec) continue; // orphan — skip
+          const k = key(p.maXa, dec.maNguonVon, p.maChuongTrinh);
           const existing = planMap.get(k);
           if (existing) {
             existing.total += p.soTien;
           } else {
-            planMap.set(k, { total: p.soTien, entry: p });
+            planMap.set(k, { total: p.soTien, entry: p, nv: dec.maNguonVon });
           }
         }
 
@@ -152,7 +227,19 @@ export const useCreditPlanStore = create<CreditPlanState>()(
     }),
     {
       name: 'vsppro-credit-plan',
+      version: 1,
+      migrate: (persisted: unknown, version: number) => {
+        const s = (persisted ?? {}) as Partial<CreditPlanState> & {
+          plans?: Array<PlanEntry & Partial<{ soQD: string; ngayQD: string; tenQD: string; maNguonVon: string }>>;
+        };
+        if (version < 1) {
+          const { decisions, plans } = migrateLegacyPlans(s.plans ?? []);
+          return { ...s, decisions, plans } as CreditPlanState;
+        }
+        return s as CreditPlanState;
+      },
       partialize: (s) => ({
+        decisions: s.decisions,
         plans: s.plans,
         actuals: s.actuals,
         actualDate: s.actualDate,

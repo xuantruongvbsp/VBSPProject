@@ -12,7 +12,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { BanIcon } from 'lucide-react';
+import { BanIcon, FileText } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
 import { nguonVonLabel } from '@/lib/credit-plan-types';
@@ -39,6 +39,7 @@ function PctBadge({ pct }: { pct: number }) {
 
 export function PlanReports() {
   const plans = useCreditPlanStore((s) => s.plans);
+  const decisions = useCreditPlanStore((s) => s.decisions);
   const actuals = useCreditPlanStore((s) => s.actuals);
   const getPlanVsActual = useCreditPlanStore((s) => s.getPlanVsActual);
   const nq11Summaries = useCreditPlanStore((s) => s.nq11Summaries);
@@ -126,6 +127,52 @@ export function PlanReports() {
   const totalPlan = comparison.reduce((s, c) => s + c.planAmount, 0);
   const totalActual = comparison.reduce((s, c) => s + c.actualAmount, 0);
   const overallPct = totalPlan > 0 ? (totalActual / totalPlan) * 100 : 0;
+
+  // Per-Decision aggregation: plan total, actual total (joined via xã + CT + NV-from-decision), completion %
+  const byDecision = useMemo(() => {
+    if (decisions.length === 0) return [];
+    const decMap = new Map(decisions.map((d) => [d.id, d]));
+    // Actuals keyed by xã|NV|CT (đồng → triệu đồng for comparability)
+    const actualKey = (maXa: string, nv: string, ct: string) => `${maXa}|${nv}|${ct}`;
+    const actualMap = new Map<string, number>();
+    for (const a of actuals) {
+      actualMap.set(actualKey(a.maXa, a.maNguonVon, a.maChuongTrinh), a.tongDuNo / 1_000_000);
+    }
+    // Aggregate per-decision plan + matching actual
+    const rows = new Map<string, { plan: number; actual: number; count: number }>();
+    for (const p of plans) {
+      const dec = decMap.get(p.decisionId);
+      if (!dec) continue;
+      const r = rows.get(p.decisionId) ?? { plan: 0, actual: 0, count: 0 };
+      r.plan += p.soTien;
+      r.count++;
+      rows.set(p.decisionId, r);
+    }
+    // Second pass: assign actual by unique (decisionId, xã, NV, CT) tuples — each counted once
+    const claimed = new Set<string>();
+    for (const p of plans) {
+      const dec = decMap.get(p.decisionId);
+      if (!dec) continue;
+      const bucketKey = `${p.decisionId}|${p.maXa}|${p.maChuongTrinh}`;
+      if (claimed.has(bucketKey)) continue;
+      claimed.add(bucketKey);
+      const a = actualMap.get(actualKey(p.maXa, dec.maNguonVon, p.maChuongTrinh)) ?? 0;
+      const r = rows.get(p.decisionId);
+      if (r) r.actual += a;
+    }
+    return decisions.map((d) => {
+      const r = rows.get(d.id) ?? { plan: 0, actual: 0, count: 0 };
+      const pct = r.plan > 0 ? (r.actual / r.plan) * 100 : 0;
+      return {
+        decision: d,
+        plan: r.plan,
+        actual: r.actual,
+        diff: r.actual - r.plan,
+        pct,
+        lineCount: r.count,
+      };
+    });
+  }, [plans, decisions, actuals]);
 
   // Pie data for plan distribution by xa
   const piePlan = useMemo(() => {
@@ -233,6 +280,61 @@ export function PlanReports() {
                     </tr>
                   </tfoot>
                 )}
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Báo cáo theo Quyết định */}
+      {byDecision.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-plan-700" />
+              Báo cáo theo Quyết định
+            </CardTitle>
+            <CardDescription>
+              Mỗi QĐ: tổng kế hoạch, dư nợ thực tế, chênh lệch, tỷ lệ hoàn thành.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
+                    <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Số QĐ</th>
+                    <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Ngày</th>
+                    <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Tên / trích yếu</th>
+                    <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Nguồn vốn</th>
+                    <th className="px-4 py-3 text-right font-medium text-slate-600 dark:text-slate-300">Dòng</th>
+                    <th className="px-4 py-3 text-right font-medium text-blue-600">KH (tr.đ)</th>
+                    <th className="px-4 py-3 text-right font-medium text-emerald-600">TT (tr.đ)</th>
+                    <th className="px-4 py-3 text-right font-medium text-slate-600 dark:text-slate-300">Chênh lệch</th>
+                    <th className="px-4 py-3 text-right font-medium text-slate-600 dark:text-slate-300">Tỷ lệ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {byDecision.map((r) => (
+                    <tr key={r.decision.id} className="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50">
+                      <td className="px-4 py-2 font-medium text-slate-900 dark:text-white">{r.decision.soQD}</td>
+                      <td className="px-4 py-2 text-slate-600 dark:text-slate-300">{r.decision.ngayQD}</td>
+                      <td className="max-w-[240px] truncate px-4 py-2 text-slate-600 dark:text-slate-300" title={r.decision.tenQD}>
+                        {r.decision.tenQD || <span className="text-slate-300">—</span>}
+                      </td>
+                      <td className="px-4 py-2 text-slate-600 dark:text-slate-300">{nguonVonLabel(r.decision.maNguonVon)}</td>
+                      <td className="px-4 py-2 text-right font-mono text-slate-600 dark:text-slate-300">{r.lineCount}</td>
+                      <td className="px-4 py-2 text-right font-mono text-blue-600">{fmtMoney(Math.round(r.plan))}</td>
+                      <td className="px-4 py-2 text-right font-mono text-emerald-600">{fmtMoney(Math.round(r.actual))}</td>
+                      <td className={`px-4 py-2 text-right font-mono ${r.diff >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {r.diff >= 0 ? '+' : ''}{fmtMoney(Math.round(r.diff))}
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        {r.plan > 0 ? <PctBadge pct={r.pct} /> : <span className="text-xs text-slate-400">—</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
               </table>
             </div>
           </CardContent>

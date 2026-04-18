@@ -1,33 +1,28 @@
-import { useState, useRef, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Save, X, Check, ChevronDown } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { Plus, Pencil, Trash2, Save, X, Check, ChevronDown, FileText } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
-import type { PlanEntry } from '@/lib/credit-plan-types';
+import type { PlanEntry, Decision } from '@/lib/credit-plan-types';
 import {
   XA_LIST,
   NGUON_VON_LIST,
   CHUONG_TRINH_LIST,
-  CHUONG_TRINH_VISIBLE,
+  visibleProgramsFor,
   nguonVonLabel,
 } from '@/lib/credit-plan-types';
 
 interface BaseForm {
-  soQD: string;
-  ngayQD: string;
-  tenQD: string;
+  decisionId: string;
   maXa: string;
   tenXa: string;
-  maNguonVon: string;
 }
 
 const emptyBase: BaseForm = {
-  soQD: '',
-  ngayQD: '',
-  tenQD: '',
+  decisionId: '',
   maXa: '',
   tenXa: '',
-  maNguonVon: '',
 };
 
 /** maChuongTrinh → soTien */
@@ -37,13 +32,20 @@ function fmtMoney(n: number) {
   return n.toLocaleString('vi-VN');
 }
 
+function decisionLabel(d: Decision) {
+  const name = d.tenQD ? ` — ${d.tenQD}` : '';
+  return `${d.soQD} (${d.ngayQD}) · ${nguonVonLabel(d.maNguonVon)}${name}`;
+}
+
 /** Multi-select dropdown with checkboxes */
 function ProgramMultiSelect({
   selected,
   onToggle,
+  programsForNV,
 }: {
   selected: Set<string>;
   onToggle: (ma: string) => void;
+  programsForNV: { ma: string; ten: string }[];
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -77,7 +79,7 @@ function ProgramMultiSelect({
           <div className="flex gap-2 border-b border-slate-100 px-3 py-2 dark:border-slate-700">
             <button
               type="button"
-              onClick={() => CHUONG_TRINH_VISIBLE.forEach((c) => { if (!selected.has(c.ma)) onToggle(c.ma); })}
+              onClick={() => programsForNV.forEach((c) => { if (!selected.has(c.ma)) onToggle(c.ma); })}
               className="text-xs font-medium text-blue-600 hover:underline"
             >
               Chọn tất cả
@@ -85,13 +87,13 @@ function ProgramMultiSelect({
             <span className="text-xs text-slate-300">|</span>
             <button
               type="button"
-              onClick={() => CHUONG_TRINH_VISIBLE.forEach((c) => { if (selected.has(c.ma)) onToggle(c.ma); })}
+              onClick={() => programsForNV.forEach((c) => { if (selected.has(c.ma)) onToggle(c.ma); })}
               className="text-xs font-medium text-slate-500 hover:underline"
             >
               Bỏ chọn
             </button>
           </div>
-          {CHUONG_TRINH_VISIBLE.map((c) => {
+          {programsForNV.map((c) => {
             const checked = selected.has(c.ma);
             return (
               <button
@@ -120,7 +122,7 @@ function ProgramMultiSelect({
 }
 
 export function PlanManager() {
-  const { plans, addPlan, updatePlan, deletePlan } = useCreditPlanStore();
+  const { plans, decisions, addPlan, updatePlan, deletePlan } = useCreditPlanStore();
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [base, setBase] = useState(emptyBase);
@@ -130,6 +132,30 @@ export function PlanManager() {
   const [editAmount, setEditAmount] = useState(0);
   const [filterXa, setFilterXa] = useState('');
   const [filterNV, setFilterNV] = useState('');
+  const [filterDecision, setFilterDecision] = useState('');
+
+  const decById = useMemo(() => new Map(decisions.map((d) => [d.id, d])), [decisions]);
+  const activeDecisions = useMemo(
+    () => decisions.filter((d) => d.trangThai !== 'archived'),
+    [decisions],
+  );
+  const selectedDecision = decById.get(base.decisionId);
+
+  /** Chương trình khả dụng theo Nguồn vốn của QĐ đang chọn. */
+  const programsForNV = visibleProgramsFor(selectedDecision?.maNguonVon ?? '');
+
+  const handleDecisionChange = (decisionId: string) => {
+    const dec = decById.get(decisionId);
+    const nextList = visibleProgramsFor(dec?.maNguonVon ?? '');
+    const allowed = new Set(nextList.map((c) => c.ma));
+    setBase((f) => ({ ...f, decisionId }));
+    setPrograms((prev) => {
+      const next = new Map<string, number>();
+      for (const [ma, amt] of prev) if (allowed.has(ma)) next.set(ma, amt);
+      return next;
+    });
+    if (editCT && !allowed.has(editCT)) setEditCT('');
+  };
 
   const resetForm = () => {
     setBase(emptyBase);
@@ -163,17 +189,18 @@ export function PlanManager() {
   };
 
   const handleSubmitAdd = () => {
-    if (!base.soQD || !base.maXa || !base.maNguonVon || programs.size === 0) return;
-    // Check at least one amount > 0
+    if (!base.decisionId || !base.maXa || programs.size === 0) return;
     const hasAmount = Array.from(programs.values()).some((v) => v > 0);
     if (!hasAmount) return;
 
     for (const [maCT, soTien] of programs.entries()) {
       if (soTien <= 0) continue;
-      const ct = CHUONG_TRINH_VISIBLE.find((c) => c.ma === maCT);
+      const ct = CHUONG_TRINH_LIST.find((c) => c.ma === maCT);
       addPlan({
         id: crypto.randomUUID(),
-        ...base,
+        decisionId: base.decisionId,
+        maXa: base.maXa,
+        tenXa: base.tenXa,
         maChuongTrinh: maCT,
         tenChuongTrinh: ct?.ten ?? '',
         soTien,
@@ -183,10 +210,12 @@ export function PlanManager() {
   };
 
   const handleSubmitEdit = () => {
-    if (!editId || !base.soQD || !base.maXa || !base.maNguonVon || !editCT || !editAmount) return;
-    const ct = CHUONG_TRINH_VISIBLE.find((c) => c.ma === editCT);
+    if (!editId || !base.decisionId || !base.maXa || !editCT || !editAmount) return;
+    const ct = CHUONG_TRINH_LIST.find((c) => c.ma === editCT);
     updatePlan(editId, {
-      ...base,
+      decisionId: base.decisionId,
+      maXa: base.maXa,
+      tenXa: base.tenXa,
       maChuongTrinh: editCT,
       tenChuongTrinh: ct?.ten ?? '',
       soTien: editAmount,
@@ -197,12 +226,9 @@ export function PlanManager() {
   const startEdit = (p: PlanEntry) => {
     setEditId(p.id);
     setBase({
-      soQD: p.soQD,
-      ngayQD: p.ngayQD,
-      tenQD: p.tenQD,
+      decisionId: p.decisionId,
       maXa: p.maXa,
       tenXa: p.tenXa,
-      maNguonVon: p.maNguonVon,
     });
     setEditCT(p.maChuongTrinh);
     setEditAmount(p.soTien);
@@ -211,26 +237,17 @@ export function PlanManager() {
 
   const filtered = plans.filter((p) => {
     if (filterXa && p.maXa !== filterXa) return false;
-    if (filterNV && p.maNguonVon !== filterNV) return false;
+    const dec = decById.get(p.decisionId);
+    if (filterNV && dec?.maNguonVon !== filterNV) return false;
+    if (filterDecision && p.decisionId !== filterDecision) return false;
     return true;
   });
 
-  const byQD = new Map<string, { tenQD: string; ngayQD: string; total: number; count: number }>();
-  for (const p of plans) {
-    const existing = byQD.get(p.soQD);
-    if (existing) {
-      existing.total += p.soTien;
-      existing.count++;
-    } else {
-      byQD.set(p.soQD, { tenQD: p.tenQD, ngayQD: p.ngayQD, total: p.soTien, count: 1 });
-    }
-  }
-
   const totalPlan = plans.reduce((s, p) => s + p.soTien, 0);
   const selectedSet = new Set(programs.keys());
+  const sortedSelected = programsForNV.filter((c) => programs.has(c.ma));
 
-  // Sorted selected programs for the amount entry table
-  const sortedSelected = CHUONG_TRINH_VISIBLE.filter((c) => programs.has(c.ma));
+  const hasDecisions = decisions.length > 0;
 
   return (
     <div className="space-y-6 p-6">
@@ -238,13 +255,30 @@ export function PlanManager() {
         <div>
           <h1 className="text-xl font-bold text-slate-900 dark:text-white">Kế hoạch tín dụng</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Quản lý danh mục kế hoạch dư nợ theo quyết định
+            Quản lý danh mục kế hoạch dư nợ theo Quyết định
           </p>
         </div>
-        <Button onClick={() => { resetForm(); setShowForm(true); }}>
+        <Button onClick={() => { resetForm(); setShowForm(true); }} disabled={!hasDecisions}>
           <Plus className="h-4 w-4" /> Thêm mục
         </Button>
       </div>
+
+      {!hasDecisions && (
+        <Card>
+          <CardContent className="flex items-center gap-3 py-4 text-sm">
+            <FileText className="h-5 w-5 shrink-0 text-amber-600" />
+            <div className="flex-1 text-slate-700 dark:text-slate-200">
+              Chưa có Quyết định nào. Hãy tạo QĐ trước khi nhập dòng kế hoạch.
+            </div>
+            <Link
+              to="/credit-plan/decisions"
+              className="rounded-md bg-plan-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-plan-800"
+            >
+              Đi tới Quyết định
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -267,7 +301,7 @@ export function PlanManager() {
         <Card>
           <CardContent className="py-4">
             <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Số Quyết định</div>
-            <div className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{byQD.size}</div>
+            <div className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{decisions.length}</div>
             <div className="text-xs text-slate-500">quyết định</div>
           </CardContent>
         </Card>
@@ -280,34 +314,24 @@ export function PlanManager() {
             <CardTitle>{editId ? 'Sửa mục kế hoạch' : 'Thêm mục kế hoạch'}</CardTitle>
           </CardHeader>
           <CardContent>
-            {/* Common fields */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Số QĐ</label>
-                <input
+              <div className="md:col-span-2">
+                <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Quyết định</label>
+                <select
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-                  value={base.soQD}
-                  onChange={(e) => setBase((f) => ({ ...f, soQD: e.target.value }))}
-                  placeholder="VD: 64"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Ngày QĐ</label>
-                <input
-                  type="date"
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-                  value={base.ngayQD}
-                  onChange={(e) => setBase((f) => ({ ...f, ngayQD: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Tên QĐ</label>
-                <input
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-                  value={base.tenQD}
-                  onChange={(e) => setBase((f) => ({ ...f, tenQD: e.target.value }))}
-                  placeholder="Kế hoạch dư nợ năm 2026"
-                />
+                  value={base.decisionId}
+                  onChange={(e) => handleDecisionChange(e.target.value)}
+                >
+                  <option value="">-- Chọn Quyết định --</option>
+                  {activeDecisions.map((d) => (
+                    <option key={d.id} value={d.id}>{decisionLabel(d)}</option>
+                  ))}
+                </select>
+                {selectedDecision && (
+                  <div className="mt-1 text-[11px] text-slate-500">
+                    Nguồn vốn: <span className="font-medium">{nguonVonLabel(selectedDecision.maNguonVon)}</span>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Xã</label>
@@ -322,21 +346,8 @@ export function PlanManager() {
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Nguồn vốn</label>
-                <select
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-                  value={base.maNguonVon}
-                  onChange={(e) => setBase((f) => ({ ...f, maNguonVon: e.target.value }))}
-                >
-                  <option value="">-- Chọn nguồn vốn --</option>
-                  {NGUON_VON_LIST.map((n) => (
-                    <option key={n.ma} value={n.ma}>{n.ten}</option>
-                  ))}
-                </select>
-              </div>
               {/* Program selection */}
-              <div>
+              <div className="md:col-span-3">
                 <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Chương trình</label>
                 {editId ? (
                   <select
@@ -345,12 +356,12 @@ export function PlanManager() {
                     onChange={(e) => setEditCT(e.target.value)}
                   >
                     <option value="">-- Chọn chương trình --</option>
-                    {CHUONG_TRINH_VISIBLE.map((c) => (
+                    {programsForNV.map((c) => (
                       <option key={c.ma} value={c.ma}>{c.ten}</option>
                     ))}
                   </select>
                 ) : (
-                  <ProgramMultiSelect selected={selectedSet} onToggle={toggleProgram} />
+                  <ProgramMultiSelect selected={selectedSet} onToggle={toggleProgram} programsForNV={programsForNV} />
                 )}
               </div>
             </div>
@@ -426,7 +437,17 @@ export function PlanManager() {
       )}
 
       {/* Filters */}
-      <div className="flex gap-4">
+      <div className="flex flex-wrap gap-4">
+        <select
+          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+          value={filterDecision}
+          onChange={(e) => setFilterDecision(e.target.value)}
+        >
+          <option value="">Tất cả Quyết định</option>
+          {decisions.map((d) => (
+            <option key={d.id} value={d.id}>{d.soQD} ({d.ngayQD})</option>
+          ))}
+        </select>
         <select
           className="rounded-md border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
           value={filterXa}
@@ -458,7 +479,6 @@ export function PlanManager() {
                 <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
                   <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Số QĐ</th>
                   <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Ngày QĐ</th>
-                  <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Tên QĐ</th>
                   <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Xã</th>
                   <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Nguồn vốn</th>
                   <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Chương trình</th>
@@ -469,38 +489,40 @@ export function PlanManager() {
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
+                    <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
                       Chưa có mục kế hoạch nào. Nhấn "Thêm mục" để bắt đầu.
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((p) => (
-                    <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50">
-                      <td className="px-4 py-2.5 font-medium text-slate-900 dark:text-white">{p.soQD}</td>
-                      <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{p.ngayQD}</td>
-                      <td className="max-w-[200px] truncate px-4 py-2.5 text-slate-600 dark:text-slate-300">{p.tenQD}</td>
-                      <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{p.tenXa}</td>
-                      <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{nguonVonLabel(p.maNguonVon)}</td>
-                      <td className="max-w-[250px] truncate px-4 py-2.5 text-slate-600 dark:text-slate-300">{p.tenChuongTrinh}</td>
-                      <td className="px-4 py-2.5 text-right font-mono text-slate-900 dark:text-white">{fmtMoney(p.soTien)}</td>
-                      <td className="px-4 py-2.5">
-                        <div className="flex gap-1">
-                          <button onClick={() => startEdit(p)} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700">
-                            <Pencil className="h-3.5 w-3.5" />
-                          </button>
-                          <button onClick={() => deletePlan(p.id)} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-rose-600 dark:hover:bg-slate-700">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                  filtered.map((p) => {
+                    const dec = decById.get(p.decisionId);
+                    return (
+                      <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50">
+                        <td className="px-4 py-2.5 font-medium text-slate-900 dark:text-white">{dec?.soQD ?? <span className="text-rose-500">(mất QĐ)</span>}</td>
+                        <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{dec?.ngayQD ?? ''}</td>
+                        <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{p.tenXa}</td>
+                        <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{dec ? nguonVonLabel(dec.maNguonVon) : ''}</td>
+                        <td className="max-w-[250px] truncate px-4 py-2.5 text-slate-600 dark:text-slate-300">{p.tenChuongTrinh}</td>
+                        <td className="px-4 py-2.5 text-right font-mono text-slate-900 dark:text-white">{fmtMoney(p.soTien)}</td>
+                        <td className="px-4 py-2.5">
+                          <div className="flex gap-1">
+                            <button onClick={() => startEdit(p)} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700">
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button onClick={() => deletePlan(p.id)} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-rose-600 dark:hover:bg-slate-700">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
               {filtered.length > 0 && (
                 <tfoot>
                   <tr className="border-t-2 border-slate-300 bg-slate-50 font-semibold dark:border-slate-600 dark:bg-slate-800">
-                    <td colSpan={6} className="px-4 py-2.5 text-slate-700 dark:text-slate-200">Tổng cộng</td>
+                    <td colSpan={5} className="px-4 py-2.5 text-slate-700 dark:text-slate-200">Tổng cộng</td>
                     <td className="px-4 py-2.5 text-right font-mono text-slate-900 dark:text-white">
                       {fmtMoney(filtered.reduce((s, p) => s + p.soTien, 0))}
                     </td>

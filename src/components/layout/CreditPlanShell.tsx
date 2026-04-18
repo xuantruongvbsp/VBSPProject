@@ -3,6 +3,7 @@ import {
   ClipboardList,
   FileDown,
   BarChart3,
+  FileText,
   Landmark,
   ArrowLeft,
   Moon,
@@ -13,7 +14,8 @@ import { useCreditPlanStore } from '@/store/useCreditPlanStore';
 import { useThemeStore } from '@/store/useThemeStore';
 
 const navItems = [
-  { to: '/credit-plan', label: 'Kế hoạch', icon: ClipboardList, end: true },
+  { to: '/credit-plan/decisions', label: 'Quyết định', icon: FileText },
+  { to: '/credit-plan/plans', label: 'Kế hoạch', icon: ClipboardList },
   { to: '/credit-plan/actual', label: 'Thực tế', icon: FileDown },
   { to: '/credit-plan/reports', label: 'Báo cáo', icon: BarChart3 },
 ];
@@ -58,7 +60,6 @@ export function CreditPlanShell() {
             <NavLink
               key={it.to}
               to={it.to}
-              end={it.end}
               className={({ isActive }) =>
                 cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
