@@ -9,25 +9,26 @@ export interface DecisionAttachment {
   uploadedAt: string; // ISO timestamp
 }
 
-/** Một Quyết định giao kế hoạch tín dụng — gom các dòng kế hoạch cùng (số QĐ, NV). */
+/** Một Quyết định giao kế hoạch tín dụng — có thể bao gồm nhiều nguồn vốn. */
 export interface Decision {
   id: string;
   soQD: string;                 // Số Quyết Định
   ngayQD: string;               // Ngày ký QĐ (yyyy-mm-dd)
   tenQD: string;                // Tên / trích yếu
-  maNguonVon: string;           // 1 = Trung ương, 2 = Địa phương
+  maNguonVonList: string[];     // Danh sách NV áp dụng — ['1'] | ['2'] | ['1','2']
   ngayHieuLuc?: string;         // Ngày hiệu lực (yyyy-mm-dd)
   trangThai: DecisionStatus;    // draft | active | archived
   ghiChu?: string;              // Ghi chú
   attachment?: DecisionAttachment; // PDF kèm theo (blob trong IndexedDB)
 }
 
-/** Một dòng trong kế hoạch tín dụng — tham chiếu tới Decision để lấy QĐ & NV. */
+/** Một dòng trong kế hoạch tín dụng — NV riêng, bị ràng buộc trong maNguonVonList của QĐ. */
 export interface PlanEntry {
   id: string;
   decisionId: string;   // FK → Decision.id
   maXa: string;         // Mã xã
   tenXa: string;        // Tên xã
+  maNguonVon: string;   // 1 = Trung ương, 2 = Địa phương
   maChuongTrinh: string;
   tenChuongTrinh: string;
   soTien: number;       // Triệu đồng
@@ -48,6 +49,18 @@ export interface ActualSummary {
   tongGiaiNgan: number;
 }
 
+/** Chi tiết 1 món vay từ Báo cáo 31 — dùng để export/inspect theo bucket. */
+export interface BucketLoanDetail {
+  maMonVay: string;
+  soKheUoc: string;
+  maKH: string;
+  tenKH: string;
+  tongDuNo: number;    // đồng
+  duNoTrongHan: number;
+  duNoQuaHan: number;
+  duNoKhoanh: number;
+}
+
 /** Kết quả parse file thực tế */
 export interface ActualImportResult {
   summaries: ActualSummary[];
@@ -55,6 +68,16 @@ export interface ActualImportResult {
   totalRows: number;
   /** Nếu truyền nq11Ids cho parser — đây là kết quả match theo xã */
   nq11MatchByXa?: Nq11MatchXa[];
+  /** Diagnostic: số dòng quét trong file (bao gồm cả dòng cộng/tổng) */
+  scannedRows?: number;
+  /** Diagnostic: số dòng đã bị lọc bỏ vì không phải dòng chi tiết (cộng/tổng) */
+  skippedRows?: number;
+  /** Diagnostic: các cột nhận dạng phát hiện được trong file */
+  detectedIdCols?: string[];
+  /** Diagnostic: số món vay trùng Số khế ước (dấu hiệu file có dòng nhân đôi) */
+  duplicateLoanIds?: number;
+  /** Chi tiết món vay theo bucket (maXa|maNguonVon|maChuongTrinh) — dùng để export. */
+  loanDetailsByBucket?: Record<string, BucketLoanDetail[]>;
 }
 
 /** Thu hồi NQ11 theo xã — kết quả match giữa SK_GQVL và Báo cáo 31 */
@@ -119,6 +142,7 @@ export interface PlanVsActual {
   actualAmount: number;  // Thực tế dư nợ (triệu đồng)
   diff: number;          // actual - plan
   pct: number;           // (actual / plan) * 100
+  soMonVay: number;      // Số món vay thực tế đóng góp vào bucket (0 nếu không có actual)
 }
 
 /** Danh sách xã cố định (Định Quán) */
@@ -136,7 +160,7 @@ export const NGUON_VON_LIST = [
   { ma: '2', ten: 'Địa phương' },
 ];
 
-/** Chương trình cho vay
+/** Chương trình cho vay — mã trùng khớp với "Mã chương trình" trong Báo cáo 31.
  * CT 03 (GQVL) với NV=1 (Trung ương) được tách thành:
  *   03A = Nguồn Ngân sách TW cấp (Cấp QLV ≠ NHCSXH)
  *   03B = Nguồn NHCSXH huy động  (Cấp QLV = 21/NHCSXH)
@@ -144,18 +168,18 @@ export const NGUON_VON_LIST = [
  */
 export const CHUONG_TRINH_LIST = [
   { ma: '01', ten: 'Cho vay ưu đãi hộ nghèo' },
-  { ma: '02', ten: 'Cho vay hộ cận nghèo theo QĐ 15' },
+  { ma: '02', ten: 'Cho vay học sinh, sinh viên có hoàn cảnh khó khăn' },
   { ma: '03A', ten: 'Cho vay GQVL — Ngân sách TW cấp' },
   { ma: '03B', ten: 'Cho vay GQVL — NHCSXH huy động' },
   { ma: '03N', ten: 'Cho vay GQVL — NQ11' },
   { ma: '03', ten: 'Cho vay giải quyết việc làm (gộp)', hidden: true },
-  { ma: '04', ten: 'Cho vay hộ mới thoát nghèo theo QĐ 28' },
+  { ma: '04', ten: 'Cho vay ĐTCS đi lao động có thời hạn ở nước ngoài' },
   { ma: '06', ten: 'Cho vay nước sạch và vệ sinh môi trường nông thôn' },
-  { ma: '07', ten: 'Cho vay ĐTCS đi lao động có thời hạn ở nước ngoài' },
-  { ma: '09', ten: 'Cho vay học sinh, sinh viên có hoàn cảnh khó khăn' },
-  { ma: '12', ten: 'Cho vay hộ nghèo về nhà ở' },
+  { ma: '07', ten: 'Cho vay hộ nghèo về nhà ở' },
+  { ma: '09', ten: 'Cho vay hộ mới thoát nghèo theo QĐ 28' },
+  { ma: '12', ten: 'Cho vay nhà ở xã hội theo Nghị định số 100' },
   { ma: '17', ten: 'Cho vay hộ đồng bào DTTS nghèo, đời sống khó khăn theo QĐ 755' },
-  { ma: '19', ten: 'Cho vay nhà ở xã hội theo Nghị định số 100' },
+  { ma: '19', ten: 'Cho vay hộ cận nghèo theo QĐ 15' },
   { ma: '26', ten: 'Cho vay người chấp hành xong án phạt tù' },
   { ma: 'STEM', ten: 'Cho vay HSSV các ngành học STEM' },
   { ma: '99', ten: 'Cho vay khác' },
@@ -178,6 +202,12 @@ export function visibleProgramsFor(maNguonVon: string): { ma: string; ten: strin
 
 export function nguonVonLabel(ma: string): string {
   return NGUON_VON_LIST.find((n) => n.ma === ma)?.ten ?? ma;
+}
+
+/** Gộp danh sách mã NV thành chuỗi hiển thị: ['1'] → "Trung ương", ['1','2'] → "Trung ương + Địa phương". */
+export function nguonVonListLabel(list: string[]): string {
+  if (!list || list.length === 0) return '—';
+  return list.map((ma) => nguonVonLabel(ma)).join(' + ');
 }
 
 export function chuongTrinhLabel(ma: string): string {

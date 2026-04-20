@@ -12,10 +12,11 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { BanIcon, FileText } from 'lucide-react';
+import { BanIcon, FileText, FileDown } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
-import { nguonVonLabel } from '@/lib/credit-plan-types';
+import { nguonVonLabel, nguonVonListLabel } from '@/lib/credit-plan-types';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
@@ -41,6 +42,7 @@ export function PlanReports() {
   const plans = useCreditPlanStore((s) => s.plans);
   const decisions = useCreditPlanStore((s) => s.decisions);
   const actuals = useCreditPlanStore((s) => s.actuals);
+  const loanDetailsByBucket = useCreditPlanStore((s) => s.loanDetailsByBucket);
   const getPlanVsActual = useCreditPlanStore((s) => s.getPlanVsActual);
   const nq11Summaries = useCreditPlanStore((s) => s.nq11Summaries);
   const nq11MatchByXa = useCreditPlanStore((s) => s.nq11MatchByXa);
@@ -89,6 +91,38 @@ export function PlanReports() {
 
   const comparison = useMemo(() => getPlanVsActual(), [getPlanVsActual, plans, actuals]);
 
+  /** Xuất danh sách Mã món vay đóng góp vào 1 bucket ra file Excel. */
+  const exportBucketLoans = (maXa: string, tenXa: string, maNguonVon: string, maChuongTrinh: string) => {
+    const key = `${maXa}|${maNguonVon}|${maChuongTrinh}`;
+    const details = loanDetailsByBucket[key] ?? [];
+    if (details.length === 0) {
+      alert('Không có chi tiết món vay cho nhóm này. Vui lòng nhập lại Sao kê 31 (danh sách chi tiết không được lưu qua phiên).');
+      return;
+    }
+    const rows = details.map((d, i) => ({
+      STT: i + 1,
+      'Mã món vay': d.maMonVay,
+      'Số khế ước': d.soKheUoc,
+      'Mã KH': d.maKH,
+      'Tên KH': d.tenKH,
+      'Dư nợ trong hạn (đ)': d.duNoTrongHan,
+      'Dư nợ quá hạn (đ)': d.duNoQuaHan,
+      'Dư nợ khoanh (đ)': d.duNoKhoanh,
+      'Tổng dư nợ (đ)': d.tongDuNo,
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const totalTongDuNo = details.reduce((s, d) => s + d.tongDuNo, 0);
+    XLSX.utils.sheet_add_aoa(
+      ws,
+      [['', '', '', '', 'TỔNG', '', '', '', totalTongDuNo]],
+      { origin: -1 },
+    );
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Chi tiết món vay');
+    const safeName = `${tenXa}_${nguonVonLabel(maNguonVon)}_${maChuongTrinh || 'NA'}`.replace(/[^\p{L}\p{N}_-]+/gu, '_');
+    XLSX.writeFile(wb, `ChiTiet_${safeName}.xlsx`);
+  };
+
   const hasData = plans.length > 0 || actuals.length > 0;
 
   // Aggregate comparison by groupBy
@@ -128,35 +162,31 @@ export function PlanReports() {
   const totalActual = comparison.reduce((s, c) => s + c.actualAmount, 0);
   const overallPct = totalPlan > 0 ? (totalActual / totalPlan) * 100 : 0;
 
-  // Per-Decision aggregation: plan total, actual total (joined via xã + CT + NV-from-decision), completion %
+  // Per-Decision aggregation: plan total, actual total (joined via xã + line.NV + CT), completion %
   const byDecision = useMemo(() => {
     if (decisions.length === 0) return [];
-    const decMap = new Map(decisions.map((d) => [d.id, d]));
-    // Actuals keyed by xã|NV|CT (đồng → triệu đồng for comparability)
+    const decIds = new Set(decisions.map((d) => d.id));
     const actualKey = (maXa: string, nv: string, ct: string) => `${maXa}|${nv}|${ct}`;
     const actualMap = new Map<string, number>();
     for (const a of actuals) {
       actualMap.set(actualKey(a.maXa, a.maNguonVon, a.maChuongTrinh), a.tongDuNo / 1_000_000);
     }
-    // Aggregate per-decision plan + matching actual
     const rows = new Map<string, { plan: number; actual: number; count: number }>();
     for (const p of plans) {
-      const dec = decMap.get(p.decisionId);
-      if (!dec) continue;
+      if (!decIds.has(p.decisionId)) continue;
       const r = rows.get(p.decisionId) ?? { plan: 0, actual: 0, count: 0 };
       r.plan += p.soTien;
       r.count++;
       rows.set(p.decisionId, r);
     }
-    // Second pass: assign actual by unique (decisionId, xã, NV, CT) tuples — each counted once
+    // Mỗi (decision, xã, NV, CT) tính actual 1 lần (tránh cộng trùng khi nhiều plan line cùng bucket).
     const claimed = new Set<string>();
     for (const p of plans) {
-      const dec = decMap.get(p.decisionId);
-      if (!dec) continue;
-      const bucketKey = `${p.decisionId}|${p.maXa}|${p.maChuongTrinh}`;
+      if (!decIds.has(p.decisionId)) continue;
+      const bucketKey = `${p.decisionId}|${p.maXa}|${p.maNguonVon}|${p.maChuongTrinh}`;
       if (claimed.has(bucketKey)) continue;
       claimed.add(bucketKey);
-      const a = actualMap.get(actualKey(p.maXa, dec.maNguonVon, p.maChuongTrinh)) ?? 0;
+      const a = actualMap.get(actualKey(p.maXa, p.maNguonVon, p.maChuongTrinh)) ?? 0;
       const r = rows.get(p.decisionId);
       if (r) r.actual += a;
     }
@@ -322,7 +352,7 @@ export function PlanReports() {
                       <td className="max-w-[240px] truncate px-4 py-2 text-slate-600 dark:text-slate-300" title={r.decision.tenQD}>
                         {r.decision.tenQD || <span className="text-slate-300">—</span>}
                       </td>
-                      <td className="px-4 py-2 text-slate-600 dark:text-slate-300">{nguonVonLabel(r.decision.maNguonVon)}</td>
+                      <td className="px-4 py-2 text-slate-600 dark:text-slate-300">{nguonVonListLabel(r.decision.maNguonVonList)}</td>
                       <td className="px-4 py-2 text-right font-mono text-slate-600 dark:text-slate-300">{r.lineCount}</td>
                       <td className="px-4 py-2 text-right font-mono text-blue-600">{fmtMoney(Math.round(r.plan))}</td>
                       <td className="px-4 py-2 text-right font-mono text-emerald-600">{fmtMoney(Math.round(r.actual))}</td>
@@ -500,29 +530,50 @@ export function PlanReports() {
                   <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Chương trình</th>
                   <th className="px-4 py-3 text-right font-medium text-blue-600">KH (tr.đ)</th>
                   <th className="px-4 py-3 text-right font-medium text-emerald-600">TT (tr.đ)</th>
-                  <th className="px-4 py-3 text-right font-medium text-slate-600 dark:text-slate-300">Chênh lệch</th>
+                  <th className="px-4 py-3 text-right font-medium text-slate-600 dark:text-slate-300">Còn phải thực hiện</th>
                   <th className="px-4 py-3 text-right font-medium text-slate-600 dark:text-slate-300">Tỷ lệ</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
-                {comparison.map((c) => (
-                  <tr
-                    key={`${c.maXa}-${c.maNguonVon}-${c.maChuongTrinh}`}
-                    className="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50"
-                  >
-                    <td className="px-4 py-2 text-slate-900 dark:text-white">{c.tenXa}</td>
-                    <td className="px-4 py-2 text-slate-600 dark:text-slate-300">{nguonVonLabel(c.maNguonVon)}</td>
-                    <td className="max-w-[220px] truncate px-4 py-2 text-slate-600 dark:text-slate-300">{c.tenChuongTrinh}</td>
-                    <td className="px-4 py-2 text-right font-mono text-blue-600">{fmtMoney(Math.round(c.planAmount))}</td>
-                    <td className="px-4 py-2 text-right font-mono text-emerald-600">{fmtMoney(Math.round(c.actualAmount))}</td>
-                    <td className={`px-4 py-2 text-right font-mono ${c.diff >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {c.diff >= 0 ? '+' : ''}{fmtMoney(Math.round(c.diff))}
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      {c.planAmount > 0 ? <PctBadge pct={c.pct} /> : <span className="text-xs text-slate-400">—</span>}
-                    </td>
-                  </tr>
-                ))}
+                {comparison.map((c) => {
+                  const bucketKey = `${c.maXa}|${c.maNguonVon}|${c.maChuongTrinh}`;
+                  const hasDetails = (loanDetailsByBucket[bucketKey]?.length ?? 0) > 0;
+                  const remaining = c.planAmount - c.actualAmount;
+                  return (
+                    <tr
+                      key={`${c.maXa}-${c.maNguonVon}-${c.maChuongTrinh}`}
+                      className="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50"
+                    >
+                      <td className="px-4 py-2 text-slate-900 dark:text-white">{c.tenXa}</td>
+                      <td className="px-4 py-2 text-slate-600 dark:text-slate-300">{nguonVonLabel(c.maNguonVon)}</td>
+                      <td className="max-w-[260px] truncate px-4 py-2 text-slate-600 dark:text-slate-300">
+                        <span className="mr-1.5 inline-block rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-500 dark:bg-slate-700 dark:text-slate-400">
+                          {c.maChuongTrinh || '—'}
+                        </span>
+                        {c.tenChuongTrinh}
+                      </td>
+                      <td className="px-4 py-2 text-right font-mono text-blue-600">{fmtMoney(Math.round(c.planAmount))}</td>
+                      <td className="px-4 py-2 text-right font-mono text-emerald-600">{fmtMoney(Math.round(c.actualAmount))}</td>
+                      <td className={`px-4 py-2 text-right font-mono ${remaining > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-600'}`}>
+                        {fmtMoney(Math.round(remaining))}
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        {c.planAmount > 0 ? <PctBadge pct={c.pct} /> : <span className="text-xs text-slate-400">—</span>}
+                      </td>
+                      <td className="px-4 py-2">
+                        <button
+                          onClick={() => exportBucketLoans(c.maXa, c.tenXa, c.maNguonVon, c.maChuongTrinh)}
+                          disabled={!hasDetails}
+                          title={hasDetails ? 'Xuất danh sách Mã món vay đóng góp vào TT' : 'Không có chi tiết — vui lòng nhập lại Sao kê 31'}
+                          className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-plan-700 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-slate-700"
+                        >
+                          <FileDown className="h-4 w-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
               {comparison.length > 0 && (
                 <tfoot>
@@ -530,12 +581,13 @@ export function PlanReports() {
                     <td colSpan={3} className="px-4 py-2.5 text-slate-700 dark:text-slate-200">Tổng cộng</td>
                     <td className="px-4 py-2.5 text-right font-mono text-blue-600">{fmtMoney(Math.round(totalPlan))}</td>
                     <td className="px-4 py-2.5 text-right font-mono text-emerald-600">{fmtMoney(Math.round(totalActual))}</td>
-                    <td className={`px-4 py-2.5 text-right font-mono ${totalActual - totalPlan >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {totalActual - totalPlan >= 0 ? '+' : ''}{fmtMoney(Math.round(totalActual - totalPlan))}
+                    <td className={`px-4 py-2.5 text-right font-mono ${totalPlan - totalActual > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-600'}`}>
+                      {fmtMoney(Math.round(totalPlan - totalActual))}
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <PctBadge pct={overallPct} />
                     </td>
+                    <td></td>
                   </tr>
                 </tfoot>
               )}

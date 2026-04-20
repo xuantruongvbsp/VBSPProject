@@ -2,6 +2,7 @@ import * as XLSX from 'xlsx';
 import type {
   ActualSummary,
   ActualImportResult,
+  BucketLoanDetail,
   Nq11ImportResult,
   Nq11XaSummary,
   Nq11MatchXa,
@@ -35,10 +36,13 @@ export async function parseActualFile(
   }
   if (headerIdx === -1) throw new Error('Không tìm thấy dòng tiêu đề (cần có cột "Mã xã")');
 
-  const headers = rows[headerIdx].map((c) => String(c).trim());
+  const rawHeaders = rows[headerIdx].map((c) => String(c).trim());
+  // Normalized headers cho matching: lowercase + collapse whitespace.
+  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
+  const headers = rawHeaders.map(norm);
 
-  // Map column indices
-  const col = (name: string) => headers.indexOf(name);
+  // Map column indices — so sánh theo chuỗi normalized.
+  const col = (name: string) => headers.indexOf(norm(name));
   const iMaXa = col('Mã xã');
   const iTenXa = col('Tên xã');
   const iNguonVon = col('Nguồn vốn');
@@ -53,15 +57,31 @@ export async function parseActualFile(
 
   const iCapQLV = col('Cấp QL vốn');
   const iTenQD = col('Tên Quyết định');
-  const iMaMonVay = headers.indexOf('Mã món vay');
-  const iSoKheUoc = headers.indexOf('Số khế ước');
+  const iMaMonVay = col('Mã món vay');
+  const iSoKheUoc = col('Số khế ước');
   const iMonId = iMaMonVay !== -1 ? iMaMonVay : iSoKheUoc;
+  // Các cột nhận dạng "dòng chi tiết" (1 món vay) — dùng để loại dòng Cộng/tổng.
+  const iMaKH = col('Mã KH');
+  const iTenKH = col('Tên KH');
+  // Yêu cầu: dòng chi tiết phải có giá trị ở ít nhất 1 cột dưới đây.
+  // Subtotal/cộng thường bỏ trống tất cả.
+  const detailIdCols: { name: string; idx: number }[] = [
+    { name: 'Số khế ước', idx: iSoKheUoc },
+    { name: 'Mã món vay', idx: iMaMonVay },
+    { name: 'Mã KH', idx: iMaKH },
+    { name: 'Tên KH', idx: iTenKH },
+  ].filter((c) => c.idx !== -1);
 
   if (iMaXa === -1) throw new Error('Không tìm thấy cột "Mã xã"');
 
   // Aggregate by key
   const map = new Map<string, ActualSummary>();
+  const loanDetailsByBucket: Record<string, BucketLoanDetail[]> = {};
   let totalRows = 0;
+  let scannedRows = 0;
+  let skippedRows = 0;
+  let duplicateLoanIds = 0;
+  const seenLoanIds = new Set<string>();
   let ngaySoLieu: string | null = null;
 
   // Match NQ11 theo xã (nếu cung cấp nq11Ids)
@@ -76,14 +96,43 @@ export async function parseActualFile(
     const row = rows[i];
     const maXa = String(row[iMaXa] ?? '').trim();
     if (!maXa) continue;
+    scannedRows++;
+
+    // Bỏ qua dòng cộng/tổng — yêu cầu ít nhất 1 cột nhận dạng có giá trị.
+    // Subtotal thường bỏ trống Số khế ước / Mã món vay / Mã KH / Tên KH.
+    if (detailIdCols.length > 0) {
+      const hasDetailId = detailIdCols.some(
+        (c) => String(row[c.idx] ?? '').trim() !== ''
+      );
+      if (!hasDetailId) {
+        skippedRows++;
+        continue;
+      }
+    }
+
+    // Dedup theo Số khế ước / Mã món vay — file có thể lặp lại 1 món nhiều dòng
+    // (phân kỳ, lãi suất, …), "Tổng dư nợ" trên mỗi dòng sẽ bằng số dư hiện tại
+    // của loan → cộng hết sẽ nhân đôi/ba. Chỉ tính 1 lần cho mỗi loan.
+    if (iMonId !== -1) {
+      const loanId = String(row[iMonId] ?? '').trim();
+      if (loanId) {
+        if (seenLoanIds.has(loanId)) {
+          duplicateLoanIds++;
+          continue; // bỏ qua dòng trùng
+        }
+        seenLoanIds.add(loanId);
+      }
+    }
 
     totalRows++;
     let maNguonVon = String(row[iNguonVon] ?? '').trim();
     let maCT = String(row[iMaCT] ?? '').trim();
     const tenQD = iTenQD !== -1 ? String(row[iTenQD] ?? '').trim() : '';
 
-    // Detect STEM: empty maCT + tenQD contains "STEM" → assign code STEM, NV=1
-    if (!maCT && tenQD.toUpperCase().includes('STEM')) {
+    // Detect STEM theo "Tên Quyết định" chứa "STEM" — override maCT bất kể.
+    // Báo cáo 31: dòng STEM dùng chung mã 02 với HSSV thường, chỉ phân biệt bằng Tên QĐ
+    // ("Cho vay HSSV STEM") → ép sang mã 'STEM' để tách bucket.
+    if (tenQD.toUpperCase().includes('STEM')) {
       maCT = 'STEM';
       if (!maNguonVon) maNguonVon = '1';
     }
@@ -129,6 +178,20 @@ export async function parseActualFile(
         }
       }
     }
+
+    // Ghi chi tiết món vay vào bucket (để export/inspect sau này).
+    const loanDetail: BucketLoanDetail = {
+      maMonVay: iMaMonVay !== -1 ? String(row[iMaMonVay] ?? '').trim() : '',
+      soKheUoc: iSoKheUoc !== -1 ? String(row[iSoKheUoc] ?? '').trim() : '',
+      maKH: iMaKH !== -1 ? String(row[iMaKH] ?? '').trim() : '',
+      tenKH: iTenKH !== -1 ? String(row[iTenKH] ?? '').trim() : '',
+      tongDuNo: num(iTongDuNo),
+      duNoTrongHan: num(iDuNoTH),
+      duNoQuaHan: num(iDuNoQH),
+      duNoKhoanh: num(iDuNoKhoanh),
+    };
+    if (!loanDetailsByBucket[key]) loanDetailsByBucket[key] = [];
+    loanDetailsByBucket[key].push(loanDetail);
 
     if (existing) {
       existing.tongDuNo += num(iTongDuNo);
@@ -184,6 +247,11 @@ export async function parseActualFile(
     ngaySoLieu,
     totalRows,
     nq11MatchByXa,
+    scannedRows,
+    skippedRows,
+    detectedIdCols: detailIdCols.map((c) => c.name),
+    duplicateLoanIds,
+    loanDetailsByBucket,
   };
 }
 

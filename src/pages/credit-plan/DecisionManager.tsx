@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
 import {
   NGUON_VON_LIST,
-  nguonVonLabel,
+  nguonVonListLabel,
   type Decision,
   type DecisionStatus,
 } from '@/lib/credit-plan-types';
@@ -22,7 +22,7 @@ interface DecisionForm {
   soQD: string;
   ngayQD: string;
   tenQD: string;
-  maNguonVon: string;
+  maNguonVonList: string[];
   ngayHieuLuc: string;
   trangThai: DecisionStatus;
   ghiChu: string;
@@ -32,7 +32,7 @@ const emptyForm: DecisionForm = {
   soQD: '',
   ngayQD: '',
   tenQD: '',
-  maNguonVon: '',
+  maNguonVonList: [],
   ngayHieuLuc: '',
   trangThai: 'active',
   ghiChu: '',
@@ -108,7 +108,7 @@ export function DecisionManager() {
   }, [plans]);
 
   const filtered = decisions.filter((d) => {
-    if (filterNV && d.maNguonVon !== filterNV) return false;
+    if (filterNV && !d.maNguonVonList.includes(filterNV)) return false;
     if (filterStatus && d.trangThai !== filterStatus) return false;
     return true;
   });
@@ -124,7 +124,7 @@ export function DecisionManager() {
   };
 
   const handleSubmit = async () => {
-    if (!form.soQD || !form.ngayQD || !form.maNguonVon) return;
+    if (!form.soQD || !form.ngayQD || form.maNguonVonList.length === 0) return;
     if (isSaving) return;
     setIsSaving(true);
     try {
@@ -150,7 +150,7 @@ export function DecisionManager() {
         soQD: form.soQD.trim(),
         ngayQD: form.ngayQD,
         tenQD: form.tenQD.trim(),
-        maNguonVon: form.maNguonVon,
+        maNguonVonList: [...form.maNguonVonList].sort(),
         ngayHieuLuc: form.ngayHieuLuc || undefined,
         trangThai: form.trangThai,
         ghiChu: form.ghiChu.trim() || undefined,
@@ -177,7 +177,7 @@ export function DecisionManager() {
       soQD: d.soQD,
       ngayQD: d.ngayQD,
       tenQD: d.tenQD,
-      maNguonVon: d.maNguonVon,
+      maNguonVonList: [...d.maNguonVonList],
       ngayHieuLuc: d.ngayHieuLuc ?? '',
       trangThai: d.trangThai,
       ghiChu: d.ghiChu ?? '',
@@ -275,16 +275,30 @@ export function DecisionManager() {
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Nguồn vốn *</label>
-                <select
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-                  value={form.maNguonVon}
-                  onChange={(e) => setForm((f) => ({ ...f, maNguonVon: e.target.value }))}
-                >
-                  <option value="">-- Chọn nguồn vốn --</option>
-                  {NGUON_VON_LIST.map((n) => (
-                    <option key={n.ma} value={n.ma}>{n.ten}</option>
-                  ))}
-                </select>
+                <div className="flex flex-col gap-1 rounded-md border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700">
+                  {NGUON_VON_LIST.map((n) => {
+                    const checked = form.maNguonVonList.includes(n.ma);
+                    return (
+                      <label key={n.ma} className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() =>
+                            setForm((f) => ({
+                              ...f,
+                              maNguonVonList: checked
+                                ? f.maNguonVonList.filter((x) => x !== n.ma)
+                                : [...f.maNguonVonList, n.ma],
+                            }))
+                          }
+                          className="h-4 w-4 rounded border-slate-300 text-plan-700 focus:ring-plan-600"
+                        />
+                        {n.ten}
+                      </label>
+                    );
+                  })}
+                </div>
+                <div className="mt-1 text-[11px] text-slate-500">Chọn một hoặc cả hai.</div>
               </div>
               <div className="md:col-span-2">
                 <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Tên / trích yếu</label>
@@ -478,7 +492,7 @@ export function DecisionManager() {
                         <td className="px-4 py-2.5 font-medium text-slate-900 dark:text-white">{d.soQD}</td>
                         <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{d.ngayQD}</td>
                         <td className="max-w-[260px] truncate px-4 py-2.5 text-slate-600 dark:text-slate-300" title={d.tenQD}>{d.tenQD || <span className="text-slate-300">—</span>}</td>
-                        <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{nguonVonLabel(d.maNguonVon)}</td>
+                        <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{nguonVonListLabel(d.maNguonVonList)}</td>
                         <td className="px-4 py-2.5">
                           <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ${statusColor[d.trangThai]}`}>
                             {statusLabel[d.trangThai]}

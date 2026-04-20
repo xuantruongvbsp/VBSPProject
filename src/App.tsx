@@ -21,6 +21,7 @@ import { CreditPlanShell } from '@/components/layout/CreditPlanShell';
 import { PlanManager } from '@/pages/credit-plan/PlanManager';
 import { ActualImport } from '@/pages/credit-plan/ActualImport';
 import { PlanReports } from '@/pages/credit-plan/PlanReports';
+import { PerformanceReport } from '@/pages/credit-plan/PerformanceReport';
 import { DecisionManager } from '@/pages/credit-plan/DecisionManager';
 
 /**
@@ -87,6 +88,7 @@ export default function App() {
         <Route path="plans" element={<PlanManager />} />
         <Route path="actual" element={<ActualImport />} />
         <Route path="reports" element={<PlanReports />} />
+        <Route path="performance" element={<PerformanceReport />} />
       </Route>
 
       {/* Ứng dụng So sánh giữa hai kỳ */}

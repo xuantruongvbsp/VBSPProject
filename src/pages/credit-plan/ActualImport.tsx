@@ -19,6 +19,7 @@ export function ActualImport() {
     actuals,
     actualDate,
     actualTotalRows,
+    actualDiag,
     setActuals,
     clearActuals,
     nq11Summaries,
@@ -47,7 +48,19 @@ export function ActualImport() {
     try {
       const idSet = nq11MonVayIds.length > 0 ? new Set(nq11MonVayIds) : undefined;
       const result = await parseActualFile(file, idSet);
-      setActuals(result.summaries, result.ngaySoLieu, result.totalRows, result.nq11MatchByXa);
+      setActuals(
+        result.summaries,
+        result.ngaySoLieu,
+        result.totalRows,
+        result.nq11MatchByXa,
+        {
+          scannedRows: result.scannedRows,
+          skippedRows: result.skippedRows,
+          detectedIdCols: result.detectedIdCols,
+          duplicateLoanIds: result.duplicateLoanIds,
+        },
+        result.loanDetailsByBucket,
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Lỗi đọc file');
     } finally {
@@ -410,6 +423,34 @@ export function ActualImport() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Diagnostic panel — giúp kiểm tra bộ lọc dòng cộng/tổng */}
+          {actualDiag && (
+            <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-xs dark:border-slate-700 dark:bg-slate-800/50">
+              <div className="mb-1 font-semibold text-slate-700 dark:text-slate-200">
+                Chẩn đoán import (dùng để xác nhận bộ lọc dòng cộng/tổng đang hoạt động)
+              </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-slate-600 dark:text-slate-300 md:grid-cols-4">
+                <div>Tổng dòng quét: <span className="font-mono font-semibold text-slate-900 dark:text-white">{(actualDiag.scannedRows ?? 0).toLocaleString('vi-VN')}</span></div>
+                <div>Dòng chi tiết (tính): <span className="font-mono font-semibold text-emerald-700 dark:text-emerald-300">{actualTotalRows.toLocaleString('vi-VN')}</span></div>
+                <div>Dòng cộng/tổng (bỏ): <span className={`font-mono font-semibold ${(actualDiag.skippedRows ?? 0) > 0 ? 'text-rose-600' : 'text-slate-400'}`}>{(actualDiag.skippedRows ?? 0).toLocaleString('vi-VN')}</span></div>
+                <div>Dòng trùng (đã loại): <span className={`font-mono font-semibold ${(actualDiag.duplicateLoanIds ?? 0) > 0 ? 'text-amber-600' : 'text-slate-400'}`}>{(actualDiag.duplicateLoanIds ?? 0).toLocaleString('vi-VN')}</span></div>
+                <div className="md:col-span-4">Cột nhận dạng: <span className="font-mono text-slate-700 dark:text-slate-200">{(actualDiag.detectedIdCols ?? []).join(', ') || '—'}</span></div>
+              </div>
+              {(actualDiag.duplicateLoanIds ?? 0) > 0 && (
+                <div className="mt-2 text-amber-700 dark:text-amber-300">
+                  ℹ {(actualDiag.duplicateLoanIds ?? 0).toLocaleString('vi-VN')} dòng trùng Số khế ước/Mã món vay đã được loại bỏ.
+                  Mỗi khoản vay được tính 1 lần.
+                </div>
+              )}
+              {(actualDiag.detectedIdCols ?? []).length === 0 && (
+                <div className="mt-2 text-rose-600 dark:text-rose-300">
+                  ⚠ Không phát hiện cột nhận dạng dòng chi tiết (Số khế ước / Mã món vay / Mã KH / Tên KH).
+                  Mọi dòng có Mã xã đều được tính — có khả năng cộng cả dòng cộng/tổng. Vui lòng gửi tên cột chính xác để điều chỉnh bộ lọc.
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Summary by Xa */}
           <Card>

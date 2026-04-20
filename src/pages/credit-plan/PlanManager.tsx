@@ -11,18 +11,21 @@ import {
   CHUONG_TRINH_LIST,
   visibleProgramsFor,
   nguonVonLabel,
+  nguonVonListLabel,
 } from '@/lib/credit-plan-types';
 
 interface BaseForm {
   decisionId: string;
   maXa: string;
   tenXa: string;
+  maNguonVon: string;
 }
 
 const emptyBase: BaseForm = {
   decisionId: '',
   maXa: '',
   tenXa: '',
+  maNguonVon: '',
 };
 
 /** maChuongTrinh → soTien */
@@ -34,7 +37,7 @@ function fmtMoney(n: number) {
 
 function decisionLabel(d: Decision) {
   const name = d.tenQD ? ` — ${d.tenQD}` : '';
-  return `${d.soQD} (${d.ngayQD}) · ${nguonVonLabel(d.maNguonVon)}${name}`;
+  return `${d.soQD} (${d.ngayQD}) · ${nguonVonListLabel(d.maNguonVonList)}${name}`;
 }
 
 /** Multi-select dropdown with checkboxes */
@@ -133,6 +136,7 @@ export function PlanManager() {
   const [filterXa, setFilterXa] = useState('');
   const [filterNV, setFilterNV] = useState('');
   const [filterDecision, setFilterDecision] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
 
   const decById = useMemo(() => new Map(decisions.map((d) => [d.id, d])), [decisions]);
   const activeDecisions = useMemo(
@@ -141,14 +145,28 @@ export function PlanManager() {
   );
   const selectedDecision = decById.get(base.decisionId);
 
-  /** Chương trình khả dụng theo Nguồn vốn của QĐ đang chọn. */
-  const programsForNV = visibleProgramsFor(selectedDecision?.maNguonVon ?? '');
+  /** Chương trình khả dụng theo Nguồn vốn đang chọn của dòng kế hoạch. */
+  const programsForNV = visibleProgramsFor(base.maNguonVon);
 
   const handleDecisionChange = (decisionId: string) => {
     const dec = decById.get(decisionId);
-    const nextList = visibleProgramsFor(dec?.maNguonVon ?? '');
+    // Nếu QĐ chỉ có 1 NV → tự chọn; nếu có nhiều hơn → reset để user chủ động chọn.
+    const autoNV = dec && dec.maNguonVonList.length === 1 ? dec.maNguonVonList[0] : '';
+    const nextList = visibleProgramsFor(autoNV);
     const allowed = new Set(nextList.map((c) => c.ma));
-    setBase((f) => ({ ...f, decisionId }));
+    setBase((f) => ({ ...f, decisionId, maNguonVon: autoNV }));
+    setPrograms((prev) => {
+      const next = new Map<string, number>();
+      for (const [ma, amt] of prev) if (allowed.has(ma)) next.set(ma, amt);
+      return next;
+    });
+    if (editCT && !allowed.has(editCT)) setEditCT('');
+  };
+
+  const handleNVChange = (maNguonVon: string) => {
+    const nextList = visibleProgramsFor(maNguonVon);
+    const allowed = new Set(nextList.map((c) => c.ma));
+    setBase((f) => ({ ...f, maNguonVon }));
     setPrograms((prev) => {
       const next = new Map<string, number>();
       for (const [ma, amt] of prev) if (allowed.has(ma)) next.set(ma, amt);
@@ -163,6 +181,7 @@ export function PlanManager() {
     setEditId(null);
     setEditCT('');
     setEditAmount(0);
+    setFormError(null);
     setShowForm(false);
   };
 
@@ -189,18 +208,24 @@ export function PlanManager() {
   };
 
   const handleSubmitAdd = () => {
-    if (!base.decisionId || !base.maXa || programs.size === 0) return;
-    const hasAmount = Array.from(programs.values()).some((v) => v > 0);
-    if (!hasAmount) return;
+    setFormError(null);
+    if (!base.decisionId) return setFormError('Vui lòng chọn Quyết định.');
+    if (!base.maNguonVon) return setFormError('Vui lòng chọn Nguồn vốn.');
+    if (!base.maXa) return setFormError('Vui lòng chọn Xã.');
+    if (programs.size === 0) return setFormError('Vui lòng chọn ít nhất 1 chương trình.');
 
-    for (const [maCT, soTien] of programs.entries()) {
-      if (soTien <= 0) continue;
+    const nonZero = Array.from(programs.entries()).filter(([, v]) => v !== 0);
+    if (nonZero.length === 0) return setFormError('Các dòng có số tiền = 0 sẽ không được lưu. Vui lòng nhập số tiền.');
+
+    // Bỏ qua dòng = 0; cho phép số âm (điều chỉnh giảm).
+    for (const [maCT, soTien] of nonZero) {
       const ct = CHUONG_TRINH_LIST.find((c) => c.ma === maCT);
       addPlan({
         id: crypto.randomUUID(),
         decisionId: base.decisionId,
         maXa: base.maXa,
         tenXa: base.tenXa,
+        maNguonVon: base.maNguonVon,
         maChuongTrinh: maCT,
         tenChuongTrinh: ct?.ten ?? '',
         soTien,
@@ -210,12 +235,19 @@ export function PlanManager() {
   };
 
   const handleSubmitEdit = () => {
-    if (!editId || !base.decisionId || !base.maXa || !editCT || !editAmount) return;
+    setFormError(null);
+    if (!editId) return;
+    if (!base.decisionId) return setFormError('Vui lòng chọn Quyết định.');
+    if (!base.maNguonVon) return setFormError('Vui lòng chọn Nguồn vốn.');
+    if (!base.maXa) return setFormError('Vui lòng chọn Xã.');
+    if (!editCT) return setFormError('Vui lòng chọn Chương trình.');
+    if (editAmount === 0) return setFormError('Số tiền = 0 không được lưu. Vui lòng nhập giá trị khác 0.');
     const ct = CHUONG_TRINH_LIST.find((c) => c.ma === editCT);
     updatePlan(editId, {
       decisionId: base.decisionId,
       maXa: base.maXa,
       tenXa: base.tenXa,
+      maNguonVon: base.maNguonVon,
       maChuongTrinh: editCT,
       tenChuongTrinh: ct?.ten ?? '',
       soTien: editAmount,
@@ -229,6 +261,7 @@ export function PlanManager() {
       decisionId: p.decisionId,
       maXa: p.maXa,
       tenXa: p.tenXa,
+      maNguonVon: p.maNguonVon,
     });
     setEditCT(p.maChuongTrinh);
     setEditAmount(p.soTien);
@@ -237,8 +270,7 @@ export function PlanManager() {
 
   const filtered = plans.filter((p) => {
     if (filterXa && p.maXa !== filterXa) return false;
-    const dec = decById.get(p.decisionId);
-    if (filterNV && dec?.maNguonVon !== filterNV) return false;
+    if (filterNV && p.maNguonVon !== filterNV) return false;
     if (filterDecision && p.decisionId !== filterDecision) return false;
     return true;
   });
@@ -329,8 +361,28 @@ export function PlanManager() {
                 </select>
                 {selectedDecision && (
                   <div className="mt-1 text-[11px] text-slate-500">
-                    Nguồn vốn: <span className="font-medium">{nguonVonLabel(selectedDecision.maNguonVon)}</span>
+                    QĐ áp dụng: <span className="font-medium">{nguonVonListLabel(selectedDecision.maNguonVonList)}</span>
                   </div>
+                )}
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Nguồn vốn</label>
+                {selectedDecision && selectedDecision.maNguonVonList.length === 1 ? (
+                  <div className="flex h-[38px] items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                    {nguonVonLabel(selectedDecision.maNguonVonList[0])}
+                  </div>
+                ) : (
+                  <select
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white disabled:opacity-60"
+                    value={base.maNguonVon}
+                    onChange={(e) => handleNVChange(e.target.value)}
+                    disabled={!selectedDecision}
+                  >
+                    <option value="">-- Chọn nguồn vốn --</option>
+                    {(selectedDecision?.maNguonVonList ?? []).map((nv) => (
+                      <option key={nv} value={nv}>{nguonVonLabel(nv)}</option>
+                    ))}
+                  </select>
                 )}
               </div>
               <div>
@@ -424,6 +476,12 @@ export function PlanManager() {
               </div>
             )}
 
+            {formError && (
+              <div className="mt-4 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-200">
+                {formError}
+              </div>
+            )}
+
             <div className="mt-4 flex gap-2">
               <Button onClick={editId ? handleSubmitEdit : handleSubmitAdd}>
                 <Save className="h-4 w-4" /> {editId ? 'Cập nhật' : 'Lưu'}
@@ -501,7 +559,7 @@ export function PlanManager() {
                         <td className="px-4 py-2.5 font-medium text-slate-900 dark:text-white">{dec?.soQD ?? <span className="text-rose-500">(mất QĐ)</span>}</td>
                         <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{dec?.ngayQD ?? ''}</td>
                         <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{p.tenXa}</td>
-                        <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{dec ? nguonVonLabel(dec.maNguonVon) : ''}</td>
+                        <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{nguonVonLabel(p.maNguonVon)}</td>
                         <td className="max-w-[250px] truncate px-4 py-2.5 text-slate-600 dark:text-slate-300">{p.tenChuongTrinh}</td>
                         <td className="px-4 py-2.5 text-right font-mono text-slate-900 dark:text-white">{fmtMoney(p.soTien)}</td>
                         <td className="px-4 py-2.5">
