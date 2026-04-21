@@ -15,9 +15,19 @@ import {
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import type { LoanRecord } from '@/lib/types';
-import type { PortfolioKpi } from '@/lib/metrics';
+import { computeKpi, type PortfolioKpi } from '@/lib/metrics';
 import { exportToXlsx, type XlsxExportInput } from '@/lib/export-xlsx';
 import { exportToPdf, type PdfExportInput } from '@/lib/export-pdf';
+
+// Loại các khế ước đã tất toán (Tình trạng món vay = "close") khỏi mọi
+// bản xuất Excel/PDF. Người dùng vẫn xem được trong "Tra cứu chi tiết",
+// nhưng không muốn các khế ước này lọt vào báo cáo gửi đi.
+function excludeClosedLoans(rows: readonly LoanRecord[]): LoanRecord[] {
+  return rows.filter((r) => {
+    const s = (r.tinhTrangMonVay ?? '').trim().toLowerCase();
+    return s !== 'close' && s !== 'closed';
+  });
+}
 
 export interface ExportMenuProps {
   /** Tiêu đề trang, ví dụ "Tổng quan danh mục tín dụng" */
@@ -112,23 +122,31 @@ export function ExportMenu(props: ExportMenuProps): React.ReactElement {
     [onError]
   );
 
+  // Chuẩn hóa dữ liệu xuất: loại bỏ khế ước đã tất toán và tính lại KPI cho
+  // khớp với danh sách thật sự được ghi vào file.
+  const exportRows = React.useMemo(() => excludeClosedLoans(rows), [rows]);
+  const exportKpi = React.useMemo<PortfolioKpi>(
+    () => (exportRows.length === rows.length ? kpi : computeKpi(exportRows)),
+    [exportRows, rows.length, kpi]
+  );
+
   const runXlsx = React.useCallback(async () => {
     await exportToXlsx({
-      rows,
-      kpi,
+      rows: exportRows,
+      kpi: exportKpi,
       pageTitle,
       subtitle,
       extraSheets: xlsxExtraSheets,
       filename: xlsxFilename,
     });
-  }, [rows, kpi, pageTitle, subtitle, xlsxExtraSheets, xlsxFilename]);
+  }, [exportRows, exportKpi, pageTitle, subtitle, xlsxExtraSheets, xlsxFilename]);
 
   const runPdf = React.useCallback(async () => {
     const chartElements = resolveChartElements(chartRefs, chartSelectors);
     await exportToPdf({
       pageTitle,
       subtitle,
-      kpi,
+      kpi: exportKpi,
       chartElements,
       table: pdfTable,
       filename: pdfFilename,
@@ -138,7 +156,7 @@ export function ExportMenu(props: ExportMenuProps): React.ReactElement {
     chartSelectors,
     pageTitle,
     subtitle,
-    kpi,
+    exportKpi,
     pdfTable,
     pdfFilename,
   ]);
@@ -183,7 +201,7 @@ export function ExportMenu(props: ExportMenuProps): React.ReactElement {
   }, [busy, runXlsx, runPdf, handleError]);
 
   const label = busy ? 'Đang xuất…' : 'Xuất báo cáo';
-  const isDisabled = disabled || busy || rows.length === 0;
+  const isDisabled = disabled || busy || exportRows.length === 0;
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>

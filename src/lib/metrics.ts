@@ -187,6 +187,9 @@ export function heatmapDaoHan(
 ): { ym: string; count: number; tongDuNo: number }[] {
   const map = new Map<string, { count: number; tongDuNo: number }>();
   for (const r of rows) {
+    // Bỏ qua các khế ước đã tất toán (Tình trạng món vay = "close").
+    const status = (r.tinhTrangMonVay ?? '').trim().toLowerCase();
+    if (status === 'close' || status === 'closed') continue;
     const d = r.ngayDHGiaHan ?? r.ngayDHHopDong;
     if (!d) continue;
     const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
