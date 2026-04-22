@@ -31,7 +31,7 @@ export interface RangeFilters {
   mucVay: [number, number] | null;
   laiSuat: [number, number] | null;
   ngayVay: [string, string] | null; // ISO yyyy-mm-dd
-  ngayDaoHan: [string, string] | null; // ISO yyyy-mm-dd (ngayDHGiaHan ?? ngayDHHopDong)
+  ngayDaoHan: [string, string] | null; // ISO yyyy-mm-dd — so khớp trên ngayDHGDXA (đồng bộ với heatmap & Explorer)
 }
 
 export type RangeKey = keyof RangeFilters;
@@ -189,6 +189,22 @@ export const useDataStore = create<State>((set) => ({
     }),
 }));
 
+/**
+ * Chuyển ISO yyyy-mm-dd sang mốc "bắt đầu ngày" theo múi giờ cục bộ.
+ * Trước đây dùng `new Date(a).getTime()` — bị tính là UTC midnight, lệch
+ * múi giờ và loại mất các khế ước rơi vào ngày biên.
+ */
+function localDayStart(iso: string): number | null {
+  const m = iso.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (!m) return null;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 0, 0, 0, 0).getTime();
+}
+function localDayEnd(iso: string): number | null {
+  const m = iso.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (!m) return null;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 23, 59, 59, 999).getTime();
+}
+
 /** Áp dụng tất cả các bộ lọc lên danh sách khế ước */
 export function applyFilters(
   rows: LoanRecord[],
@@ -214,24 +230,30 @@ export function applyFilters(
   }
   if (ranges.ngayVay) {
     const [a, b] = ranges.ngayVay;
-    const ad = new Date(a).getTime();
-    const bd = new Date(b).getTime();
-    out = out.filter((r) => {
-      if (!r.ngayVay) return false;
-      const t = r.ngayVay.getTime();
-      return t >= ad && t <= bd;
-    });
+    const ad = localDayStart(a);
+    const bd = localDayEnd(b);
+    if (ad !== null && bd !== null) {
+      out = out.filter((r) => {
+        if (!r.ngayVay) return false;
+        const t = r.ngayVay.getTime();
+        return t >= ad && t <= bd;
+      });
+    }
   }
   if (ranges.ngayDaoHan) {
+    // Khớp theo ngayDHGDXA — đúng trường mà heatmap Lịch đáo hạn dùng
+    // để gom nhóm và Explorer hiển thị ở cột "Ngày ĐH theo GDXA".
     const [a, b] = ranges.ngayDaoHan;
-    const ad = new Date(a).getTime();
-    const bd = new Date(b).getTime();
-    out = out.filter((r) => {
-      const d = r.ngayDHGiaHan ?? r.ngayDHHopDong;
-      if (!d) return false;
-      const t = d.getTime();
-      return t >= ad && t <= bd;
-    });
+    const ad = localDayStart(a);
+    const bd = localDayEnd(b);
+    if (ad !== null && bd !== null) {
+      out = out.filter((r) => {
+        const d = r.ngayDHGDXA;
+        if (!d) return false;
+        const t = d.getTime();
+        return t >= ad && t <= bd;
+      });
+    }
   }
   if (search.q.trim()) {
     const q = search.q.trim().toLowerCase();

@@ -9,13 +9,16 @@ import {
   Cell,
   Treemap,
   Legend,
+  PieChart,
+  Pie,
 } from 'recharts';
 import { useMemo } from 'react';
 import { fmtCompact, fmtCurrency, fmtPercent } from '@/lib/format';
 import { useChartColors } from '@/lib/useChartColors';
 import type { GroupAgg } from '@/lib/metrics';
+import { cn } from '@/lib/utils';
 
-export type BarGroupChartType = 'bar' | 'treemap';
+export type BarGroupChartType = 'bar' | 'treemap' | 'pie';
 
 interface Props {
   data: GroupAgg[];
@@ -27,6 +30,8 @@ interface Props {
   yAxisWidth?: number;
   charsPerLine?: number;
   chartType?: BarGroupChartType;
+  /** Nhãn tooltip thay cho "Tổng dư nợ" mặc định — dùng khi metric khác tongDuNo */
+  tooltipLabel?: string;
 }
 
 const palette = ['#1d4ed8', '#0891b2', '#16a34a', '#ea580c', '#a21caf', '#4338ca'];
@@ -92,6 +97,7 @@ export function BarByGroup({
   yAxisWidth = 220,
   charsPerLine = 28,
   chartType = 'bar',
+  tooltipLabel = 'Tổng dư nợ',
 }: Props) {
   const cc = useChartColors();
   const trimmed = data.slice(0, limit);
@@ -116,6 +122,105 @@ export function BarByGroup({
     [treemapData],
   );
 
+
+  if (chartType === 'pie') {
+    const pieData = trimmed
+      .map((d, i) => ({
+        key: d.key,
+        label: d.label,
+        value: (d as any)[metric] as number || 0,
+        fill: d.key === highlightKey ? '#dc2626' : palette[i % palette.length],
+      }))
+      .filter((d) => d.value > 0);
+    const pieTotal = pieData.reduce((s, d) => s + d.value, 0);
+
+    const renderOuterLabel = (props: any) => {
+      const { cx, cy, midAngle, outerRadius, percent, fill } = props;
+      if (!percent || percent < 0.005) return null; // ẩn nhãn < 0,5% tránh rối
+      const RAD = Math.PI / 180;
+      const r = outerRadius + 16;
+      const x = cx + r * Math.cos(-midAngle * RAD);
+      const y = cy + r * Math.sin(-midAngle * RAD);
+      return (
+        <text
+          x={x}
+          y={y}
+          fill={fill}
+          fontSize={12}
+          fontWeight={700}
+          textAnchor={x > cx ? 'start' : 'end'}
+          dominantBaseline="central"
+        >
+          {fmtPercent(percent * 100, 1)}
+        </text>
+      );
+    };
+
+    return (
+      <div className="flex flex-col items-stretch gap-4 lg:flex-row lg:items-center">
+        <div className="min-w-0 flex-1">
+          <ResponsiveContainer width="100%" height={340}>
+            <PieChart>
+              <Pie
+                data={pieData}
+                dataKey="value"
+                nameKey="label"
+                cx="50%"
+                cy="50%"
+                innerRadius={70}
+                outerRadius={110}
+                paddingAngle={2}
+                onClick={(d: any) => onClick?.(d?.key ?? d?.payload?.key)}
+                cursor={cursor}
+                isAnimationActive={false}
+                label={renderOuterLabel}
+                labelLine={{ stroke: cc.axis, strokeWidth: 1 }}
+              >
+                {pieData.map((d) => (
+                  <Cell key={d.key} fill={d.fill} />
+                ))}
+              </Pie>
+              <Tooltip
+                contentStyle={{ fontSize: 12, borderRadius: 8, background: cc.tooltipBg, borderColor: cc.tooltipBorder, color: cc.text }}
+                formatter={(v: number, _name: string, entry: any) => {
+                  const pct = pieTotal > 0 ? (v / pieTotal) * 100 : 0;
+                  return [`${fmtCurrency(v)} · ${fmtPercent(pct, 1)}`, entry?.payload?.label ?? ''];
+                }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <ul className="flex flex-col gap-2 text-[11px] lg:w-60 lg:shrink-0">
+          {pieData.map((d) => {
+            const pct = pieTotal > 0 ? (d.value / pieTotal) * 100 : 0;
+            return (
+              <li
+                key={d.key}
+                className={cn('flex items-start gap-2', onClick && 'cursor-pointer')}
+                onClick={() => onClick?.(d.key)}
+              >
+                <span
+                  className="mt-[5px] inline-block h-2 w-2 shrink-0 rounded-full"
+                  style={{ background: d.fill }}
+                />
+                <div className="min-w-0">
+                  <div className="truncate font-semibold text-slate-800 dark:text-slate-100" title={d.label}>
+                    {d.label}
+                  </div>
+                  <div className="text-slate-600 dark:text-slate-400">
+                    {fmtCurrency(d.value)} · <span style={{ color: d.fill }}>{fmtPercent(pct, 1)}</span>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+          <li className="mt-1 border-t border-slate-200 pt-2 text-slate-500 dark:border-slate-700 dark:text-slate-400">
+            Tổng: {fmtCurrency(pieTotal)}
+          </li>
+        </ul>
+      </div>
+    );
+  }
 
   if (chartType === 'treemap') {
     const renderContent = (props: any) => {
@@ -229,7 +334,7 @@ export function BarByGroup({
         <Tooltip
           cursor={{ fill: cc.cartesianBg }}
           contentStyle={{ fontSize: 12, borderRadius: 8, background: cc.tooltipBg, borderColor: cc.tooltipBorder, color: cc.text }}
-          formatter={(v: number) => [fmtCurrency(v), 'Tổng dư nợ']}
+          formatter={(v: number) => [fmtCurrency(v), tooltipLabel]}
         />
         <Bar
           dataKey={metric as string}

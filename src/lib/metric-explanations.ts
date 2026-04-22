@@ -99,6 +99,14 @@ export const METRIC_EXPLANATIONS: Record<string, MetricExplanation> = {
       'Tổng hợp dư nợ theo cột "Chương trình" trên Báo cáo 31 sau khi áp dụng bộ lọc.',
     note: 'Giúp đánh giá mức độ tập trung vốn vào từng chương trình mục tiêu.',
   },
+  chartXa: {
+    title: 'Dư nợ theo Xã',
+    definition:
+      'So sánh quy mô dư nợ giữa các xã/phường trên địa bàn, lấy 10 đơn vị có dư nợ lớn nhất.',
+    formula:
+      'Tổng hợp dư nợ theo cột "Xã/Phường" trên Báo cáo 31, sắp xếp giảm dần và lấy Top 10.',
+    note: 'Phản ánh mức độ phân bổ vốn theo địa bàn; bấm vào cột để lọc nhanh danh mục theo xã.',
+  },
   chartPgd: {
     title: 'Dư nợ theo Phòng giao dịch',
     definition:
@@ -483,5 +491,108 @@ export const METRIC_EXPLANATIONS: Record<string, MetricExplanation> = {
     formula:
       'Bộ lọc và ô tìm kiếm phía trên áp dụng cho toàn bộ bảng. Số liệu đã lọc cũng là dữ liệu được xuất ra báo cáo.',
     note: 'Nhấp vào một dòng để mở ngăn chi tiết bên phải hiển thị 174 trường của khế ước.',
+  },
+
+  // ─── Báo cáo NPL ──────────────────────────────────────────────────────────
+
+  pageNpl: {
+    title: 'Báo cáo NPL — Dư nợ quá hạn & Khoanh',
+    definition:
+      'Trang chuyên sâu về chất lượng tín dụng: liệt kê dư nợ quá hạn, dư nợ khoanh, các điểm nóng NPL và những khế ước quá hạn lớn nhất.',
+    formula:
+      'NPL (nợ xấu) ≈ Dư nợ quá hạn + Dư nợ khoanh. Tỷ lệ NPL = NPL / Tổng dư nợ sau khi áp dụng bộ lọc.',
+    note: 'Nhấp vào một nhóm trên biểu đồ hoặc một dòng ở bảng điểm nóng để drill-down sang danh sách khế ước tương ứng.',
+  },
+  tongNoXau: {
+    title: 'Tổng nợ xấu (QH + Khoanh)',
+    definition:
+      'Tổng cộng dư nợ quá hạn và dư nợ khoanh tại ngày chốt số liệu, thể hiện quy mô nợ cần xử lý.',
+    formula: 'Tổng nợ xấu = Σ "Dư nợ quá hạn" + Σ "Dư nợ khoanh" sau khi áp dụng bộ lọc.',
+    note: 'Khác với chỉ tiêu "Dư nợ quá hạn" — đã bao gồm phần dư nợ đang được khoanh.',
+  },
+  chartNplPgd: {
+    title: 'Dư nợ quá hạn theo Phòng giao dịch',
+    definition: 'Xếp hạng các phòng giao dịch theo quy mô dư nợ quá hạn.',
+    formula: 'Tổng Σ "Dư nợ quá hạn" theo cột "Tên PGD", sắp xếp giảm dần, lấy Top 10.',
+    note: 'Chỉ hiển thị các PGD có dư nợ quá hạn > 0.',
+  },
+  chartNplDvut: {
+    title: 'Dư nợ quá hạn theo Đơn vị ủy thác',
+    definition: 'So sánh quy mô dư nợ quá hạn giữa bốn tổ chức chính trị – xã hội nhận ủy thác.',
+    formula: 'Tổng Σ "Dư nợ quá hạn" theo cột "Tên ĐVUT", sắp xếp giảm dần.',
+    note: 'Cho thấy tổ chức ủy thác nào đang tập trung nhiều nợ quá hạn nhất.',
+  },
+  chartNplXa: {
+    title: 'Dư nợ quá hạn theo Xã',
+    definition: 'Xếp hạng xã/phường theo quy mô dư nợ quá hạn.',
+    formula: 'Tổng Σ "Dư nợ quá hạn" theo cột "Tên xã", lấy Top 10 xã lớn nhất về dư nợ quá hạn.',
+  },
+  chartNplProgram: {
+    title: 'Dư nợ quá hạn theo Chương trình tín dụng',
+    definition: 'Phân bố dư nợ quá hạn giữa các chương trình tín dụng chính sách.',
+    formula:
+      'Tổng Σ "Dư nợ quá hạn" theo cột "Tên chương trình", lấy Top 10 chương trình có dư nợ quá hạn lớn nhất.',
+    note: 'Giúp nhận diện chương trình nào có rủi ro cao cần giám sát.',
+  },
+  chartNplHotspot: {
+    title: 'Điểm nóng NPL theo Xã',
+    definition:
+      'Các xã/phường có tỷ lệ nợ quá hạn cao nhất — xác định những địa bàn cần can thiệp thu hồi nợ.',
+    formula:
+      'Tỷ lệ QH = Dư nợ quá hạn / Tổng dư nợ của xã. Chỉ xét các xã có ≥ 3 khế ước để tránh nhiễu từ xã quá nhỏ. Top 15.',
+    note: 'Nhấp vào một dòng để xem danh sách khế ước của xã trong Tra cứu chi tiết.',
+  },
+  chartNplTop: {
+    title: 'Top 20 khế ước quá hạn lớn nhất',
+    definition:
+      'Danh sách 20 khế ước có dư nợ quá hạn lớn nhất theo bộ lọc hiện hành — để tập trung xử lý trước.',
+    formula: 'Lọc các khế ước có "Dư nợ quá hạn" > 0, sắp xếp giảm dần, lấy 20 khế ước đầu.',
+    note: 'Nhấp vào một dòng để mở ngăn chi tiết toàn bộ thông tin khế ước.',
+  },
+
+  // ─── Báo cáo Dư nợ khoanh ─────────────────────────────────────────────────
+
+  pageKhoanh: {
+    title: 'Báo cáo Dư nợ khoanh',
+    definition:
+      'Trang chuyên sâu về các khế ước đang được khoanh (tạm dừng tính lãi, chờ xử lý). Khoanh thường là hệ quả của thiên tai, dịch bệnh hoặc quyết định của cấp có thẩm quyền, là chỉ tiêu riêng so với nợ quá hạn thông thường.',
+    formula: 'Chỉ xét các khế ước có "Dư nợ khoanh" > 0 sau khi áp dụng bộ lọc.',
+    note: 'Khế ước khoanh cũng được tính trong "Tổng nợ xấu" ở Báo cáo NPL — trang này tách riêng để theo dõi rủi ro xử lý và lãi dự thu chưa đến hạn.',
+  },
+  laiDtKhoanh: {
+    title: 'Lãi DT chưa đến hạn (trên khế ước khoanh)',
+    definition:
+      'Lãi dự thu chưa đến hạn thu, cộng dồn trên các khế ước có dư nợ khoanh — ước lượng tổn thất lãi tiềm ẩn nếu khoản khoanh được xử lý.',
+    formula: 'Σ "Lãi DT chưa đến hạn" trên các khế ước có duNoKhoanh > 0.',
+    note: 'Chỉ mang tính tham chiếu — chưa hạch toán lỗ/lãi thực tế.',
+  },
+  chartKhoanhDvut: {
+    title: 'Dư nợ khoanh theo Đơn vị ủy thác',
+    definition: 'So sánh quy mô dư nợ khoanh giữa 4 tổ chức uỷ thác.',
+    formula: 'Σ "Dư nợ khoanh" theo "Tên ĐVUT", sắp xếp giảm dần.',
+  },
+  chartKhoanhXa: {
+    title: 'Dư nợ khoanh theo Xã',
+    definition: 'Xếp hạng xã/phường theo quy mô dư nợ khoanh — phát hiện địa bàn cần xử lý.',
+    formula: 'Σ "Dư nợ khoanh" theo "Tên xã", Top 10.',
+  },
+  chartKhoanhProgram: {
+    title: 'Dư nợ khoanh theo Chương trình tín dụng',
+    definition: 'Phân bố dư nợ khoanh giữa các chương trình tín dụng chính sách.',
+    formula: 'Σ "Dư nợ khoanh" theo "Tên chương trình", Top 10.',
+    note: 'Giúp xác định chương trình nào đang có nhiều khoản khoanh nhất (thường liên quan tới nguyên nhân bất khả kháng theo chương trình).',
+  },
+  chartKhoanhHotspot: {
+    title: 'Điểm nóng khoanh theo Xã',
+    definition: 'Các xã/phường có tỷ lệ dư nợ khoanh cao nhất so với tổng dư nợ của xã.',
+    formula:
+      'Tỷ lệ khoanh = Dư nợ khoanh / Tổng dư nợ của xã. Chỉ xét các xã có ≥ 3 khế ước để tránh nhiễu. Top 15.',
+    note: 'Tỷ lệ khoanh cao báo hiệu địa bàn từng chịu thiên tai/dịch bệnh hoặc có vấn đề xử lý nợ kéo dài.',
+  },
+  chartKhoanhTop: {
+    title: 'Top 20 khế ước khoanh lớn nhất',
+    definition: 'Danh sách 20 khế ước có dư nợ khoanh lớn nhất trong phạm vi lọc.',
+    formula: 'Lọc duNoKhoanh > 0, sắp xếp giảm dần, lấy 20 khế ước đầu.',
+    note: 'Nhấp một dòng để mở ngăn chi tiết toàn bộ thông tin khế ước.',
   },
 };

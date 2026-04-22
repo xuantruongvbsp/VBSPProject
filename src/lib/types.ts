@@ -73,6 +73,26 @@ export interface LoanRecord {
   thuNoTHThang: number;
   thuNoQHThang: number;
 
+  // Biến động NPL theo Tháng
+  chuyenQHThang: number;
+  chuyenKhoanhThang: number;
+  thuNoKhoanhThang: number;
+  gocXoaThang: number;
+
+  // Biến động NPL theo Quý
+  chuyenQHQuy: number;
+  chuyenKhoanhQuy: number;
+  thuNoQHQuy: number;
+  thuNoKhoanhQuy: number;
+  gocXoaQuy: number;
+
+  // Biến động NPL theo Năm
+  chuyenQHNam: number;
+  chuyenKhoanhNam: number;
+  thuNoQHNam: number;
+  thuNoKhoanhNam: number;
+  gocXoaNam: number;
+
   // Khác
   ngayGiaoDichGanNhat: Date | null;
   ngaySoLieu: Date | null;

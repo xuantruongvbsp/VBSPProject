@@ -8,6 +8,8 @@ import { AppShell } from '@/components/layout/AppShell';
 import { OverviewPage } from '@/pages/Overview';
 import { ComparePage } from '@/pages/Compare';
 import { ExplorerPage } from '@/pages/Explorer';
+import { NplPage } from '@/pages/Npl';
+import { KhoanhPage } from '@/pages/Khoanh';
 import { Lobby } from '@/pages/Lobby';
 import { PeriodShell } from '@/components/layout/PeriodShell';
 import { PeriodOverviewPage } from '@/pages/period/PeriodOverview';
@@ -59,6 +61,8 @@ function SnapshotApp() {
     <Routes>
       <Route element={<AppShell />}>
         <Route index element={<OverviewPage />} />
+        <Route path="no-xau" element={<NplPage />} />
+        <Route path="no-khoanh" element={<KhoanhPage />} />
         <Route path="so-sanh" element={<ComparePage />} />
         <Route path="du-lieu" element={<ExplorerPage />} />
       </Route>

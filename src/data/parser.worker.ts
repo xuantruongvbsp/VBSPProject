@@ -127,6 +127,22 @@ function normalize(row: Row, idx: Record<string, number>): LoanRecord {
     thuNoTHThang: toNumber(get(row, idx, 'Thu nợ TH tháng')),
     thuNoQHThang: toNumber(get(row, idx, 'Thu nợ QH tháng')),
 
+    // Biến động NPL — tháng / quý / năm (Báo cáo 31)
+    chuyenQHThang: toNumber(get(row, idx, 'Chuyển QH trong tháng')),
+    chuyenKhoanhThang: toNumber(get(row, idx, 'Chuyển khoanh trong tháng')),
+    thuNoKhoanhThang: toNumber(get(row, idx, 'Thu nợ khoanh tháng')),
+    gocXoaThang: toNumber(get(row, idx, 'Gốc xóa trong tháng')),
+    chuyenQHQuy: toNumber(get(row, idx, 'CQH trong Quý')),
+    chuyenKhoanhQuy: toNumber(get(row, idx, 'Chuyển Khoanh Quý')),
+    thuNoQHQuy: toNumber(get(row, idx, 'Thu nợ QH Quý')),
+    thuNoKhoanhQuy: toNumber(get(row, idx, 'Thu nợ Khoanh Quý')),
+    gocXoaQuy: toNumber(get(row, idx, 'Gốc xóa trong Quý')),
+    chuyenQHNam: toNumber(get(row, idx, 'CQH Năm')),
+    chuyenKhoanhNam: toNumber(get(row, idx, 'Chuyển Khoanh Năm')),
+    thuNoQHNam: toNumber(get(row, idx, 'Thu nợ QH Năm')),
+    thuNoKhoanhNam: toNumber(get(row, idx, 'Thu nợ Khoanh Năm')),
+    gocXoaNam: toNumber(get(row, idx, 'Xóa trong Năm')),
+
     ngayGiaoDichGanNhat: parseVnDate(get(row, idx, 'Ngày giao dịch gần nhất')),
     ngaySoLieu: parseVnDate(get(row, idx, 'Ngày số liệu')),
 

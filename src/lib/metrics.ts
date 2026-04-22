@@ -222,7 +222,9 @@ export interface DormantCustomer {
   maKH: string;
   tenKH: string;
   tenPGD: string;
+  tenXa: string;
   tenDVUT: string;
+  tenTo: string;
   tenChuongTrinh: string;
   soKheUoc: number;
   tongDuNo: number;
@@ -275,7 +277,9 @@ export function dormantCustomers(
         maKH: r.maKH,
         tenKH: r.tenKH,
         tenPGD: r.tenPGD,
+        tenXa: r.tenXa,
         tenDVUT: r.tenDVUT,
+        tenTo: r.tenTo,
         tenChuongTrinh: r.tenChuongTrinh,
         soKheUoc: 0,
         tongDuNo: 0,

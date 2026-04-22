@@ -248,6 +248,131 @@ const DORMANT_COLUMNS: {
   { header: 'Số ngày không giao dịch', get: (d) => d.daysSince, numFmt: '#,##0' },
 ];
 
+// ─── Xuất danh sách NPL / Khoanh ──────────────────────────────────────────
+
+export type BadDebtKind = 'qh' | 'khoanh';
+
+export interface BadDebtXlsxInput {
+  /** Loại báo cáo: 'qh' = quá hạn (NPL), 'khoanh' = dư nợ khoanh */
+  kind: BadDebtKind;
+  /** Danh sách khế ước thuộc diện xuất (đã được lọc bởi bộ lọc cha) */
+  loans: LoanRecord[];
+  /** Ngày chốt số liệu cho phần bối cảnh */
+  referenceDate: Date | null;
+  /** Tổng số khế ước của bộ lọc cha, để hiển thị bối cảnh */
+  totalFilteredRows?: number;
+  /** Tên tệp tùy chỉnh */
+  filename?: string;
+}
+
+const BAD_DEBT_COLUMNS: {
+  header: string;
+  get: (r: LoanRecord) => string | number;
+  numFmt?: string;
+}[] = [
+  { header: 'Mã chi nhánh', get: (r) => r.maCN },
+  { header: 'Tên PGD', get: (r) => r.tenPGD },
+  { header: 'Tên xã', get: (r) => r.tenXa },
+  { header: 'Tên thôn', get: (r) => r.tenThon },
+  { header: 'Tổ TK&VV', get: (r) => r.tenTo },
+  { header: 'Đơn vị ủy thác', get: (r) => r.tenDVUT },
+  { header: 'Mã KH', get: (r) => r.maKH },
+  { header: 'Tên KH', get: (r) => r.tenKH },
+  { header: 'Phân loại', get: (r) => r.phanLoai },
+  { header: 'Số CMND', get: (r) => r.soCMND },
+  { header: 'Số điện thoại', get: (r) => r.soDienThoai },
+  { header: 'Địa chỉ', get: (r) => r.diaChi },
+  { header: 'Số khế ước', get: (r) => r.soKheUoc },
+  { header: 'Chương trình tín dụng', get: (r) => r.tenChuongTrinh },
+  { header: 'Nguồn vốn', get: (r) => r.nguonVon },
+  { header: 'Ngày vay', get: (r) => fmtDate(r.ngayVay) },
+  { header: 'Ngày chuyển NQH (GDXA)', get: (r) => fmtDate(r.ngayDHGDXA) },
+  { header: 'Thời hạn vay (tháng)', get: (r) => r.thoiHanVay, numFmt: '#,##0' },
+  { header: 'Lãi suất (%/năm)', get: (r) => r.laiSuat, numFmt: '#,##0.00' },
+  { header: 'Mức vay (đ)', get: (r) => r.mucVay, numFmt: '#,##0' },
+  { header: 'Tổng dư nợ (đ)', get: (r) => r.tongDuNo, numFmt: '#,##0' },
+  { header: 'Dư nợ trong hạn (đ)', get: (r) => r.duNoTrongHan, numFmt: '#,##0' },
+  { header: 'Dư nợ quá hạn (đ)', get: (r) => r.duNoQuaHan, numFmt: '#,##0' },
+  { header: 'Dư nợ khoanh (đ)', get: (r) => r.duNoKhoanh, numFmt: '#,##0' },
+  { header: 'Lãi tồn trong hạn (đ)', get: (r) => r.laiTonTH, numFmt: '#,##0' },
+  { header: 'Lãi tồn quá hạn (đ)', get: (r) => r.laiTonQH, numFmt: '#,##0' },
+  { header: 'Lãi DT chưa đến hạn (đ)', get: (r) => r.laiDTChuaDenHan, numFmt: '#,##0' },
+  { header: 'Ngày giao dịch gần nhất', get: (r) => fmtDate(r.ngayGiaoDichGanNhat) },
+];
+
+export async function exportBadDebtToXlsx(input: BadDebtXlsxInput): Promise<void> {
+  const { kind, loans, referenceDate, totalFilteredRows, filename } = input;
+  const wb = XLSX.utils.book_new();
+
+  const sumField = kind === 'qh' ? 'duNoQuaHan' : 'duNoKhoanh';
+  const label = kind === 'qh' ? 'Dư nợ quá hạn (NPL)' : 'Dư nợ khoanh';
+  const sortedLoans = [...loans].sort((a, b) => b[sumField] - a[sumField]);
+
+  const totalAmount = sortedLoans.reduce((s, r) => s + r[sumField], 0);
+  const khUnique = new Set(sortedLoans.map((r) => r.maKH).filter(Boolean)).size;
+
+  const generated = new Date();
+  const ctx: (string | number)[][] = [
+    [label],
+    [`Ngày chốt số liệu: ${fmtDate(referenceDate)}`],
+    typeof totalFilteredRows === 'number'
+      ? [`Phạm vi bộ lọc: ${fmtNumber(totalFilteredRows)} khế ước`]
+      : [''],
+    [`Số khế ước trong báo cáo: ${fmtNumber(sortedLoans.length)}`],
+    [`Số khách hàng liên quan: ${fmtNumber(khUnique)}`],
+    [
+      `Tổng ${kind === 'qh' ? 'dư nợ quá hạn' : 'dư nợ khoanh'}: ${fmtCurrency(totalAmount)}`,
+    ],
+    [
+      `Ngày xuất báo cáo: ${fmtDate(generated)} ${String(generated.getHours()).padStart(2, '0')}:${String(generated.getMinutes()).padStart(2, '0')}`,
+    ],
+    [''],
+    ['Ghi chú:'],
+    [
+      kind === 'qh'
+        ? 'Danh sách được sắp xếp giảm dần theo "Dư nợ quá hạn". "Ngày chuyển NQH" lấy từ "Ngày ĐH theo GDXA".'
+        : 'Danh sách được sắp xếp giảm dần theo "Dư nợ khoanh". "Ngày chuyển NQH" lấy từ "Ngày ĐH theo GDXA".',
+    ],
+  ];
+  const ctxWs = XLSX.utils.aoa_to_sheet(ctx);
+  ctxWs['!cols'] = [{ wch: 80 }];
+  XLSX.utils.book_append_sheet(wb, ctxWs, safeSheetName('Bối cảnh'));
+
+  // Sheet dữ liệu
+  const headers = ['STT', ...BAD_DEBT_COLUMNS.map((c) => c.header)];
+  const aoa: (string | number)[][] = [headers];
+  sortedLoans.forEach((r, i) => {
+    aoa.push([i + 1, ...BAD_DEBT_COLUMNS.map((c) => c.get(r))]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+  // Áp định dạng số
+  const range = XLSX.utils.decode_range(ws['!ref'] ?? 'A1');
+  for (let col = 0; col < BAD_DEBT_COLUMNS.length; col++) {
+    const fmt = BAD_DEBT_COLUMNS[col].numFmt;
+    if (!fmt) continue;
+    // +1 để bỏ qua cột STT
+    const c = col + 1;
+    for (let rowIdx = 1; rowIdx <= range.e.r; rowIdx++) {
+      const addr = XLSX.utils.encode_cell({ r: rowIdx, c });
+      const cell = ws[addr];
+      if (cell && cell.t === 'n') cell.z = fmt;
+    }
+  }
+
+  ws['!cols'] = [
+    { wch: 6 },
+    ...BAD_DEBT_COLUMNS.map((c) => ({
+      wch: Math.min(Math.max(c.header.length + 2, 14), 40),
+    })),
+  ];
+  const sheetName = safeSheetName(kind === 'qh' ? 'Danh sách NPL' : 'Danh sách khoanh');
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+  const out = filename ?? defaultFilename(label, 'xlsx');
+  XLSX.writeFile(wb, out);
+}
+
 export async function exportDormantToXlsx(input: DormantXlsxInput): Promise<void> {
   const { customers, bucketLabel, referenceDate, totalFilteredRows, filename } = input;
   const wb = XLSX.utils.book_new();

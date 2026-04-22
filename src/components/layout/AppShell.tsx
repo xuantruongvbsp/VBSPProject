@@ -9,6 +9,8 @@ import {
   ArrowLeft,
   Moon,
   Sun,
+  AlertTriangle,
+  Snowflake,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDataStore } from '@/store/useDataStore';
@@ -40,6 +42,8 @@ function DrillDownClearer() {
 
 const navItems = [
   { to: '/snapshot', label: 'Tổng quan', icon: LayoutDashboard, end: true },
+  { to: '/snapshot/no-xau', label: 'Báo cáo NPL', icon: AlertTriangle },
+  { to: '/snapshot/no-khoanh', label: 'Báo cáo Dư nợ khoanh', icon: Snowflake },
   { to: '/snapshot/so-sanh', label: 'Báo cáo so sánh', icon: GitCompare },
   { to: '/snapshot/du-lieu', label: 'Tra cứu chi tiết', icon: Table },
 ];

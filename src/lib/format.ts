@@ -36,24 +36,61 @@ export function fmtDate(d: Date | null | undefined): string {
   return `${dd}/${mm}/${yy}`;
 }
 
-/** Parse ngày dạng dd/MM/yyyy hoặc Date */
+/**
+ * Parse ngày từ Excel (serial / chuỗi / Date) thành Date ở múi giờ cục bộ.
+ *
+ * Quan trọng: mọi nhánh đều dựng lại Date bằng `new Date(y, m-1, d)` (cục bộ)
+ * để `getFullYear/getMonth/getDate` trả đúng ngày lịch bất kể múi giờ. Trước
+ * đây nhánh serial và Date.parse tạo Date ở UTC midnight — khi đọc cục bộ ở
+ * múi giờ âm hoặc gần UTC, ngày lùi 1 và tháng bị lệch (ví dụ 1/5 đếm sang 4).
+ */
 export function parseVnDate(v: unknown): Date | null {
-  if (!v) return null;
-  if (v instanceof Date) return v;
+  if (v === null || v === undefined || v === '') return null;
+
+  const build = (y: number, m: number, d: number): Date | null => {
+    if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return null;
+    const dt = new Date(y, m - 1, d);
+    return Number.isNaN(dt.getTime()) ? null : dt;
+  };
+
+  if (v instanceof Date) {
+    if (Number.isNaN(v.getTime())) return null;
+    // Lấy thành phần UTC (cách xlsx thường tạo Date cho ô ngày) rồi dựng lại
+    // ở múi giờ cục bộ để ngày không bị lùi.
+    return build(v.getUTCFullYear(), v.getUTCMonth() + 1, v.getUTCDate());
+  }
+
   if (typeof v === 'number') {
-    // Excel serial date
-    const d = new Date(Math.round((v - 25569) * 86400 * 1000));
-    return Number.isNaN(d.getTime()) ? null : d;
+    // Excel serial date (hệ 1900). Quy đổi qua UTC rồi tách ngày lịch.
+    const ms = Math.round((v - 25569) * 86400 * 1000);
+    const u = new Date(ms);
+    if (Number.isNaN(u.getTime())) return null;
+    return build(u.getUTCFullYear(), u.getUTCMonth() + 1, u.getUTCDate());
   }
+
   if (typeof v === 'string') {
-    const m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-    if (m) {
-      const d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
-      return Number.isNaN(d.getTime()) ? null : d;
+    const s = v.trim();
+    if (!s) return null;
+
+    // ISO: yyyy-mm-dd (có/không phần giờ).
+    const iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (iso) return build(Number(iso[1]), Number(iso[2]), Number(iso[3]));
+
+    // Việt Nam: dd/MM/yyyy hoặc dd-MM-yyyy (chấp nhận năm 2 chữ số).
+    const vn = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+    if (vn) {
+      let y = Number(vn[3]);
+      if (y < 100) y += y >= 70 ? 1900 : 2000;
+      return build(y, Number(vn[2]), Number(vn[1]));
     }
-    const t = Date.parse(v);
-    return Number.isNaN(t) ? null : new Date(t);
+
+    // Fallback: Date.parse rồi tách thành phần UTC.
+    const t = Date.parse(s);
+    if (Number.isNaN(t)) return null;
+    const u = new Date(t);
+    return build(u.getUTCFullYear(), u.getUTCMonth() + 1, u.getUTCDate());
   }
+
   return null;
 }
 

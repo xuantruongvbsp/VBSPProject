@@ -15,6 +15,7 @@ import {
   BarChart3,
   Percent,
   LayoutGrid,
+  PieChart,
 
   Activity,
   Table,
@@ -62,6 +63,7 @@ const STACKED_OPTS: ChartTypeOption<StackedChartType>[] = [
 const BAR_GROUP_OPTS: ChartTypeOption<BarGroupChartType>[] = [
   { id: 'bar', icon: AlignLeft, tooltip: 'Biểu đồ thanh' },
   { id: 'treemap', icon: LayoutGrid, tooltip: 'Bản đồ cây' },
+  { id: 'pie', icon: PieChart, tooltip: 'Biểu đồ tròn' },
 ];
 
 const LINE_OPTS: ChartTypeOption<LineChartType>[] = [
@@ -106,11 +108,12 @@ export function OverviewPage() {
   const [dormantBucket, setDormantBucket] = useState<DormantBucketId>('all');
   const [detail, setDetail] = useState<LoanRecord | null>(null);
   const [dormantExporting, setDormantExporting] = useState(false);
-  const [stackedType, setStackedType] = useState<StackedChartType>('stacked');
+  const [stackedType, setStackedType] = useState<StackedChartType>('percent');
   const [barGroupType, setBarGroupType] = useState<BarGroupChartType>('bar');
+  const [barXaType, setBarXaType] = useState<BarGroupChartType>('bar');
 
   const [lineType, setLineType] = useState<LineChartType>('area');
-  const [histType, setHistType] = useState<HistogramChartType>('bar');
+  const [histType, setHistType] = useState<HistogramChartType>('hbar');
   const [heatType, setHeatType] = useState<HeatmapChartType>('heatmap');
 
   // Drill-down: áp bộ lọc theo trường rồi điều hướng sang Tra cứu chi tiết.
@@ -174,6 +177,7 @@ export function OverviewPage() {
   const kpi = useMemo(() => computeKpi(filtered), [filtered]);
   const byProgram = useMemo(() => groupBy(filtered, 'tenChuongTrinh'), [filtered]);
   const byDVUT = useMemo(() => groupBy(filtered, 'tenDVUT'), [filtered]);
+  const byXa = useMemo(() => groupBy(filtered, 'tenXa'), [filtered]);
   const byClassification = useMemo(() => groupBy(filtered, donutField), [filtered, donutField]);
   const histogram = useMemo(() => histogramMucVay(filtered), [filtered]);
   const ts = useMemo(() => timeSeriesGiaiNgan(filtered), [filtered]);
@@ -225,6 +229,7 @@ export function OverviewPage() {
               '#chart-dvut',
               '#chart-program',
               '#chart-histogram',
+              '#chart-xa',
               '#chart-timeseries',
               '#chart-customer-structure',
               '#chart-maturity',
@@ -362,25 +367,46 @@ export function OverviewPage() {
         </Card>
       </div>
 
-      {/* Row 2: Histogram (toàn bộ chiều ngang) */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Phân bố mức vay</CardTitle>
-            <div className="flex items-center gap-1">
-              <ChartSwitcher options={HIST_OPTS} value={histType} onChange={setHistType} />
-              <InfoPopover metricKey="chartHistogram" />
+      {/* Row 2: Histogram + Dư nợ theo Xã */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Phân bố mức vay</CardTitle>
+              <div className="flex items-center gap-1">
+                <ChartSwitcher options={HIST_OPTS} value={histType} onChange={setHistType} />
+                <InfoPopover metricKey="chartHistogram" />
+              </div>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent id="chart-histogram">
-          <HistogramAmount
-            data={histogram}
-            onClick={(b) => drillByMucVay([b.min, b.max])}
-            chartType={histType}
-          />
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent id="chart-histogram">
+            <HistogramAmount
+              data={histogram}
+              onClick={(b) => drillByMucVay([b.min, b.max])}
+              chartType={histType}
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Dư nợ theo Xã</CardTitle>
+              <div className="flex items-center gap-1">
+                <ChartSwitcher options={BAR_GROUP_OPTS} value={barXaType} onChange={setBarXaType} />
+                <InfoPopover metricKey="chartXa" />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent id="chart-xa">
+            <BarByGroup
+              data={byXa}
+              limit={10}
+              onClick={(v) => drillTo('tenXa', v)}
+              chartType={barXaType}
+            />
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Row 3: Time series + Donut */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -559,7 +585,8 @@ export function OverviewPage() {
                   <tr className="text-left text-slate-500 dark:text-slate-400">
                     <th className="px-3 py-2">#</th>
                     <th className="px-3 py-2">Khách hàng</th>
-                    <th className="px-3 py-2">PGD · ĐVUT</th>
+                    <th className="px-3 py-2">Xã · ĐVUT</th>
+                    <th className="px-3 py-2">Tổ TK&VV</th>
                     <th className="px-3 py-2">Chương trình</th>
                     <th className="px-3 py-2 text-right">Số khế ước</th>
                     <th className="px-3 py-2 text-right">Tổng dư nợ</th>
@@ -582,8 +609,11 @@ export function OverviewPage() {
                           <div className="text-[10px] text-slate-500 dark:text-slate-400">{d.maKH}</div>
                         </td>
                         <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
-                          <div>{d.tenPGD}</div>
+                          <div>{d.tenXa}</div>
                           <div className="text-[10px] text-slate-500 dark:text-slate-400">{d.tenDVUT}</div>
+                        </td>
+                        <td className="max-w-[180px] truncate px-3 py-2 text-slate-600 dark:text-slate-300" title={d.tenTo}>
+                          {d.tenTo || '—'}
                         </td>
                         <td className="max-w-[220px] truncate px-3 py-2 text-slate-600 dark:text-slate-300">
                           {d.tenChuongTrinh}
