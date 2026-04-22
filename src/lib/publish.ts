@@ -23,6 +23,7 @@ const DATE_FIELDS: ReadonlyArray<keyof LoanRecord> = [
   'ngayVay',
   'ngayDHHopDong',
   'ngayDHGiaHan',
+  'ngayDHGDXA',
   'ngayGiaoDichGanNhat',
   'ngaySoLieu',
 ];

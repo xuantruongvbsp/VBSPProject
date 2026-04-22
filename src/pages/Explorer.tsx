@@ -33,7 +33,7 @@ const COLS: Col[] = [
   { key: 'duNoQuaHan', label: 'Dư nợ QH', width: 130, align: 'right', render: (r) => fmtCurrency(r.duNoQuaHan) },
   { key: 'laiSuat', label: 'Lãi suất', width: 90, align: 'right', render: (r) => fmtPercent(r.laiSuat, 3) },
   { key: 'ngayVay', label: 'Ngày vay', width: 100, render: (r) => fmtDate(r.ngayVay) },
-  { key: 'ngayDHHopDong', label: 'Ngày ĐH HĐ', width: 110, render: (r) => fmtDate(r.ngayDHHopDong) },
+  { key: 'ngayDHGDXA', label: 'Ngày ĐH theo GDXA', width: 140, render: (r) => fmtDate(r.ngayDHGDXA) },
 ];
 
 export function ExplorerPage() {

@@ -37,6 +37,7 @@ export interface LoanRecord {
   ngayVay: Date | null;
   ngayDHHopDong: Date | null;
   ngayDHGiaHan: Date | null;
+  ngayDHGDXA: Date | null;
   thoiHanVay: number;
   laiSuat: number;
   hinhThucVay: string;

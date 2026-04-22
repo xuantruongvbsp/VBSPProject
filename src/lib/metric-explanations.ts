@@ -136,7 +136,7 @@ export const METRIC_EXPLANATIONS: Record<string, MetricExplanation> = {
     definition:
       'Số khế ước đến hạn trả nợ phân theo tháng và năm trong tương lai.',
     formula:
-      'Đếm số khế ước theo cột "Ngày đến hạn" trên Báo cáo 31, nhóm theo năm – tháng.',
+      'Đếm số khế ước theo cột "Ngày ĐH theo GDXA" trên Báo cáo 31, nhóm theo năm – tháng. Khế ước không có ngày GDXA được bỏ qua.',
     note: 'Ô càng đậm thể hiện áp lực thu hồi trong tháng đó càng lớn.',
   },
   chartTopCustomers: {

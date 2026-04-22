@@ -190,7 +190,7 @@ export function heatmapDaoHan(
     // Bỏ qua các khế ước đã tất toán (Tình trạng món vay = "close").
     const status = (r.tinhTrangMonVay ?? '').trim().toLowerCase();
     if (status === 'close' || status === 'closed') continue;
-    const d = r.ngayDHGiaHan ?? r.ngayDHHopDong;
+    const d = r.ngayDHGDXA;
     if (!d) continue;
     const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
     const cur = map.get(key) ?? { count: 0, tongDuNo: 0 };

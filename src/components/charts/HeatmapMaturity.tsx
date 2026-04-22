@@ -205,7 +205,7 @@ export function HeatmapMaturity({ data, chartType = 'heatmap', onClick }: Props)
                                   </div>
                                 </div>
                                 <div className="border-t border-slate-100 dark:border-slate-700 pt-2 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
-                                  Số khế ước có ngày đến hạn (gia hạn nếu có, mặc định ngày đến hạn hợp đồng) rơi vào tháng này.
+                                  Số khế ước có ngày đến hạn theo GDXA rơi vào tháng này.
                                 </div>
                                 {onClick && (
                                   <button

@@ -18,16 +18,39 @@ function findHeaderRow(rows: Row[]): number {
   return bestIdx;
 }
 
+// Chuẩn hóa tên cột: bỏ dấu tiếng Việt, gộp khoảng trắng, chuyển về chữ
+// thường — để tra cứu cột dung thứ chút khác biệt về chính tả/khoảng trắng
+// trong tiêu đề Excel (ví dụ "Ngày ĐH theo GDXA" vs "Ngày ĐH  theo gdxa").
+function normKey(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/đ/gi, 'd')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
 function buildIndex(header: Row): Record<string, number> {
   const idx: Record<string, number> = {};
+  const originals: string[] = [];
   header.forEach((h, i) => {
-    if (h !== null && h !== undefined && h !== '') idx[String(h).trim()] = i;
+    if (h === null || h === undefined || h === '') return;
+    const s = String(h).trim();
+    idx[s] = i;
+    // Đồng thời đăng ký key đã chuẩn hóa (có tiền tố để tránh va chạm).
+    idx['__n:' + normKey(s)] = i;
+    originals.push(s);
   });
+  // Diagnostic: in ra danh sách cột để người dùng đối chiếu khi tiêu đề lạ.
+  // eslint-disable-next-line no-console
+  console.log('[parser] Excel columns detected:', originals);
   return idx;
 }
 
 function get(row: Row, idx: Record<string, number>, key: string): unknown {
-  const i = idx[key];
+  let i = idx[key];
+  if (i === undefined) i = idx['__n:' + normKey(key)];
   return i === undefined ? null : row[i];
 }
 
@@ -72,6 +95,7 @@ function normalize(row: Row, idx: Record<string, number>): LoanRecord {
     ngayVay: parseVnDate(get(row, idx, 'Ngày vay')),
     ngayDHHopDong: parseVnDate(get(row, idx, 'Ngày ĐH theo hợp đồng')),
     ngayDHGiaHan: parseVnDate(get(row, idx, 'Ngày ĐH theo Gia hạn')),
+    ngayDHGDXA: parseVnDate(get(row, idx, 'Ngày ĐH theo GDXA')),
     thoiHanVay: toNumber(get(row, idx, 'Thời hạn vay')),
     laiSuat: toNumber(get(row, idx, 'Lãi suất')),
     hinhThucVay: asString(get(row, idx, 'Hình thức vay')),

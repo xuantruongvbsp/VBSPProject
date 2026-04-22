@@ -80,6 +80,14 @@ interface State {
   clearDrillDown: () => void;
 }
 
+// Khế ước đã tất toán (Tình trạng món vay = "close") không có giá trị phân
+// tích trong chế độ "Phân tích một kỳ" — ẩn hoàn toàn khỏi store để mọi
+// trang, biểu đồ, bộ lọc và bản xuất đều không nhìn thấy chúng.
+function isNotClosed(r: LoanRecord): boolean {
+  const s = (r.tinhTrangMonVay ?? '').trim().toLowerCase();
+  return s !== 'close' && s !== 'closed';
+}
+
 export const useDataStore = create<State>((set) => ({
   rows: [],
   ngaySoLieu: null,
@@ -90,7 +98,8 @@ export const useDataStore = create<State>((set) => ({
   search: { q: '' },
   drillRangeKeys: [],
 
-  setData: (rows, ngaySoLieu) => set({ rows, ngaySoLieu, error: null }),
+  setData: (rows, ngaySoLieu) =>
+    set({ rows: rows.filter(isNotClosed), ngaySoLieu, error: null }),
   setLoading: (b) => set({ isLoading: b }),
   setError: (e) => set({ error: e }),
   reset: () =>
