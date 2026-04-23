@@ -1,6 +1,22 @@
 import { useState, useCallback, Fragment } from 'react';
-import { Upload, Trash2, AlertCircle, BanIcon, ChevronRight, ChevronDown } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import {
+  Upload,
+  Trash2,
+  AlertCircle,
+  BanIcon,
+  ChevronRight,
+  ChevronDown,
+  FileSpreadsheet,
+  ScanSearch,
+  CheckCircle2,
+  XCircle,
+  Info,
+  Columns3,
+  Repeat,
+  Copy,
+  Layers,
+} from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
 import { parseActualFile, parseNq11File } from '@/data/credit-plan-parser';
@@ -12,6 +28,41 @@ function fmtMoney(n: number) {
 
 function fmtMoneyFull(n: number) {
   return n.toLocaleString('vi-VN');
+}
+
+/** Stat cell for the diagnostic panel. */
+function DiagStat({
+  icon: Icon,
+  label,
+  value,
+  tone = 'default',
+}: {
+  icon: typeof FileSpreadsheet;
+  label: string;
+  value: string;
+  tone?: 'default' | 'success' | 'warning' | 'danger';
+}) {
+  const toneClass = {
+    default: 'text-slate-900 dark:text-white',
+    success: 'text-emerald-700 dark:text-emerald-300',
+    warning: 'text-amber-700 dark:text-amber-300',
+    danger: 'text-rose-600 dark:text-rose-300',
+  }[tone];
+  const iconTone = {
+    default: 'text-slate-400',
+    success: 'text-emerald-500',
+    warning: 'text-amber-500',
+    danger: 'text-rose-500',
+  }[tone];
+  return (
+    <div className="flex items-start gap-2.5 rounded-md border border-slate-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900/40">
+      <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${iconTone}`} />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[11px] font-medium text-slate-500 dark:text-slate-400">{label}</div>
+        <div className={`truncate font-mono text-sm font-semibold tabular-nums ${toneClass}`}>{value}</div>
+      </div>
+    </div>
+  );
 }
 
 export function ActualImport() {
@@ -29,6 +80,7 @@ export function ActualImport() {
     setNq11,
     clearNq11,
     getMergedActuals,
+    decisions,
   } = useCreditPlanStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +99,13 @@ export function ActualImport() {
     setError(null);
     try {
       const idSet = nq11MonVayIds.length > 0 ? new Set(nq11MonVayIds) : undefined;
-      const result = await parseActualFile(file, idSet);
+      // Whitelist Mã NĐT từ các QĐ NV=3 còn hiệu lực (không tính archived).
+      const ndtSet = new Set(
+        decisions
+          .filter((d) => d.trangThai !== 'archived' && d.maNguonVonList.includes('3') && d.maNhaDauTu)
+          .map((d) => d.maNhaDauTu as string)
+      );
+      const result = await parseActualFile(file, idSet, ndtSet.size > 0 ? ndtSet : undefined);
       setActuals(
         result.summaries,
         result.ngaySoLieu,
@@ -68,7 +126,7 @@ export function ActualImport() {
     } finally {
       setLoading(false);
     }
-  }, [setActuals, nq11MonVayIds]);
+  }, [setActuals, nq11MonVayIds, decisions]);
 
   const handleNq11File = useCallback(async (file: File) => {
     if (!file.name.match(/\.xlsx?$/i)) {
@@ -146,11 +204,11 @@ export function ActualImport() {
   const nq11TotalMon = nq11Summaries.reduce((s, a) => s + a.soMonVay, 0);
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 p-4 md:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Dữ liệu thực tế</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Dữ liệu thực tế</h1>
+          <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
             Nhập file Báo cáo 31 (sao kê chi tiết) để lấy dữ liệu dư nợ thực tế
           </p>
         </div>
@@ -161,45 +219,60 @@ export function ActualImport() {
         )}
       </div>
 
-      {/* Dropzone */}
+      {/* Dropzone — Báo cáo 31 */}
       <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileSpreadsheet className="h-4 w-4 text-plan-700 dark:text-plan-300" />
+            Báo cáo 31 — Sao kê chi tiết
+          </CardTitle>
+          <CardDescription>
+            File Excel Báo cáo 31 dạng sao kê chi tiết theo ngày (VD: 260331.Actual.XLSX).
+          </CardDescription>
+        </CardHeader>
         <CardContent>
           <div
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
             onDrop={onDrop}
-            className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-10 transition-colors ${
+            className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-10 text-center transition-all ${
               dragOver
-                ? 'border-plan-400 bg-plan-50 dark:bg-plan-900/20'
-                : 'border-slate-300 dark:border-slate-600'
+                ? 'border-plan-500 bg-plan-50 dark:border-plan-400 dark:bg-plan-900/30'
+                : 'border-slate-300 bg-slate-50/50 hover:border-plan-300 hover:bg-plan-50/40 dark:border-slate-600 dark:bg-slate-800/40 dark:hover:border-plan-700 dark:hover:bg-plan-900/10'
             }`}
           >
             {loading ? (
-              <div className="flex items-center gap-3 text-slate-500">
+              <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-plan-600 border-t-transparent" />
-                Đang đọc file...
+                <span className="text-sm font-medium">Đang đọc file...</span>
               </div>
             ) : (
               <>
-                <Upload className="mb-3 h-10 w-10 text-slate-400" />
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                <div className={`mb-3 rounded-full p-3 transition-colors ${
+                  dragOver ? 'bg-plan-100 text-plan-700 dark:bg-plan-900/60 dark:text-plan-200' : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'
+                }`}>
+                  <Upload className="h-7 w-7" />
+                </div>
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                   Kéo thả file Excel vào đây
                 </p>
-                <p className="mt-1 text-xs text-slate-500">hoặc</p>
-                <label className="mt-2 cursor-pointer rounded-md bg-plan-700 px-4 py-2 text-sm font-medium text-white hover:bg-plan-800">
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">hoặc</p>
+                <label className="mt-2 inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-plan-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-plan-800">
+                  <Upload className="h-3.5 w-3.5" />
                   Chọn file
                   <input type="file" accept=".xlsx,.xls" className="hidden" onChange={onFileSelect} />
                 </label>
-                <p className="mt-3 text-xs text-slate-400">
-                  File Excel Báo cáo 31 — dạng sao kê chi tiết theo ngày (260331.Actual.XLSX)
+                <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">
+                  Hỗ trợ .xlsx, .xls · xử lý ngay trong trình duyệt, không gửi lên máy chủ
                 </p>
               </>
             )}
           </div>
 
           {error && (
-            <div className="mt-3 flex items-center gap-2 rounded-md bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-900/30 dark:text-rose-300">
-              <AlertCircle className="h-4 w-4" /> {error}
+            <div className="mt-3 flex items-start gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-300">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>{error}</div>
             </div>
           )}
         </CardContent>
@@ -207,47 +280,52 @@ export function ActualImport() {
 
       {/* NQ11 — Sao kê món vay GQVL không được cho vay quay vòng */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-row items-start justify-between gap-3">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <BanIcon className="h-4 w-4 text-rose-600" />
+              <BanIcon className="h-4 w-4 text-rose-600 dark:text-rose-400" />
               Cho vay GQVL — NQ11 (không được cho vay quay vòng)
             </CardTitle>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            <CardDescription className="mt-1">
               File SK_GQVL_*.xlsx — danh sách món vay bị đánh dấu NQ11. Match bằng "Mã món vay".
               Số liệu sẽ được tách ra khỏi 03A / 03B trong báo cáo.
-            </p>
+            </CardDescription>
           </div>
           {nq11Summaries.length > 0 && (
-            <Button variant="outline" onClick={clearNq11}>
+            <Button variant="outline" size="sm" onClick={clearNq11}>
               <Trash2 className="h-4 w-4" /> Xóa NQ11
             </Button>
           )}
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div
             onDragOver={(e) => { e.preventDefault(); setNq11DragOver(true); }}
             onDragLeave={() => setNq11DragOver(false)}
             onDrop={onNq11Drop}
-            className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors ${
+            className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-all ${
               nq11DragOver
-                ? 'border-rose-400 bg-rose-50 dark:bg-rose-900/20'
-                : 'border-slate-300 dark:border-slate-600'
+                ? 'border-rose-500 bg-rose-50 dark:border-rose-400 dark:bg-rose-900/30'
+                : 'border-slate-300 bg-slate-50/50 hover:border-rose-300 hover:bg-rose-50/40 dark:border-slate-600 dark:bg-slate-800/40 dark:hover:border-rose-800 dark:hover:bg-rose-900/10'
             }`}
           >
             {nq11Loading ? (
-              <div className="flex items-center gap-3 text-slate-500">
+              <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-rose-600 border-t-transparent" />
-                Đang đọc file NQ11...
+                <span className="text-sm font-medium">Đang đọc file NQ11...</span>
               </div>
             ) : (
               <>
-                <Upload className="mb-2 h-8 w-8 text-slate-400" />
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                <div className={`mb-2 rounded-full p-2.5 transition-colors ${
+                  nq11DragOver ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-200' : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'
+                }`}>
+                  <Upload className="h-6 w-6" />
+                </div>
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                   Kéo thả file SK_GQVL vào đây
                 </p>
-                <p className="mt-1 text-xs text-slate-500">hoặc</p>
-                <label className="mt-2 cursor-pointer rounded-md bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700">
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">hoặc</p>
+                <label className="mt-2 inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-rose-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-rose-700">
+                  <Upload className="h-3.5 w-3.5" />
                   Chọn file NQ11
                   <input type="file" accept=".xlsx,.xls" className="hidden" onChange={onNq11FileSelect} />
                 </label>
@@ -256,65 +334,68 @@ export function ActualImport() {
           </div>
 
           {nq11Error && (
-            <div className="mt-3 flex items-center gap-2 rounded-md bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-900/30 dark:text-rose-300">
-              <AlertCircle className="h-4 w-4" /> {nq11Error}
+            <div className="flex items-start gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-300">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>{nq11Error}</div>
             </div>
           )}
 
           {nq11Summaries.length > 0 && (
-            <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-              <div className="rounded-md bg-slate-50 px-3 py-2 dark:bg-slate-800">
-                <div className="text-[11px] uppercase tracking-wide text-slate-500">Tổng dư nợ NQ11</div>
-                <div className="text-lg font-bold text-rose-600">{fmtMoney(nq11TotalDuNo)}</div>
-                <div className="text-[11px] text-slate-500">triệu đồng</div>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div className="rounded-md border border-rose-200 bg-rose-50/60 px-3 py-2 dark:border-rose-900/50 dark:bg-rose-900/20">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-rose-700 dark:text-rose-300">Tổng dư nợ NQ11</div>
+                <div className="text-lg font-bold tabular-nums text-rose-600 dark:text-rose-400">{fmtMoney(nq11TotalDuNo)}</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">triệu đồng</div>
               </div>
-              <div className="rounded-md bg-slate-50 px-3 py-2 dark:bg-slate-800">
-                <div className="text-[11px] uppercase tracking-wide text-slate-500">Số món vay</div>
-                <div className="text-lg font-bold text-slate-900 dark:text-white">
+              <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Số món vay</div>
+                <div className="text-lg font-bold tabular-nums text-slate-900 dark:text-white">
                   {nq11TotalMon.toLocaleString('vi-VN')}
                 </div>
-                <div className="text-[11px] text-slate-500">{nq11MonVayIds.length.toLocaleString('vi-VN')} Mã món vay</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">{nq11MonVayIds.length.toLocaleString('vi-VN')} Mã món vay</div>
               </div>
-              <div className="rounded-md bg-slate-50 px-3 py-2 dark:bg-slate-800">
-                <div className="text-[11px] uppercase tracking-wide text-slate-500">Số xã</div>
-                <div className="text-lg font-bold text-slate-900 dark:text-white">
+              <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Số xã</div>
+                <div className="text-lg font-bold tabular-nums text-slate-900 dark:text-white">
                   {nq11Summaries.length}
                 </div>
               </div>
-              <div className="rounded-md bg-slate-50 px-3 py-2 dark:bg-slate-800">
-                <div className="text-[11px] uppercase tracking-wide text-slate-500">Ngày số liệu</div>
-                <div className="text-lg font-bold text-slate-900 dark:text-white">{nq11Date ?? '—'}</div>
-                <div className="text-[11px] text-slate-500">{nq11TotalRows.toLocaleString('vi-VN')} dòng</div>
+              <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Ngày số liệu</div>
+                <div className="text-lg font-bold tabular-nums text-slate-900 dark:text-white">{nq11Date ?? '—'}</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">{nq11TotalRows.toLocaleString('vi-VN')} dòng</div>
               </div>
             </div>
           )}
 
           {nq11Summaries.length > 0 && (
-            <div className="mt-4 overflow-x-auto">
+            <div className="overflow-x-auto rounded-md border border-slate-200 dark:border-slate-700">
               <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
+                <thead className="sticky top-0 z-10">
+                  <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
                     <th className="w-8 px-2 py-2"></th>
-                    <th className="px-3 py-2 font-medium text-slate-600 dark:text-slate-300">Xã</th>
-                    <th className="px-3 py-2 text-right font-medium text-slate-600 dark:text-slate-300">Món</th>
-                    <th className="px-3 py-2 text-right font-medium text-slate-600 dark:text-slate-300">Tổng dư nợ</th>
-                    <th className="px-3 py-2 text-right font-medium text-slate-600 dark:text-slate-300">Từ 03A</th>
-                    <th className="px-3 py-2 text-right font-medium text-slate-600 dark:text-slate-300">Từ 03B</th>
+                    <th className="px-3 py-2">Xã</th>
+                    <th className="px-3 py-2 text-right">Món</th>
+                    <th className="px-3 py-2 text-right">Tổng dư nợ</th>
+                    <th className="px-3 py-2 text-right">Từ 03A</th>
+                    <th className="px-3 py-2 text-right">Từ 03B</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {nq11Summaries.map((s) => {
+                  {nq11Summaries.map((s, idx) => {
                     const open = !!nq11Expanded[s.maXa];
                     return (
                       <Fragment key={s.maXa}>
-                        <tr className="border-b border-slate-100 dark:border-slate-700">
+                        <tr className={`border-b border-slate-100 transition-colors hover:bg-slate-50 dark:border-slate-700/60 dark:hover:bg-slate-800/50 ${
+                          idx % 2 === 1 ? 'bg-slate-50/30 dark:bg-slate-800/20' : ''
+                        }`}>
                           <td className="px-2 py-2">
                             <button
                               type="button"
                               onClick={() =>
                                 setNq11Expanded((prev) => ({ ...prev, [s.maXa]: !prev[s.maXa] }))
                               }
-                              className="rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"
+                              className="rounded p-0.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"
                               aria-label={open ? 'Ẩn Mã món vay' : 'Xem Mã món vay'}
                             >
                               {open ? (
@@ -325,15 +406,15 @@ export function ActualImport() {
                             </button>
                           </td>
                           <td className="px-3 py-2 text-slate-900 dark:text-white">
-                            {s.tenXa} ({s.maXa})
+                            {s.tenXa} <span className="text-xs text-slate-400">({s.maXa})</span>
                           </td>
-                          <td className="px-3 py-2 text-right text-slate-600 dark:text-slate-300">
+                          <td className="px-3 py-2 text-right font-mono tabular-nums text-slate-600 dark:text-slate-300">
                             {s.soMonVay.toLocaleString('vi-VN')}
                           </td>
-                          <td className="px-3 py-2 text-right font-mono font-semibold text-rose-600">
+                          <td className="px-3 py-2 text-right font-mono tabular-nums font-semibold text-rose-600 dark:text-rose-400">
                             {fmtMoneyFull(s.tongDuNo)}
                           </td>
-                          <td className="px-3 py-2 text-right font-mono text-slate-500">
+                          <td className="px-3 py-2 text-right font-mono tabular-nums text-slate-500 dark:text-slate-400">
                             {s.from03A_tongDuNo > 0 ? fmtMoneyFull(s.from03A_tongDuNo) : '—'}
                             {s.from03A_soMonVay > 0 && (
                               <span className="ml-1 text-[11px] text-slate-400">
@@ -341,7 +422,7 @@ export function ActualImport() {
                               </span>
                             )}
                           </td>
-                          <td className="px-3 py-2 text-right font-mono text-slate-500">
+                          <td className="px-3 py-2 text-right font-mono tabular-nums text-slate-500 dark:text-slate-400">
                             {s.from03B_tongDuNo > 0 ? fmtMoneyFull(s.from03B_tongDuNo) : '—'}
                             {s.from03B_soMonVay > 0 && (
                               <span className="ml-1 text-[11px] text-slate-400">
@@ -351,18 +432,18 @@ export function ActualImport() {
                           </td>
                         </tr>
                         {open && (
-                          <tr className="border-b border-slate-100 dark:border-slate-700">
+                          <tr className="border-b border-slate-100 dark:border-slate-700/60">
                             <td></td>
-                            <td colSpan={5} className="bg-slate-50 px-3 py-2 dark:bg-slate-800/40">
-                              <div className="text-[11px] uppercase tracking-wide text-slate-500">
+                            <td colSpan={5} className="bg-slate-50 px-3 py-2 dark:bg-slate-800/60">
+                              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                                 Danh sách Mã món vay ({(s.monVayIds ?? []).length})
                               </div>
                               {(s.monVayIds ?? []).length === 0 ? (
-                                <div className="mt-1 text-[11px] italic text-slate-400">
+                                <div className="mt-1 text-[11px] italic text-slate-400 dark:text-slate-500">
                                   Dữ liệu NQ11 đã lưu trước đây không chứa Mã món vay. Vui lòng bấm "Xóa NQ11" và tải lại file SK_GQVL.
                                 </div>
                               ) : (
-                                <div className="mt-1 flex flex-wrap gap-1.5">
+                                <div className="mt-1.5 flex flex-wrap gap-1.5">
                                   {(s.monVayIds ?? []).map((id) => (
                                     <code
                                       key={id}
@@ -389,101 +470,138 @@ export function ActualImport() {
       {/* Summary cards */}
       {actuals.length > 0 && (
         <>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <Card>
               <CardContent className="py-4">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Tổng dư nợ</div>
-                <div className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Tổng dư nợ</div>
+                <div className="mt-1 text-2xl font-bold tabular-nums text-plan-700 dark:text-plan-300">
                   {fmtMoney(totalDuNo)}
                 </div>
-                <div className="text-xs text-slate-500">triệu đồng</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">triệu đồng</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="py-4">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Tổng món vay</div>
-                <div className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Tổng món vay</div>
+                <div className="mt-1 text-2xl font-bold tabular-nums text-slate-900 dark:text-white">
                   {totalMon.toLocaleString('vi-VN')}
                 </div>
-                <div className="text-xs text-slate-500">khế ước</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">khế ước</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="py-4">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Số nhóm</div>
-                <div className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{actuals.length}</div>
-                <div className="text-xs text-slate-500">xã × nguồn vốn × chương trình</div>
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Số nhóm</div>
+                <div className="mt-1 text-2xl font-bold tabular-nums text-slate-900 dark:text-white">{actuals.length}</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">xã × nguồn vốn × chương trình</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="py-4">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Ngày số liệu</div>
-                <div className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Ngày số liệu</div>
+                <div className="mt-1 text-2xl font-bold tabular-nums text-slate-900 dark:text-white">
                   {actualDate ?? '—'}
                 </div>
-                <div className="text-xs text-slate-500">{actualTotalRows.toLocaleString('vi-VN')} dòng gốc</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">{actualTotalRows.toLocaleString('vi-VN')} dòng gốc</div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Diagnostic panel — giúp kiểm tra bộ lọc dòng cộng/tổng */}
+          {/* Diagnostic panel — stat grid */}
           {actualDiag && (
-            <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-xs dark:border-slate-700 dark:bg-slate-800/50">
-              <div className="mb-1 font-semibold text-slate-700 dark:text-slate-200">
-                Chẩn đoán import (dùng để xác nhận bộ lọc dòng cộng/tổng đang hoạt động)
-              </div>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-slate-600 dark:text-slate-300 md:grid-cols-4">
-                <div>Tổng dòng quét: <span className="font-mono font-semibold text-slate-900 dark:text-white">{(actualDiag.scannedRows ?? 0).toLocaleString('vi-VN')}</span></div>
-                <div>Dòng chi tiết (tính): <span className="font-mono font-semibold text-emerald-700 dark:text-emerald-300">{actualTotalRows.toLocaleString('vi-VN')}</span></div>
-                <div>Dòng cộng/tổng (bỏ): <span className={`font-mono font-semibold ${(actualDiag.skippedRows ?? 0) > 0 ? 'text-rose-600' : 'text-slate-400'}`}>{(actualDiag.skippedRows ?? 0).toLocaleString('vi-VN')}</span></div>
-                <div>Dòng trùng (đã loại): <span className={`font-mono font-semibold ${(actualDiag.duplicateLoanIds ?? 0) > 0 ? 'text-amber-600' : 'text-slate-400'}`}>{(actualDiag.duplicateLoanIds ?? 0).toLocaleString('vi-VN')}</span></div>
-                <div className="md:col-span-4">Cột nhận dạng: <span className="font-mono text-slate-700 dark:text-slate-200">{(actualDiag.detectedIdCols ?? []).join(', ') || '—'}</span></div>
-                <div className="md:col-span-2">
-                  Cột "Mã nhà đầu tư":{' '}
-                  <span
-                    className={`font-mono font-semibold ${
-                      actualDiag.hasInvestorCol ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300'
-                    }`}
-                  >
-                    {actualDiag.hasInvestorCol ? 'Phát hiện' : 'Không có'}
-                  </span>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ScanSearch className="h-4 w-4 text-slate-500" />
+                  Chẩn đoán import
+                </CardTitle>
+                <CardDescription>
+                  Dùng để xác nhận bộ lọc dòng cộng/tổng đang hoạt động đúng.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                  <DiagStat
+                    icon={FileSpreadsheet}
+                    label="Tổng dòng quét"
+                    value={(actualDiag.scannedRows ?? 0).toLocaleString('vi-VN')}
+                  />
+                  <DiagStat
+                    icon={CheckCircle2}
+                    label="Dòng chi tiết (tính)"
+                    value={actualTotalRows.toLocaleString('vi-VN')}
+                    tone="success"
+                  />
+                  <DiagStat
+                    icon={XCircle}
+                    label="Dòng cộng/tổng (bỏ)"
+                    value={(actualDiag.skippedRows ?? 0).toLocaleString('vi-VN')}
+                    tone={(actualDiag.skippedRows ?? 0) > 0 ? 'danger' : 'default'}
+                  />
+                  <DiagStat
+                    icon={Copy}
+                    label="Dòng trùng (đã loại)"
+                    value={(actualDiag.duplicateLoanIds ?? 0).toLocaleString('vi-VN')}
+                    tone={(actualDiag.duplicateLoanIds ?? 0) > 0 ? 'warning' : 'default'}
+                  />
+                  <div className="md:col-span-2">
+                    <DiagStat
+                      icon={Columns3}
+                      label="Cột nhận dạng"
+                      value={(actualDiag.detectedIdCols ?? []).join(', ') || '—'}
+                    />
+                  </div>
+                  <DiagStat
+                    icon={Layers}
+                    label={'Cột "Mã nhà đầu tư"'}
+                    value={actualDiag.hasInvestorCol ? 'Phát hiện' : 'Không có'}
+                    tone={actualDiag.hasInvestorCol ? 'success' : 'danger'}
+                  />
+                  <DiagStat
+                    icon={Repeat}
+                    label="Dòng GQVL xã (đổi NV 2→3)"
+                    value={(actualDiag.gqvlXaReclassified ?? 0).toLocaleString('vi-VN')}
+                    tone={(actualDiag.gqvlXaReclassified ?? 0) > 0 ? 'success' : 'default'}
+                  />
                 </div>
-                <div className="md:col-span-2">
-                  Dòng GQVL xã (đổi NV 2→3):{' '}
-                  <span
-                    className={`font-mono font-semibold ${
-                      (actualDiag.gqvlXaReclassified ?? 0) > 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-400'
-                    }`}
-                  >
-                    {(actualDiag.gqvlXaReclassified ?? 0).toLocaleString('vi-VN')}
-                  </span>
+
+                {/* Inline messages */}
+                <div className="space-y-2">
+                  {(actualDiag.duplicateLoanIds ?? 0) > 0 && (
+                    <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+                      <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <div>
+                        {(actualDiag.duplicateLoanIds ?? 0).toLocaleString('vi-VN')} dòng trùng Số khế ước/Mã món vay đã được loại bỏ. Mỗi khoản vay được tính 1 lần.
+                      </div>
+                    </div>
+                  )}
+                  {(actualDiag.detectedIdCols ?? []).length === 0 && (
+                    <div className="flex items-start gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-300">
+                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <div>
+                        Không phát hiện cột nhận dạng dòng chi tiết (Số khế ước / Mã món vay / Mã KH / Tên KH). Mọi dòng có Mã xã đều được tính — có khả năng cộng cả dòng cộng/tổng. Vui lòng gửi tên cột chính xác để điều chỉnh bộ lọc.
+                      </div>
+                    </div>
+                  )}
+                  {!actualDiag.hasInvestorCol && (
+                    <div className="flex items-start gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-300">
+                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <div>
+                        Không tìm thấy cột "Mã nhà đầu tư" — các dòng GQVL không thể tách thành "Cho vay GQVL xã ..." theo Mã NĐT. Vui lòng gửi tên cột chính xác trong tiêu đề để bổ sung alias.
+                      </div>
+                    </div>
+                  )}
+                  {actualDiag.hasInvestorCol && (actualDiag.gqvlXaReclassified ?? 0) === 0 && (
+                    <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+                      <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <div>
+                        Cột "Mã nhà đầu tư" có nhưng không có dòng CT=03 nào được đổi sang NV=3 ("GQVL xã"). Kiểm tra ở màn "Quyết định" đã có QĐ NV=Địa phương xã với Mã NĐT khớp với các dòng CT=03 trong Báo cáo 31 hay chưa.
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-              {(actualDiag.duplicateLoanIds ?? 0) > 0 && (
-                <div className="mt-2 text-amber-700 dark:text-amber-300">
-                  ℹ {(actualDiag.duplicateLoanIds ?? 0).toLocaleString('vi-VN')} dòng trùng Số khế ước/Mã món vay đã được loại bỏ.
-                  Mỗi khoản vay được tính 1 lần.
-                </div>
-              )}
-              {(actualDiag.detectedIdCols ?? []).length === 0 && (
-                <div className="mt-2 text-rose-600 dark:text-rose-300">
-                  ⚠ Không phát hiện cột nhận dạng dòng chi tiết (Số khế ước / Mã món vay / Mã KH / Tên KH).
-                  Mọi dòng có Mã xã đều được tính — có khả năng cộng cả dòng cộng/tổng. Vui lòng gửi tên cột chính xác để điều chỉnh bộ lọc.
-                </div>
-              )}
-              {!actualDiag.hasInvestorCol && (
-                <div className="mt-2 text-rose-600 dark:text-rose-300">
-                  ⚠ Không tìm thấy cột "Mã nhà đầu tư" — các dòng GQVL không thể tách thành "Cho vay GQVL xã ..." theo Mã NĐT.
-                  Vui lòng gửi tên cột chính xác trong tiêu đề để bổ sung alias.
-                </div>
-              )}
-              {actualDiag.hasInvestorCol && (actualDiag.gqvlXaReclassified ?? 0) === 0 && (
-                <div className="mt-2 text-amber-700 dark:text-amber-300">
-                  ℹ Cột "Mã nhà đầu tư" có nhưng không có dòng CT=03 NV=2 nào được đổi sang NV=3 ("GQVL xã").
-                  Có thể tất cả các món GQVL đều thuộc Nhà đầu tư tỉnh (INV0802140002662, INV0603170027393), hoặc file chưa có rows GQVL địa phương.
-                </div>
-              )}
-            </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* Summary by Xa */}
@@ -492,26 +610,33 @@ export function ActualImport() {
               <CardTitle>Tổng hợp theo xã</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
-                    <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Mã xã</th>
-                    <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Tên xã</th>
-                    <th className="px-4 py-3 text-right font-medium text-slate-600 dark:text-slate-300">Số món vay</th>
-                    <th className="px-4 py-3 text-right font-medium text-slate-600 dark:text-slate-300">Tổng dư nợ (tr.đ)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Array.from(byXa.entries()).map(([maXa, data]) => (
-                    <tr key={maXa} className="border-b border-slate-100 dark:border-slate-700">
-                      <td className="px-4 py-2.5 font-mono text-slate-600 dark:text-slate-300">{maXa}</td>
-                      <td className="px-4 py-2.5 text-slate-900 dark:text-white">{data.tenXa}</td>
-                      <td className="px-4 py-2.5 text-right text-slate-600 dark:text-slate-300">{data.soMon.toLocaleString('vi-VN')}</td>
-                      <td className="px-4 py-2.5 text-right font-mono text-slate-900 dark:text-white">{fmtMoney(data.tongDuNo)}</td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="sticky top-0 z-10">
+                    <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                      <th className="px-4 py-3">Mã xã</th>
+                      <th className="px-4 py-3">Tên xã</th>
+                      <th className="px-4 py-3 text-right">Số món vay</th>
+                      <th className="px-4 py-3 text-right">Tổng dư nợ (tr.đ)</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {Array.from(byXa.entries()).map(([maXa, data], idx) => (
+                      <tr
+                        key={maXa}
+                        className={`border-b border-slate-100 last:border-b-0 dark:border-slate-700/60 ${
+                          idx % 2 === 1 ? 'bg-slate-50/30 dark:bg-slate-800/20' : ''
+                        }`}
+                      >
+                        <td className="px-4 py-2.5 font-mono text-slate-600 dark:text-slate-300">{maXa}</td>
+                        <td className="px-4 py-2.5 text-slate-900 dark:text-white">{data.tenXa}</td>
+                        <td className="px-4 py-2.5 text-right font-mono tabular-nums text-slate-600 dark:text-slate-300">{data.soMon.toLocaleString('vi-VN')}</td>
+                        <td className="px-4 py-2.5 text-right font-mono tabular-nums font-semibold text-slate-900 dark:text-white">{fmtMoney(data.tongDuNo)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </CardContent>
           </Card>
 
@@ -523,29 +648,34 @@ export function ActualImport() {
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
-                      <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Xã</th>
-                      <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Nguồn vốn</th>
-                      <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Chương trình</th>
-                      <th className="px-4 py-3 text-right font-medium text-slate-600 dark:text-slate-300">Món vay</th>
-                      <th className="px-4 py-3 text-right font-medium text-slate-600 dark:text-slate-300">Dư nợ TH</th>
-                      <th className="px-4 py-3 text-right font-medium text-slate-600 dark:text-slate-300">Dư nợ QH</th>
-                      <th className="px-4 py-3 text-right font-medium text-slate-600 dark:text-slate-300">Dư nợ khoanh</th>
-                      <th className="px-4 py-3 text-right font-medium text-slate-600 dark:text-slate-300">Tổng dư nợ</th>
+                  <thead className="sticky top-0 z-10">
+                    <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                      <th className="px-4 py-3">Xã</th>
+                      <th className="px-4 py-3">Nguồn vốn</th>
+                      <th className="px-4 py-3">Chương trình</th>
+                      <th className="px-4 py-3 text-right">Món vay</th>
+                      <th className="px-4 py-3 text-right">Dư nợ TH</th>
+                      <th className="px-4 py-3 text-right">Dư nợ QH</th>
+                      <th className="px-4 py-3 text-right">Dư nợ khoanh</th>
+                      <th className="px-4 py-3 text-right">Tổng dư nợ</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {mergedActuals.map((a) => (
-                      <tr key={`${a.maXa}-${a.maNguonVon}-${a.maChuongTrinh}`} className="border-b border-slate-100 dark:border-slate-700">
+                    {mergedActuals.map((a, idx) => (
+                      <tr
+                        key={`${a.maXa}-${a.maNguonVon}-${a.maChuongTrinh}`}
+                        className={`border-b border-slate-100 transition-colors hover:bg-slate-50 dark:border-slate-700/60 dark:hover:bg-slate-800/50 ${
+                          idx % 2 === 1 ? 'bg-slate-50/30 dark:bg-slate-800/20' : ''
+                        }`}
+                      >
                         <td className="px-4 py-2 text-slate-900 dark:text-white">{a.tenXa}</td>
                         <td className="px-4 py-2 text-slate-600 dark:text-slate-300">{nguonVonLabel(a.maNguonVon)}</td>
-                        <td className="max-w-[250px] truncate px-4 py-2 text-slate-600 dark:text-slate-300">{a.tenChuongTrinh}</td>
-                        <td className="px-4 py-2 text-right text-slate-600 dark:text-slate-300">{a.soMonVay.toLocaleString('vi-VN')}</td>
-                        <td className="px-4 py-2 text-right font-mono text-slate-600 dark:text-slate-300">{fmtMoneyFull(a.duNoTrongHan)}</td>
-                        <td className="px-4 py-2 text-right font-mono text-rose-600 dark:text-rose-400">{a.duNoQuaHan > 0 ? fmtMoneyFull(a.duNoQuaHan) : '—'}</td>
-                        <td className="px-4 py-2 text-right font-mono text-amber-600 dark:text-amber-400">{a.duNoKhoanh > 0 ? fmtMoneyFull(a.duNoKhoanh) : '—'}</td>
-                        <td className="px-4 py-2 text-right font-mono font-semibold text-slate-900 dark:text-white">{fmtMoneyFull(a.tongDuNo)}</td>
+                        <td className="max-w-[260px] truncate px-4 py-2 text-slate-600 dark:text-slate-300" title={a.tenChuongTrinh}>{a.tenChuongTrinh}</td>
+                        <td className="px-4 py-2 text-right font-mono tabular-nums text-slate-600 dark:text-slate-300">{a.soMonVay.toLocaleString('vi-VN')}</td>
+                        <td className="px-4 py-2 text-right font-mono tabular-nums text-slate-600 dark:text-slate-300">{fmtMoneyFull(a.duNoTrongHan)}</td>
+                        <td className="px-4 py-2 text-right font-mono tabular-nums text-rose-600 dark:text-rose-400">{a.duNoQuaHan > 0 ? fmtMoneyFull(a.duNoQuaHan) : '—'}</td>
+                        <td className="px-4 py-2 text-right font-mono tabular-nums text-amber-600 dark:text-amber-400">{a.duNoKhoanh > 0 ? fmtMoneyFull(a.duNoKhoanh) : '—'}</td>
+                        <td className="px-4 py-2 text-right font-mono tabular-nums font-semibold text-slate-900 dark:text-white">{fmtMoneyFull(a.tongDuNo)}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -12,7 +12,8 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { BanIcon, FileText, FileDown } from 'lucide-react';
+import { BanIcon, FileText, FileDown, BarChart3, Inbox } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
@@ -27,12 +28,12 @@ function fmtMoney(n: number) {
 function PctBadge({ pct }: { pct: number }) {
   const color =
     pct >= 100
-      ? 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300'
+      ? 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800'
       : pct >= 80
-        ? 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-300'
-        : 'bg-rose-50 text-rose-700 ring-rose-200 dark:bg-rose-900/30 dark:text-rose-300';
+        ? 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:ring-amber-800'
+        : 'bg-rose-50 text-rose-700 ring-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:ring-rose-800';
   return (
-    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ${color}`}>
+    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums ring-1 ${color}`}>
       {pct.toFixed(1)}%
     </span>
   );
@@ -216,22 +217,50 @@ export function PlanReports() {
   if (!hasData) {
     return (
       <div className="flex h-full items-center justify-center p-6">
-        <div className="text-center text-slate-400">
-          <p className="text-lg font-medium">Chưa có dữ liệu</p>
-          <p className="mt-1 text-sm">Vui lòng nhập kế hoạch và/hoặc dữ liệu thực tế trước.</p>
-        </div>
+        <Card className="max-w-md">
+          <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
+            <div className="rounded-full bg-slate-100 p-4 dark:bg-slate-800">
+              <Inbox className="h-8 w-8 text-slate-400 dark:text-slate-500" />
+            </div>
+            <div>
+              <p className="text-base font-semibold text-slate-700 dark:text-slate-200">Chưa có dữ liệu</p>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Vui lòng nhập kế hoạch và/hoặc dữ liệu thực tế trước.
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Link
+                to="/credit-plan/plans"
+                className="inline-flex items-center gap-1.5 rounded-md bg-plan-700 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-plan-800"
+              >
+                <FileText className="h-3.5 w-3.5" /> Nhập kế hoạch
+              </Link>
+              <Link
+                to="/credit-plan/actual"
+                className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              >
+                <FileDown className="h-3.5 w-3.5" /> Nhập Báo cáo 31
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-xl font-bold text-slate-900 dark:text-white">Báo cáo Kế hoạch vs Thực tế</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          So sánh kế hoạch dư nợ với dư nợ thực tế theo từng nhóm
-        </p>
-      </div>
+    <div className="space-y-6 p-4 md:p-6">
+      <header className="flex items-start gap-3">
+        <div className="hidden rounded-lg bg-plan-50 p-2 text-plan-700 ring-1 ring-plan-200 dark:bg-plan-900/40 dark:text-plan-300 dark:ring-plan-800 sm:block">
+          <BarChart3 className="h-5 w-5" />
+        </div>
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Báo cáo Kế hoạch vs Thực tế</h1>
+          <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+            So sánh kế hoạch dư nợ với dư nợ thực tế theo từng nhóm
+          </p>
+        </div>
+      </header>
 
       {/* Báo cáo thu hồi NQ11 */}
       {nq11Summaries.length > 0 && (
@@ -257,34 +286,36 @@ export function PlanReports() {
             )}
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
-                    <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Xã</th>
-                    <th className="px-4 py-3 text-right font-medium text-rose-600">Tổng dư nợ</th>
-                    <th className="px-4 py-3 text-right font-medium text-emerald-600">Dư nợ đã thu hồi</th>
-                    <th className="px-4 py-3 text-right font-medium text-amber-600">Dư nợ còn lại</th>
-                    <th className="px-4 py-3 text-right font-medium text-slate-500">Món NQ11 / Match</th>
+                <thead className="sticky top-0 z-10">
+                  <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                    <th className="px-4 py-3">Xã</th>
+                    <th className="px-4 py-3 text-right text-rose-600 dark:text-rose-400">Tổng dư nợ</th>
+                    <th className="px-4 py-3 text-right text-emerald-600 dark:text-emerald-400">Dư nợ đã thu hồi</th>
+                    <th className="px-4 py-3 text-right text-amber-600 dark:text-amber-400">Dư nợ còn lại</th>
+                    <th className="px-4 py-3 text-right">Món NQ11 / Match</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {nq11Recovery.map((r) => (
+                  {nq11Recovery.map((r, idx) => (
                     <tr
                       key={r.maXa}
-                      className="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50"
+                      className={`border-b border-slate-100 transition-colors hover:bg-slate-50 dark:border-slate-700/60 dark:hover:bg-slate-800/50 ${
+                        idx % 2 === 1 ? 'bg-slate-50/30 dark:bg-slate-800/20' : ''
+                      }`}
                     >
                       <td className="px-4 py-2 text-slate-900 dark:text-white">
-                        {r.tenXa} ({r.maXa})
+                        {r.tenXa} <span className="text-xs text-slate-400">({r.maXa})</span>
                       </td>
-                      <td className="px-4 py-2 text-right font-mono text-rose-600">
+                      <td className="px-4 py-2 text-right font-mono tabular-nums text-rose-600 dark:text-rose-400">
                         {fmtMoney(r.tongDuNo)}
                       </td>
-                      <td className="px-4 py-2 text-right font-mono text-emerald-600">
-                        {r.hasMatch ? fmtMoney(r.daThuHoi!) : <span className="text-slate-300">—</span>}
+                      <td className="px-4 py-2 text-right font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
+                        {r.hasMatch ? fmtMoney(r.daThuHoi!) : <span className="text-slate-300 dark:text-slate-600">—</span>}
                       </td>
-                      <td className="px-4 py-2 text-right font-mono font-semibold text-amber-700 dark:text-amber-400">
-                        {r.hasMatch ? fmtMoney(r.conLai!) : <span className="text-slate-300">—</span>}
+                      <td className="px-4 py-2 text-right font-mono tabular-nums font-semibold text-amber-700 dark:text-amber-400">
+                        {r.hasMatch ? fmtMoney(r.conLai!) : <span className="text-slate-300 dark:text-slate-600">—</span>}
                       </td>
-                      <td className="px-4 py-2 text-right text-xs text-slate-500">
+                      <td className="px-4 py-2 text-right font-mono tabular-nums text-xs text-slate-500 dark:text-slate-400">
                         {r.soMonNQ11.toLocaleString('vi-VN')} / {r.soMonMatched.toLocaleString('vi-VN')}
                       </td>
                     </tr>
@@ -294,16 +325,16 @@ export function PlanReports() {
                   <tfoot>
                     <tr className="border-t-2 border-slate-300 bg-slate-50 font-semibold dark:border-slate-600 dark:bg-slate-800">
                       <td className="px-4 py-2.5 text-slate-700 dark:text-slate-200">Tổng cộng</td>
-                      <td className="px-4 py-2.5 text-right font-mono text-rose-600">
+                      <td className="px-4 py-2.5 text-right font-mono tabular-nums text-rose-600 dark:text-rose-400">
                         {fmtMoney(nq11RecoveryTotals.tongDuNo)}
                       </td>
-                      <td className="px-4 py-2.5 text-right font-mono text-emerald-600">
+                      <td className="px-4 py-2.5 text-right font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
                         {fmtMoney(nq11RecoveryTotals.daThuHoi)}
                       </td>
-                      <td className="px-4 py-2.5 text-right font-mono text-amber-700 dark:text-amber-400">
+                      <td className="px-4 py-2.5 text-right font-mono tabular-nums text-amber-700 dark:text-amber-400">
                         {fmtMoney(nq11RecoveryTotals.conLai)}
                       </td>
-                      <td className="px-4 py-2.5 text-right text-xs text-slate-500">
+                      <td className="px-4 py-2.5 text-right font-mono tabular-nums text-xs text-slate-500 dark:text-slate-400">
                         {nq11RecoveryTotals.soMonNQ11.toLocaleString('vi-VN')} /{' '}
                         {nq11RecoveryTotals.soMonMatched.toLocaleString('vi-VN')}
                       </td>
@@ -331,36 +362,41 @@ export function PlanReports() {
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
-                    <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Số QĐ</th>
-                    <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Ngày</th>
-                    <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Tên / trích yếu</th>
-                    <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Nguồn vốn</th>
-                    <th className="px-4 py-3 text-right font-medium text-slate-600 dark:text-slate-300">Dòng</th>
-                    <th className="px-4 py-3 text-right font-medium text-blue-600">KH (tr.đ)</th>
-                    <th className="px-4 py-3 text-right font-medium text-emerald-600">TT (tr.đ)</th>
-                    <th className="px-4 py-3 text-right font-medium text-slate-600 dark:text-slate-300">Chênh lệch</th>
-                    <th className="px-4 py-3 text-right font-medium text-slate-600 dark:text-slate-300">Tỷ lệ</th>
+                <thead className="sticky top-0 z-10">
+                  <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                    <th className="px-4 py-3">Số QĐ</th>
+                    <th className="px-4 py-3">Ngày</th>
+                    <th className="px-4 py-3">Tên / trích yếu</th>
+                    <th className="px-4 py-3">Nguồn vốn</th>
+                    <th className="px-4 py-3 text-right">Dòng</th>
+                    <th className="px-4 py-3 text-right text-blue-600 dark:text-blue-400">KH (tr.đ)</th>
+                    <th className="px-4 py-3 text-right text-emerald-600 dark:text-emerald-400">TT (tr.đ)</th>
+                    <th className="px-4 py-3 text-right">Chênh lệch</th>
+                    <th className="px-4 py-3 text-right">Tỷ lệ</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {byDecision.map((r) => (
-                    <tr key={r.decision.id} className="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50">
+                  {byDecision.map((r, idx) => (
+                    <tr
+                      key={r.decision.id}
+                      className={`border-b border-slate-100 transition-colors hover:bg-slate-50 dark:border-slate-700/60 dark:hover:bg-slate-800/50 ${
+                        idx % 2 === 1 ? 'bg-slate-50/30 dark:bg-slate-800/20' : ''
+                      }`}
+                    >
                       <td className="px-4 py-2 font-medium text-slate-900 dark:text-white">{r.decision.soQD}</td>
-                      <td className="px-4 py-2 text-slate-600 dark:text-slate-300">{r.decision.ngayQD}</td>
+                      <td className="whitespace-nowrap px-4 py-2 text-slate-600 dark:text-slate-300">{r.decision.ngayQD}</td>
                       <td className="max-w-[240px] truncate px-4 py-2 text-slate-600 dark:text-slate-300" title={r.decision.tenQD}>
-                        {r.decision.tenQD || <span className="text-slate-300">—</span>}
+                        {r.decision.tenQD || <span className="text-slate-300 dark:text-slate-600">—</span>}
                       </td>
                       <td className="px-4 py-2 text-slate-600 dark:text-slate-300">{nguonVonListLabel(r.decision.maNguonVonList)}</td>
-                      <td className="px-4 py-2 text-right font-mono text-slate-600 dark:text-slate-300">{r.lineCount}</td>
-                      <td className="px-4 py-2 text-right font-mono text-blue-600">{fmtMoney(Math.round(r.plan))}</td>
-                      <td className="px-4 py-2 text-right font-mono text-emerald-600">{fmtMoney(Math.round(r.actual))}</td>
-                      <td className={`px-4 py-2 text-right font-mono ${r.diff >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      <td className="px-4 py-2 text-right font-mono tabular-nums text-slate-600 dark:text-slate-300">{r.lineCount}</td>
+                      <td className="px-4 py-2 text-right font-mono tabular-nums text-blue-600 dark:text-blue-400">{fmtMoney(Math.round(r.plan))}</td>
+                      <td className="px-4 py-2 text-right font-mono tabular-nums text-emerald-600 dark:text-emerald-400">{fmtMoney(Math.round(r.actual))}</td>
+                      <td className={`px-4 py-2 text-right font-mono tabular-nums ${r.diff >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                         {r.diff >= 0 ? '+' : ''}{fmtMoney(Math.round(r.diff))}
                       </td>
                       <td className="px-4 py-2 text-right">
-                        {r.plan > 0 ? <PctBadge pct={r.pct} /> : <span className="text-xs text-slate-400">—</span>}
+                        {r.plan > 0 ? <PctBadge pct={r.pct} /> : <span className="text-xs text-slate-400 dark:text-slate-500">—</span>}
                       </td>
                     </tr>
                   ))}
@@ -372,61 +408,63 @@ export function PlanReports() {
       )}
 
       {/* KPI cards */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Card>
           <CardContent className="py-4">
-            <div className="text-xs uppercase tracking-wide text-slate-500">Tổng kế hoạch</div>
-            <div className="mt-1 text-2xl font-bold text-blue-600">{fmtMoney(Math.round(totalPlan))}</div>
-            <div className="text-xs text-slate-500">triệu đồng</div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Tổng kế hoạch</div>
+            <div className="mt-1 text-2xl font-bold tabular-nums text-blue-600 dark:text-blue-400">{fmtMoney(Math.round(totalPlan))}</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">triệu đồng</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-4">
-            <div className="text-xs uppercase tracking-wide text-slate-500">Tổng thực tế</div>
-            <div className="mt-1 text-2xl font-bold text-emerald-600">{fmtMoney(Math.round(totalActual))}</div>
-            <div className="text-xs text-slate-500">triệu đồng</div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Tổng thực tế</div>
+            <div className="mt-1 text-2xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{fmtMoney(Math.round(totalActual))}</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">triệu đồng</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-4">
-            <div className="text-xs uppercase tracking-wide text-slate-500">Chênh lệch</div>
-            <div className={`mt-1 text-2xl font-bold ${totalActual - totalPlan >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Chênh lệch</div>
+            <div className={`mt-1 text-2xl font-bold tabular-nums ${totalActual - totalPlan >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
               {totalActual - totalPlan >= 0 ? '+' : ''}{fmtMoney(Math.round(totalActual - totalPlan))}
             </div>
-            <div className="text-xs text-slate-500">triệu đồng</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">triệu đồng</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-4">
-            <div className="text-xs uppercase tracking-wide text-slate-500">Tỷ lệ hoàn thành</div>
-            <div className={`mt-1 text-2xl font-bold ${overallPct >= 100 ? 'text-emerald-600' : overallPct >= 80 ? 'text-amber-600' : 'text-rose-600'}`}>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Tỷ lệ hoàn thành</div>
+            <div className={`mt-1 text-2xl font-bold tabular-nums ${overallPct >= 100 ? 'text-emerald-600 dark:text-emerald-400' : overallPct >= 80 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}`}>
               {overallPct.toFixed(1)}%
             </div>
-            <div className="text-xs text-slate-500">thực tế / kế hoạch</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">thực tế / kế hoạch</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Group by selector */}
-      <div className="flex gap-2">
-        <span className="self-center text-sm text-slate-600 dark:text-slate-300">Nhóm theo:</span>
-        {([
-          ['xa', 'Xã'],
-          ['chuongtrinh', 'Chương trình'],
-          ['nguonvon', 'Nguồn vốn'],
-        ] as const).map(([val, label]) => (
-          <button
-            key={val}
-            onClick={() => setGroupBy(val)}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-              groupBy === val
-                ? 'bg-plan-700 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Nhóm theo:</span>
+        <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+          {([
+            ['xa', 'Xã'],
+            ['chuongtrinh', 'Chương trình'],
+            ['nguonvon', 'Nguồn vốn'],
+          ] as const).map(([val, label]) => (
+            <button
+              key={val}
+              onClick={() => setGroupBy(val)}
+              className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${
+                groupBy === val
+                  ? 'bg-plan-700 text-white shadow-sm'
+                  : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Bar chart: Plan vs Actual */}
@@ -519,54 +557,57 @@ export function PlanReports() {
       <Card>
         <CardHeader>
           <CardTitle>Chi tiết so sánh</CardTitle>
+          <CardDescription>So sánh từng dòng KH vs TT theo Xã × Nguồn vốn × Chương trình. Bấm nút tải để xuất danh sách món vay đóng góp.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
-                  <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Xã</th>
-                  <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Nguồn vốn</th>
-                  <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Chương trình</th>
-                  <th className="px-4 py-3 text-right font-medium text-blue-600">KH (tr.đ)</th>
-                  <th className="px-4 py-3 text-right font-medium text-emerald-600">TT (tr.đ)</th>
-                  <th className="px-4 py-3 text-right font-medium text-slate-600 dark:text-slate-300">Còn phải thực hiện</th>
-                  <th className="px-4 py-3 text-right font-medium text-slate-600 dark:text-slate-300">Tỷ lệ</th>
+              <thead className="sticky top-0 z-10">
+                <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                  <th className="px-4 py-3">Xã</th>
+                  <th className="px-4 py-3">Nguồn vốn</th>
+                  <th className="px-4 py-3">Chương trình</th>
+                  <th className="px-4 py-3 text-right text-blue-600 dark:text-blue-400">KH (tr.đ)</th>
+                  <th className="px-4 py-3 text-right text-emerald-600 dark:text-emerald-400">TT (tr.đ)</th>
+                  <th className="px-4 py-3 text-right">Còn phải thực hiện</th>
+                  <th className="px-4 py-3 text-right">Tỷ lệ</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
-                {comparison.map((c) => {
+                {comparison.map((c, idx) => {
                   const bucketKey = `${c.maXa}|${c.maNguonVon}|${c.maChuongTrinh}`;
                   const hasDetails = (loanDetailsByBucket[bucketKey]?.length ?? 0) > 0;
                   const remaining = c.planAmount - c.actualAmount;
                   return (
                     <tr
                       key={`${c.maXa}-${c.maNguonVon}-${c.maChuongTrinh}`}
-                      className="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50"
+                      className={`border-b border-slate-100 transition-colors hover:bg-slate-50 dark:border-slate-700/60 dark:hover:bg-slate-800/50 ${
+                        idx % 2 === 1 ? 'bg-slate-50/30 dark:bg-slate-800/20' : ''
+                      }`}
                     >
                       <td className="px-4 py-2 text-slate-900 dark:text-white">{c.tenXa}</td>
                       <td className="px-4 py-2 text-slate-600 dark:text-slate-300">{nguonVonLabel(c.maNguonVon)}</td>
-                      <td className="max-w-[260px] truncate px-4 py-2 text-slate-600 dark:text-slate-300">
+                      <td className="max-w-[260px] truncate px-4 py-2 text-slate-600 dark:text-slate-300" title={c.tenChuongTrinh}>
                         <span className="mr-1.5 inline-block rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-500 dark:bg-slate-700 dark:text-slate-400">
                           {c.maChuongTrinh || '—'}
                         </span>
                         {c.tenChuongTrinh}
                       </td>
-                      <td className="px-4 py-2 text-right font-mono text-blue-600">{fmtMoney(Math.round(c.planAmount))}</td>
-                      <td className="px-4 py-2 text-right font-mono text-emerald-600">{fmtMoney(Math.round(c.actualAmount))}</td>
-                      <td className={`px-4 py-2 text-right font-mono ${remaining > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-600'}`}>
+                      <td className="px-4 py-2 text-right font-mono tabular-nums text-blue-600 dark:text-blue-400">{fmtMoney(Math.round(c.planAmount))}</td>
+                      <td className="px-4 py-2 text-right font-mono tabular-nums text-emerald-600 dark:text-emerald-400">{fmtMoney(Math.round(c.actualAmount))}</td>
+                      <td className={`px-4 py-2 text-right font-mono tabular-nums ${remaining > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                         {fmtMoney(Math.round(remaining))}
                       </td>
                       <td className="px-4 py-2 text-right">
-                        {c.planAmount > 0 ? <PctBadge pct={c.pct} /> : <span className="text-xs text-slate-400">—</span>}
+                        {c.planAmount > 0 ? <PctBadge pct={c.pct} /> : <span className="text-xs text-slate-400 dark:text-slate-500">—</span>}
                       </td>
                       <td className="px-4 py-2">
                         <button
                           onClick={() => exportBucketLoans(c.maXa, c.tenXa, c.maNguonVon, c.maChuongTrinh)}
                           disabled={!hasDetails}
                           title={hasDetails ? 'Xuất danh sách Mã món vay đóng góp vào TT' : 'Không có chi tiết — vui lòng nhập lại Sao kê 31'}
-                          className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-plan-700 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-slate-700"
+                          className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-plan-700 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-slate-700"
                         >
                           <FileDown className="h-4 w-4" />
                         </button>
@@ -579,9 +620,9 @@ export function PlanReports() {
                 <tfoot>
                   <tr className="border-t-2 border-slate-300 bg-slate-50 font-semibold dark:border-slate-600 dark:bg-slate-800">
                     <td colSpan={3} className="px-4 py-2.5 text-slate-700 dark:text-slate-200">Tổng cộng</td>
-                    <td className="px-4 py-2.5 text-right font-mono text-blue-600">{fmtMoney(Math.round(totalPlan))}</td>
-                    <td className="px-4 py-2.5 text-right font-mono text-emerald-600">{fmtMoney(Math.round(totalActual))}</td>
-                    <td className={`px-4 py-2.5 text-right font-mono ${totalPlan - totalActual > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-600'}`}>
+                    <td className="px-4 py-2.5 text-right font-mono tabular-nums text-blue-600 dark:text-blue-400">{fmtMoney(Math.round(totalPlan))}</td>
+                    <td className="px-4 py-2.5 text-right font-mono tabular-nums text-emerald-600 dark:text-emerald-400">{fmtMoney(Math.round(totalActual))}</td>
+                    <td className={`px-4 py-2.5 text-right font-mono tabular-nums ${totalPlan - totalActual > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                       {fmtMoney(Math.round(totalPlan - totalActual))}
                     </td>
                     <td className="px-4 py-2.5 text-right">

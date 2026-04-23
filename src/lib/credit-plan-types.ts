@@ -20,6 +20,9 @@ export interface Decision {
   trangThai: DecisionStatus;    // draft | active | archived
   ghiChu?: string;              // Ghi chú
   attachment?: DecisionAttachment; // PDF kèm theo (blob trong IndexedDB)
+  /** Mã nhà đầu tư (chỉ có ý nghĩa khi maNguonVonList chứa '3' — GQVL xã).
+   *  Parser dùng để match dòng CT=03 trong Báo cáo 31 và tự động chuyển NV sang 3. */
+  maNhaDauTu?: string;
 }
 
 /** Một dòng trong kế hoạch tín dụng — NV riêng, bị ràng buộc trong maNguonVonList của QĐ. */
@@ -227,18 +230,6 @@ export function nguonVonListLabel(list: string[]): string {
 export function chuongTrinhLabel(ma: string): string {
   return CHUONG_TRINH_LIST.find((c) => c.ma === ma)?.ten ?? ma;
 }
-
-/** Cấu hình các báo cáo "Cho vay GQVL xã" — mỗi Mã nhà đầu tư ứng với 1 báo cáo/1 xã.
- *  Dùng để render card riêng trong Báo cáo thực hiện (và filter ở Báo cáo nếu cần).
- *  Thêm dần theo từng xã; mảng có thể mở rộng sau mà không phải sửa code. */
-export const XA_GQVL_REPORTS: {
-  maXa: string;
-  tenXa: string;
-  maNhaDauTu: string;
-  title: string;
-}[] = [
-  { maXa: '460050', tenXa: 'Phú Vinh', maNhaDauTu: 'INV2503260091396', title: 'Cho vay GQVL xã Phú Vinh' },
-];
 
 export function xaLabel(ma: string): string {
   return XA_LIST.find((x) => x.maXa === ma)?.tenXa ?? ma;

@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
+import { Activity, Calendar } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
-import { XA_LIST, XA_GQVL_REPORTS } from '@/lib/credit-plan-types';
+import { XA_LIST } from '@/lib/credit-plan-types';
 
 type ProgramGroup = {
   title: string;
@@ -14,15 +15,6 @@ type ProgramGroup = {
   /** Hiển thị Mã nhà đầu tư ngay dưới tiêu đề card (tham chiếu nhanh). */
   maNhaDauTu?: string;
 };
-
-/** Báo cáo GQVL xã — 1 card/1 Mã nhà đầu tư, suy từ cấu hình trong credit-plan-types. */
-const XA_GROUPS: ProgramGroup[] = XA_GQVL_REPORTS.map((r) => ({
-  title: r.title,
-  codes: ['03'],
-  maNguonVon: '3',
-  limitToXa: r.maXa,
-  maNhaDauTu: r.maNhaDauTu,
-}));
 
 const TW_GROUPS: ProgramGroup[] = [
   { title: 'HN, HCN, HTN TW', codes: ['01', '19', '09'], maNguonVon: '1' },
@@ -57,7 +49,21 @@ function cellColor(n: number): string {
   const r = Math.round(n);
   if (r > 0) return 'text-amber-700 dark:text-amber-400';
   if (r < 0) return 'text-emerald-600 dark:text-emerald-400';
-  return 'text-slate-400';
+  return 'text-slate-400 dark:text-slate-500';
+}
+
+function SectionHeader({ title, date }: { title: string; date: string }) {
+  return (
+    <div className="mb-4 flex flex-col items-center gap-1 border-b border-rose-200/60 pb-3 dark:border-rose-900/40">
+      <h2 className="text-center text-base font-bold uppercase tracking-wide text-rose-700 dark:text-rose-300">
+        {title}
+      </h2>
+      <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
+        <Calendar className="h-3 w-3" />
+        Thời điểm {date}
+      </div>
+    </div>
+  );
 }
 
 export function PerformanceReport() {
@@ -65,7 +71,21 @@ export function PerformanceReport() {
   const actualDate = useCreditPlanStore((s) => s.actualDate);
   const nq11Summaries = useCreditPlanStore((s) => s.nq11Summaries);
   const nq11MatchByXa = useCreditPlanStore((s) => s.nq11MatchByXa);
+  const decisions = useCreditPlanStore((s) => s.decisions);
   const comparison = useMemo(() => getPlanVsActual(), [getPlanVsActual]);
+
+  /** Báo cáo GQVL ĐP XÃ — 1 card tổng hợp, hiển thị đầy đủ 5 xã.
+   *  Chỉ render khi có ít nhất 1 QĐ NV=3 + Mã NĐT (nếu không thì parser không reclassify). */
+  const xaGroups = useMemo<ProgramGroup[]>(() => {
+    const hasConfiguredNdt = decisions.some(
+      (d) =>
+        d.trangThai !== 'archived' &&
+        d.maNguonVonList.includes('3') &&
+        !!d.maNhaDauTu,
+    );
+    if (!hasConfiguredNdt) return [];
+    return [{ title: 'GQVL ĐP XÃ', codes: ['03'], maNguonVon: '3' }];
+  }, [decisions]);
 
   /** Dư nợ đã thu hồi NQ11 theo xã (triệu đồng) — trùng logic Báo cáo thu hồi NQ11. */
   const recoveredByXa = useMemo(() => {
@@ -111,10 +131,13 @@ export function PerformanceReport() {
 
   const renderCard = (group: ProgramGroup) => {
     const { rows, total } = computeGroup(group);
+    const cardKey = `${group.title}|${group.maNguonVon}|${group.limitToXa ?? ''}|${group.maNhaDauTu ?? ''}`;
     return (
-      <Card key={group.title} className="overflow-hidden">
-        <div className="border-b border-slate-200 bg-rose-50 px-2 py-2 text-center text-sm font-bold text-rose-700 dark:border-slate-700 dark:bg-rose-900/30 dark:text-rose-300">
-          {group.title}
+      <Card key={cardKey} className="overflow-hidden transition-shadow hover:shadow-md">
+        <div className="border-b border-rose-200 bg-gradient-to-b from-rose-50 to-rose-100/60 px-3 py-2.5 text-center dark:border-rose-900/50 dark:from-rose-900/40 dark:to-rose-900/20">
+          <div className="text-sm font-bold tracking-tight text-rose-700 dark:text-rose-200">
+            {group.title}
+          </div>
           {group.maNhaDauTu && (
             <div className="mt-0.5 font-mono text-[10px] font-normal text-rose-500/80 dark:text-rose-400/80">
               {group.maNhaDauTu}
@@ -123,31 +146,32 @@ export function PerformanceReport() {
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-              <th className="w-10 px-2 py-1.5 text-center font-medium">STT</th>
-              <th className="px-2 py-1.5 text-left font-medium">Xã</th>
-              <th className="px-2 py-1.5 text-right font-medium">Còn phải thực hiện</th>
+            <tr className="border-b border-slate-200 bg-slate-50 text-[10px] font-semibold uppercase tracking-wider text-slate-600 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300">
+              <th className="w-8 px-2 py-1.5 text-center">STT</th>
+              <th className="px-2 py-1.5 text-left">Xã</th>
+              <th className="px-2 py-1.5 text-right">Còn phải TH</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.maXa} className="border-b border-slate-100 dark:border-slate-700">
-                <td className="px-2 py-1 text-center text-slate-500">{r.stt}</td>
-                <td className="bg-yellow-50 px-2 py-1 text-slate-800 dark:bg-yellow-900/20 dark:text-slate-100">
-                  {r.tenXa}
-                </td>
-                <td className={`px-2 py-1 text-right font-mono ${cellColor(r.remaining)}`}>
+              <tr
+                key={r.maXa}
+                className="border-b border-slate-100 last:border-b-0 dark:border-slate-700/60"
+              >
+                <td className="px-2 py-1.5 text-center text-xs text-slate-500 dark:text-slate-400">{r.stt}</td>
+                <td className="px-2 py-1.5 text-slate-800 dark:text-slate-100">{r.tenXa}</td>
+                <td className={`px-2 py-1.5 text-right font-mono tabular-nums ${cellColor(r.remaining)}`}>
                   {fmtCell(r.remaining)}
                 </td>
               </tr>
             ))}
           </tbody>
           <tfoot>
-            <tr className="border-t-2 border-slate-300 bg-cyan-50 font-semibold dark:border-slate-600 dark:bg-cyan-900/20">
-              <td colSpan={2} className="px-2 py-1.5 text-center text-slate-700 dark:text-slate-200">
-                TỔNG CỘNG
+            <tr className="border-t-2 border-slate-300 bg-slate-50 font-semibold dark:border-slate-600 dark:bg-slate-800/60">
+              <td colSpan={2} className="px-2 py-2 text-center text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                Tổng cộng
               </td>
-              <td className={`px-2 py-1.5 text-right font-mono ${cellColor(total)}`}>
+              <td className={`px-2 py-2 text-right font-mono text-sm font-bold tabular-nums ${cellColor(total)}`}>
                 {fmtCell(total)}
               </td>
             </tr>
@@ -158,54 +182,40 @@ export function PerformanceReport() {
   };
 
   return (
-    <div className="space-y-8 p-6">
-      <div>
-        <h1 className="text-xl font-bold text-slate-900 dark:text-white">Báo cáo thực hiện</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Còn phải thực hiện = KH − TT theo nhóm chương trình. Đơn vị: triệu đồng.
-        </p>
-      </div>
+    <div className="space-y-8 p-4 md:p-6">
+      <header className="flex items-start gap-3">
+        <div className="hidden rounded-lg bg-plan-50 p-2 text-plan-700 ring-1 ring-plan-200 dark:bg-plan-900/40 dark:text-plan-300 dark:ring-plan-800 sm:block">
+          <Activity className="h-5 w-5" />
+        </div>
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Báo cáo thực hiện
+          </h1>
+          <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+            Còn phải thực hiện = KH − TT theo nhóm chương trình. Đơn vị: triệu đồng.
+          </p>
+        </div>
+      </header>
 
       <section>
-        <div className="mb-3 text-center">
-          <h2 className="text-base font-bold uppercase text-rose-700 dark:text-rose-300">
-            CHỈ TIÊU TRUNG ƯƠNG CÒN LẠI
-          </h2>
-          <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-            THỜI ĐIỂM {actualDate ?? '—'}
-          </div>
-        </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+        <SectionHeader title="Chỉ tiêu trung ương còn lại" date={actualDate ?? '—'} />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
           {TW_GROUPS.map(renderCard)}
         </div>
       </section>
 
       <section>
-        <div className="mb-3 text-center">
-          <h2 className="text-base font-bold uppercase text-rose-700 dark:text-rose-300">
-            CHỈ TIÊU ĐỊA PHƯƠNG CÒN LẠI
-          </h2>
-          <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-            THỜI ĐIỂM {actualDate ?? '—'}
-          </div>
-        </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+        <SectionHeader title="Chỉ tiêu địa phương còn lại" date={actualDate ?? '—'} />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
           {DP_GROUPS.map(renderCard)}
         </div>
       </section>
 
-      {XA_GROUPS.length > 0 && (
+      {xaGroups.length > 0 && (
         <section>
-          <div className="mb-3 text-center">
-            <h2 className="text-base font-bold uppercase text-rose-700 dark:text-rose-300">
-              CHỈ TIÊU ĐỊA PHƯƠNG XÃ CÒN LẠI
-            </h2>
-            <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-              THỜI ĐIỂM {actualDate ?? '—'}
-            </div>
-          </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
-            {XA_GROUPS.map(renderCard)}
+          <SectionHeader title="Chỉ tiêu địa phương xã còn lại" date={actualDate ?? '—'} />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+            {xaGroups.map(renderCard)}
           </div>
         </section>
       )}

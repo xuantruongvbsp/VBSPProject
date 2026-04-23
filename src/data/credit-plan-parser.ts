@@ -12,13 +12,17 @@ import type {
  * Parse file thực tế (Báo cáo 31 — 260331.Actual.XLSX format).
  * Gộp theo maXa + maNguonVon + maChuongTrinh → tính tổng dư nợ.
  *
- * @param file        file Excel
- * @param nq11Ids     (tuỳ chọn) set các Mã món vay NQ11 — nếu có, parser
- *                    sẽ đồng thời tính kết quả match theo xã (Nq11MatchXa)
+ * @param file           file Excel
+ * @param nq11Ids        (tuỳ chọn) set các Mã món vay NQ11 — nếu có, parser
+ *                       sẽ đồng thời tính kết quả match theo xã (Nq11MatchXa)
+ * @param gqvlXaNdtSet   (tuỳ chọn) whitelist các Mã nhà đầu tư thuộc QĐ GQVL xã.
+ *                       Dòng CT=03 có Mã NĐT thuộc set này sẽ được chuyển NV sang '3'
+ *                       (Địa phương xã). Danh sách lấy từ Decisions NV=3 có maNhaDauTu.
  */
 export async function parseActualFile(
   file: File,
-  nq11Ids?: Set<string>
+  nq11Ids?: Set<string>,
+  gqvlXaNdtSet?: Set<string>
 ): Promise<ActualImportResult> {
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: 'array' });
@@ -161,12 +165,13 @@ export async function parseActualFile(
       maCT = (capQLV && capQLV !== '21') ? '03A' : '03B';
     }
 
-    // Split CT=03 + NV=2 by Mã nhà đầu tư:
-    //   Nhà đầu tư tỉnh (INV0802140002662, INV0603170027393) → giữ NV=2 ("Cho vay GQVL ĐP tỉnh")
-    //   Nhà đầu tư còn lại → chuyển NV=3 ("Cho vay GQVL xã {tenXa}")
-    if (maCT === '03' && maNguonVon === '2' && iMaNhaDauTu !== -1) {
+    // Reclassify CT=03 sang NV=3 ("Cho vay GQVL xã") theo whitelist Mã NĐT:
+    //   Whitelist lấy từ Decisions NV=3 có maNhaDauTu (cấu hình ở màn Quyết định).
+    //   Dòng nào có Mã NĐT thuộc whitelist → chuyển NV sang '3' (bất kể NV gốc).
+    //   Các dòng không match whitelist → giữ nguyên NV gốc (NV=2 sẽ đi vào "GQVL ĐP tỉnh").
+    if (maCT === '03' && iMaNhaDauTu !== -1 && gqvlXaNdtSet && gqvlXaNdtSet.size > 0) {
       const ndt = String(row[iMaNhaDauTu] ?? '').trim();
-      if (ndt !== 'INV0802140002662' && ndt !== 'INV0603170027393') {
+      if (ndt && gqvlXaNdtSet.has(ndt) && maNguonVon !== '3') {
         maNguonVon = '3';
         gqvlXaReclassified++;
       }

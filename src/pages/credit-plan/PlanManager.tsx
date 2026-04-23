@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Plus, Pencil, Trash2, Save, X, Check, ChevronDown, FileText } from 'lucide-react';
+import { Plus, Pencil, Trash2, Save, X, Check, ChevronDown, FileText, ClipboardList } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
 import type { PlanEntry, Decision } from '@/lib/credit-plan-types';
@@ -39,6 +39,18 @@ function decisionLabel(d: Decision) {
   return `${d.soQD} (${d.ngayQD}) · ${nguonVonListLabel(d.maNguonVonList)}${name}`;
 }
 
+const inputClass =
+  'w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 shadow-sm transition-colors focus:border-plan-500 focus:outline-none focus:ring-1 focus:ring-plan-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-slate-500 dark:disabled:bg-slate-800 dark:disabled:text-slate-500';
+
+function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
+  return (
+    <label className="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">
+      {children}
+      {required && <span className="ml-0.5 text-rose-500">*</span>}
+    </label>
+  );
+}
+
 /** Multi-select dropdown with checkboxes */
 function ProgramMultiSelect({
   selected,
@@ -67,9 +79,9 @@ function ProgramMultiSelect({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between rounded-md border border-slate-300 bg-white px-3 py-2 text-left text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+        className="flex w-full items-center justify-between rounded-md border border-slate-300 bg-white px-3 py-2 text-left text-sm shadow-sm transition-colors hover:border-slate-400 focus:border-plan-500 focus:outline-none focus:ring-1 focus:ring-plan-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:hover:border-slate-500"
       >
-        <span className={count === 0 ? 'text-slate-400' : ''}>
+        <span className={count === 0 ? 'text-slate-400 dark:text-slate-500' : 'font-medium'}>
           {count === 0 ? '-- Chọn chương trình --' : `${count} chương trình đã chọn`}
         </span>
         <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -78,19 +90,19 @@ function ProgramMultiSelect({
       {open && (
         <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-600 dark:bg-slate-800">
           {/* Select all / deselect all */}
-          <div className="flex gap-2 border-b border-slate-100 px-3 py-2 dark:border-slate-700">
+          <div className="sticky top-0 flex gap-2 border-b border-slate-100 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-800">
             <button
               type="button"
               onClick={() => programsForNV.forEach((c) => { if (!selected.has(c.ma)) onToggle(c.ma); })}
-              className="text-xs font-medium text-blue-600 hover:underline"
+              className="text-xs font-medium text-plan-700 hover:underline dark:text-plan-300"
             >
               Chọn tất cả
             </button>
-            <span className="text-xs text-slate-300">|</span>
+            <span className="text-xs text-slate-300 dark:text-slate-600">|</span>
             <button
               type="button"
               onClick={() => programsForNV.forEach((c) => { if (selected.has(c.ma)) onToggle(c.ma); })}
-              className="text-xs font-medium text-slate-500 hover:underline"
+              className="text-xs font-medium text-slate-500 hover:underline dark:text-slate-400"
             >
               Bỏ chọn
             </button>
@@ -102,7 +114,7 @@ function ProgramMultiSelect({
                 key={c.ma}
                 type="button"
                 onClick={() => onToggle(c.ma)}
-                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-700"
+                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors hover:bg-slate-50 dark:hover:bg-slate-700"
               >
                 <span
                   className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
@@ -281,11 +293,11 @@ export function PlanManager() {
   const hasDecisions = decisions.length > 0;
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 p-4 md:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Kế hoạch tín dụng</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Kế hoạch tín dụng</h1>
+          <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
             Quản lý danh mục kế hoạch dư nợ theo Quyết định
           </p>
         </div>
@@ -295,15 +307,20 @@ export function PlanManager() {
       </div>
 
       {!hasDecisions && (
-        <Card>
-          <CardContent className="flex items-center gap-3 py-4 text-sm">
-            <FileText className="h-5 w-5 shrink-0 text-amber-600" />
-            <div className="flex-1 text-slate-700 dark:text-slate-200">
-              Chưa có Quyết định nào. Hãy tạo QĐ trước khi nhập dòng kế hoạch.
+        <Card className="border-amber-200 bg-amber-50/40 dark:border-amber-800 dark:bg-amber-900/10">
+          <CardContent className="flex flex-wrap items-center gap-3 py-4 text-sm">
+            <div className="rounded-full bg-amber-100 p-2 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+              <FileText className="h-4 w-4" />
+            </div>
+            <div className="flex-1 min-w-[200px] text-slate-700 dark:text-slate-200">
+              <div className="font-medium">Chưa có Quyết định nào</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">
+                Hãy tạo QĐ trước khi nhập dòng kế hoạch.
+              </div>
             </div>
             <Link
               to="/credit-plan/decisions"
-              className="rounded-md bg-plan-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-plan-800"
+              className="inline-flex items-center gap-1 rounded-md bg-plan-700 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-plan-800"
             >
               Đi tới Quyết định
             </Link>
@@ -312,28 +329,28 @@ export function PlanManager() {
       )}
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Card>
           <CardContent className="py-4">
-            <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Tổng kế hoạch</div>
-            <div className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Tổng kế hoạch</div>
+            <div className="mt-1 text-2xl font-bold tabular-nums text-plan-700 dark:text-plan-300">
               {fmtMoney(totalPlan)}
             </div>
-            <div className="text-xs text-slate-500">triệu đồng</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">triệu đồng</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-4">
-            <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Số mục</div>
-            <div className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{plans.length}</div>
-            <div className="text-xs text-slate-500">dòng kế hoạch</div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Số mục</div>
+            <div className="mt-1 text-2xl font-bold tabular-nums text-slate-900 dark:text-white">{plans.length}</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">dòng kế hoạch</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-4">
-            <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Số Quyết định</div>
-            <div className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{decisions.length}</div>
-            <div className="text-xs text-slate-500">quyết định</div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Số Quyết định</div>
+            <div className="mt-1 text-2xl font-bold tabular-nums text-slate-900 dark:text-white">{decisions.length}</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">quyết định</div>
           </CardContent>
         </Card>
       </div>
@@ -343,115 +360,135 @@ export function PlanManager() {
         <Card>
           <CardHeader>
             <CardTitle>{editId ? 'Sửa mục kế hoạch' : 'Thêm mục kế hoạch'}</CardTitle>
+            <CardDescription>
+              {editId
+                ? 'Điều chỉnh thông tin dòng kế hoạch đã có.'
+                : 'Chọn QĐ, xã, nguồn vốn và các chương trình để thêm nhiều dòng cùng lúc.'}
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div className="md:col-span-2">
-                <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Quyết định</label>
-                <select
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-                  value={base.decisionId}
-                  onChange={(e) => handleDecisionChange(e.target.value)}
-                >
-                  <option value="">-- Chọn Quyết định --</option>
-                  {activeDecisions.map((d) => (
-                    <option key={d.id} value={d.id}>{decisionLabel(d)}</option>
-                  ))}
-                </select>
-                {selectedDecision && (
-                  <div className="mt-1 text-[11px] text-slate-500">
-                    QĐ áp dụng: <span className="font-medium">{nguonVonListLabel(selectedDecision.maNguonVonList)}</span>
-                  </div>
-                )}
+          <CardContent className="space-y-5">
+            <div>
+              <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Phạm vi kế hoạch
               </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Nguồn vốn</label>
-                {selectedDecision && selectedDecision.maNguonVonList.length === 1 ? (
-                  <div className="flex h-[38px] items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                    {nguonVonLabel(selectedDecision.maNguonVonList[0])}
-                  </div>
-                ) : (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="md:col-span-2">
+                  <FieldLabel required>Quyết định</FieldLabel>
                   <select
-                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white disabled:opacity-60"
-                    value={base.maNguonVon}
-                    onChange={(e) => handleNVChange(e.target.value)}
-                    disabled={!selectedDecision}
+                    className={inputClass}
+                    value={base.decisionId}
+                    onChange={(e) => handleDecisionChange(e.target.value)}
                   >
-                    <option value="">-- Chọn nguồn vốn --</option>
-                    {(selectedDecision?.maNguonVonList ?? []).map((nv) => (
-                      <option key={nv} value={nv}>{nguonVonLabel(nv)}</option>
+                    <option value="">-- Chọn Quyết định --</option>
+                    {activeDecisions.map((d) => (
+                      <option key={d.id} value={d.id}>{decisionLabel(d)}</option>
                     ))}
                   </select>
-                )}
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Xã</label>
-                <select
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-                  value={base.maXa}
-                  onChange={(e) => handleXaChange(e.target.value)}
-                >
-                  <option value="">-- Chọn xã --</option>
-                  {XA_LIST.map((x) => (
-                    <option key={x.maXa} value={x.maXa}>{x.tenXa} ({x.maXa})</option>
-                  ))}
-                </select>
-              </div>
-              {/* Program selection */}
-              <div className="md:col-span-3">
-                <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Chương trình</label>
-                {editId ? (
+                  {selectedDecision && (
+                    <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                      QĐ áp dụng: <span className="font-medium text-slate-700 dark:text-slate-300">{nguonVonListLabel(selectedDecision.maNguonVonList)}</span>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <FieldLabel required>Nguồn vốn</FieldLabel>
+                  {selectedDecision && selectedDecision.maNguonVonList.length === 1 ? (
+                    <div className="flex h-[38px] items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                      {nguonVonLabel(selectedDecision.maNguonVonList[0])}
+                    </div>
+                  ) : (
+                    <select
+                      className={inputClass}
+                      value={base.maNguonVon}
+                      onChange={(e) => handleNVChange(e.target.value)}
+                      disabled={!selectedDecision}
+                    >
+                      <option value="">-- Chọn nguồn vốn --</option>
+                      {(selectedDecision?.maNguonVonList ?? []).map((nv) => (
+                        <option key={nv} value={nv}>{nguonVonLabel(nv)}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                <div>
+                  <FieldLabel required>Xã</FieldLabel>
                   <select
-                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-                    value={editCT}
-                    onChange={(e) => setEditCT(e.target.value)}
+                    className={inputClass}
+                    value={base.maXa}
+                    onChange={(e) => handleXaChange(e.target.value)}
                   >
-                    <option value="">-- Chọn chương trình --</option>
-                    {programsForNV.map((c) => (
-                      <option key={c.ma} value={c.ma}>{c.ten}</option>
+                    <option value="">-- Chọn xã --</option>
+                    {XA_LIST.map((x) => (
+                      <option key={x.maXa} value={x.maXa}>{x.tenXa} ({x.maXa})</option>
                     ))}
                   </select>
-                ) : (
-                  <ProgramMultiSelect selected={selectedSet} onToggle={toggleProgram} programsForNV={programsForNV} />
-                )}
+                </div>
+                {/* Program selection */}
+                <div className="md:col-span-3">
+                  <FieldLabel required>Chương trình</FieldLabel>
+                  {editId ? (
+                    <select
+                      className={inputClass}
+                      value={editCT}
+                      onChange={(e) => setEditCT(e.target.value)}
+                    >
+                      <option value="">-- Chọn chương trình --</option>
+                      {programsForNV.map((c) => (
+                        <option key={c.ma} value={c.ma}>{c.ten}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <ProgramMultiSelect selected={selectedSet} onToggle={toggleProgram} programsForNV={programsForNV} />
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Edit mode: single amount */}
             {editId && (
-              <div className="mt-4 max-w-xs">
-                <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Số tiền (triệu đồng)</label>
-                <input
-                  type="number"
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-                  value={editAmount || ''}
-                  onChange={(e) => setEditAmount(Number(e.target.value) || 0)}
-                />
+              <div>
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Số tiền
+                </div>
+                <div className="max-w-xs">
+                  <FieldLabel required>Số tiền (triệu đồng)</FieldLabel>
+                  <input
+                    type="number"
+                    className={`${inputClass} text-right font-mono`}
+                    value={editAmount || ''}
+                    onChange={(e) => setEditAmount(Number(e.target.value) || 0)}
+                  />
+                </div>
               </div>
             )}
 
             {/* Add mode: amount per selected program */}
             {!editId && sortedSelected.length > 0 && (
-              <div className="mt-4">
-                <label className="mb-2 block text-xs font-medium text-slate-600 dark:text-slate-300">
+              <div>
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   Số tiền từng chương trình (triệu đồng)
-                </label>
-                <div className="rounded-md border border-slate-200 dark:border-slate-700">
+                </div>
+                <div className="overflow-hidden rounded-md border border-slate-200 dark:border-slate-700">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
-                        <th className="px-3 py-2 text-left font-medium text-slate-600 dark:text-slate-300">Chương trình</th>
-                        <th className="w-48 px-3 py-2 text-right font-medium text-slate-600 dark:text-slate-300">Số tiền (tr.đ)</th>
+                      <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                        <th className="px-3 py-2 text-left">Chương trình</th>
+                        <th className="w-48 px-3 py-2 text-right">Số tiền (tr.đ)</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedSelected.map((c) => (
-                        <tr key={c.ma} className="border-b border-slate-100 dark:border-slate-700">
+                      {sortedSelected.map((c, idx) => (
+                        <tr
+                          key={c.ma}
+                          className={`border-b border-slate-100 last:border-b-0 dark:border-slate-700/60 ${
+                            idx % 2 === 1 ? 'bg-slate-50/40 dark:bg-slate-800/30' : ''
+                          }`}
+                        >
                           <td className="px-3 py-2 text-slate-700 dark:text-slate-200">{c.ten}</td>
                           <td className="px-3 py-2">
                             <input
                               type="number"
-                              className="w-full rounded-md border border-slate-300 px-3 py-1.5 text-right text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                              className={`${inputClass} px-3 py-1.5 text-right font-mono`}
                               value={programs.get(c.ma) || ''}
                               onChange={(e) => setProgramAmount(c.ma, Number(e.target.value) || 0)}
                               placeholder="0"
@@ -462,9 +499,9 @@ export function PlanManager() {
                     </tbody>
                     {sortedSelected.length > 1 && (
                       <tfoot>
-                        <tr className="border-t border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800">
-                          <td className="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">Tổng</td>
-                          <td className="px-3 py-2 text-right font-mono font-semibold text-slate-900 dark:text-white">
+                        <tr className="border-t-2 border-slate-300 bg-slate-50 font-semibold dark:border-slate-600 dark:bg-slate-800">
+                          <td className="px-3 py-2 text-slate-700 dark:text-slate-200">Tổng</td>
+                          <td className="px-3 py-2 text-right font-mono tabular-nums text-slate-900 dark:text-white">
                             {fmtMoney(Array.from(programs.values()).reduce((s, v) => s + v, 0))}
                           </td>
                         </tr>
@@ -476,12 +513,12 @@ export function PlanManager() {
             )}
 
             {formError && (
-              <div className="mt-4 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-200">
+              <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-200">
                 {formError}
               </div>
             )}
 
-            <div className="mt-4 flex gap-2">
+            <div className="flex gap-2 border-t border-slate-100 pt-4 dark:border-slate-700">
               <Button onClick={editId ? handleSubmitEdit : handleSubmitAdd}>
                 <Save className="h-4 w-4" /> {editId ? 'Cập nhật' : 'Lưu'}
               </Button>
@@ -494,9 +531,9 @@ export function PlanManager() {
       )}
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-2">
         <select
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+          className={`${inputClass} h-9 w-auto`}
           value={filterDecision}
           onChange={(e) => setFilterDecision(e.target.value)}
         >
@@ -506,7 +543,7 @@ export function PlanManager() {
           ))}
         </select>
         <select
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+          className={`${inputClass} h-9 w-auto`}
           value={filterXa}
           onChange={(e) => setFilterXa(e.target.value)}
         >
@@ -516,7 +553,7 @@ export function PlanManager() {
           ))}
         </select>
         <select
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+          className={`${inputClass} h-9 w-auto`}
           value={filterNV}
           onChange={(e) => setFilterNV(e.target.value)}
         >
@@ -532,41 +569,77 @@ export function PlanManager() {
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
-                  <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Số QĐ</th>
-                  <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Ngày QĐ</th>
-                  <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Xã</th>
-                  <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Nguồn vốn</th>
-                  <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Chương trình</th>
-                  <th className="px-4 py-3 text-right font-medium text-slate-600 dark:text-slate-300">Số tiền (tr.đ)</th>
-                  <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300"></th>
+              <thead className="sticky top-0 z-10">
+                <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                  <th className="px-4 py-3">Số QĐ</th>
+                  <th className="px-4 py-3">Ngày QĐ</th>
+                  <th className="px-4 py-3">Xã</th>
+                  <th className="px-4 py-3">Nguồn vốn</th>
+                  <th className="px-4 py-3">Chương trình</th>
+                  <th className="px-4 py-3 text-right">Số tiền (tr.đ)</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
-                      Chưa có mục kế hoạch nào. Nhấn "Thêm mục" để bắt đầu.
+                    <td colSpan={7} className="px-4 py-12 text-center">
+                      <div className="flex flex-col items-center gap-3 text-slate-400">
+                        <div className="rounded-full bg-slate-100 p-3 dark:bg-slate-800">
+                          <ClipboardList className="h-6 w-6 text-slate-400" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                            {plans.length === 0 ? 'Chưa có mục kế hoạch nào' : 'Không có kết quả phù hợp'}
+                          </div>
+                          <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                            {plans.length === 0
+                              ? 'Nhấn "Thêm mục" để bắt đầu nhập kế hoạch dư nợ.'
+                              : 'Thử thay đổi bộ lọc phía trên.'}
+                          </div>
+                        </div>
+                        {plans.length === 0 && hasDecisions && (
+                          <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>
+                            <Plus className="h-3.5 w-3.5" /> Thêm mục
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((p) => {
+                  filtered.map((p, idx) => {
                     const dec = decById.get(p.decisionId);
                     return (
-                      <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50">
-                        <td className="px-4 py-2.5 font-medium text-slate-900 dark:text-white">{dec?.soQD ?? <span className="text-rose-500">(mất QĐ)</span>}</td>
-                        <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{dec?.ngayQD ?? ''}</td>
+                      <tr
+                        key={p.id}
+                        className={`border-b border-slate-100 transition-colors last:border-b-0 hover:bg-slate-50 dark:border-slate-700/60 dark:hover:bg-slate-800/50 ${
+                          idx % 2 === 1 ? 'bg-slate-50/30 dark:bg-slate-800/20' : ''
+                        }`}
+                      >
+                        <td className="px-4 py-2.5 font-medium text-slate-900 dark:text-white">
+                          {dec?.soQD ?? <span className="text-rose-500">(mất QĐ)</span>}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2.5 text-slate-600 dark:text-slate-300">{dec?.ngayQD ?? ''}</td>
                         <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{p.tenXa}</td>
                         <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{nguonVonLabel(p.maNguonVon)}</td>
-                        <td className="max-w-[250px] truncate px-4 py-2.5 text-slate-600 dark:text-slate-300">{p.tenChuongTrinh}</td>
-                        <td className="px-4 py-2.5 text-right font-mono text-slate-900 dark:text-white">{fmtMoney(p.soTien)}</td>
+                        <td className="max-w-[260px] truncate px-4 py-2.5 text-slate-600 dark:text-slate-300" title={p.tenChuongTrinh}>
+                          {p.tenChuongTrinh}
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-mono tabular-nums font-semibold text-slate-900 dark:text-white">{fmtMoney(p.soTien)}</td>
                         <td className="px-4 py-2.5">
                           <div className="flex gap-1">
-                            <button onClick={() => startEdit(p)} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700">
+                            <button
+                              onClick={() => startEdit(p)}
+                              className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700"
+                              title="Sửa"
+                            >
                               <Pencil className="h-3.5 w-3.5" />
                             </button>
-                            <button onClick={() => deletePlan(p.id)} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-rose-600 dark:hover:bg-slate-700">
+                            <button
+                              onClick={() => deletePlan(p.id)}
+                              className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-rose-600 dark:hover:bg-slate-700"
+                              title="Xóa"
+                            >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           </div>
@@ -580,7 +653,7 @@ export function PlanManager() {
                 <tfoot>
                   <tr className="border-t-2 border-slate-300 bg-slate-50 font-semibold dark:border-slate-600 dark:bg-slate-800">
                     <td colSpan={5} className="px-4 py-2.5 text-slate-700 dark:text-slate-200">Tổng cộng</td>
-                    <td className="px-4 py-2.5 text-right font-mono text-slate-900 dark:text-white">
+                    <td className="px-4 py-2.5 text-right font-mono tabular-nums text-slate-900 dark:text-white">
                       {fmtMoney(filtered.reduce((s, p) => s + p.soTien, 0))}
                     </td>
                     <td></td>
