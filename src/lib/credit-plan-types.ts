@@ -28,7 +28,7 @@ export interface PlanEntry {
   decisionId: string;   // FK → Decision.id
   maXa: string;         // Mã xã
   tenXa: string;        // Tên xã
-  maNguonVon: string;   // 1 = Trung ương, 2 = Địa phương
+  maNguonVon: string;   // 1 = Trung ương, 2 = Địa phương, 3 = Địa phương xã
   maChuongTrinh: string;
   tenChuongTrinh: string;
   soTien: number;       // Triệu đồng
@@ -76,6 +76,10 @@ export interface ActualImportResult {
   detectedIdCols?: string[];
   /** Diagnostic: số món vay trùng Số khế ước (dấu hiệu file có dòng nhân đôi) */
   duplicateLoanIds?: number;
+  /** Diagnostic: cột "Mã nhà đầu tư" có được nhận dạng trong file hay không */
+  hasInvestorCol?: boolean;
+  /** Diagnostic: số dòng CT=03 NV=2 được định lại NV=3 ("GQVL xã") theo Mã NĐT */
+  gqvlXaReclassified?: number;
   /** Chi tiết món vay theo bucket (maXa|maNguonVon|maChuongTrinh) — dùng để export. */
   loanDetailsByBucket?: Record<string, BucketLoanDetail[]>;
 }
@@ -158,6 +162,7 @@ export const XA_LIST: { maXa: string; tenXa: string }[] = [
 export const NGUON_VON_LIST = [
   { ma: '1', ten: 'Trung ương' },
   { ma: '2', ten: 'Địa phương' },
+  { ma: '3', ten: 'Địa phương xã' },
 ];
 
 /** Chương trình cho vay — mã trùng khớp với "Mã chương trình" trong Báo cáo 31.
@@ -190,12 +195,21 @@ export const CHUONG_TRINH_VISIBLE = CHUONG_TRINH_LIST.filter((c) => !('hidden' i
 
 /** Chương trình hiển thị theo Nguồn vốn.
  *  - NV=1 (Trung ương): 03 được tách thành 03A/03B/03N → ẩn mục gộp 03.
- *  - NV=2 (Địa phương): giữ nguyên 03 (không tách) → ẩn 03A/03B/03N.
+ *  - NV=2 (Địa phương): 03 giữ nguyên, hiển thị "Cho vay GQVL ĐP tỉnh".
+ *  - NV=3 (Địa phương xã): 03 giữ nguyên, hiển thị "Cho vay GQVL xã".
  *  - Khi chưa chọn NV: dùng danh sách mặc định (như NV=1).
  */
 export function visibleProgramsFor(maNguonVon: string): { ma: string; ten: string }[] {
-  if (maNguonVon === '2') {
-    return CHUONG_TRINH_LIST.filter((c) => !['03A', '03B', '03N'].includes(c.ma));
+  if (maNguonVon === '2' || maNguonVon === '3') {
+    return CHUONG_TRINH_LIST
+      .filter((c) => !['03A', '03B', '03N'].includes(c.ma))
+      .map((c) => {
+        if (c.ma !== '03') return { ma: c.ma, ten: c.ten };
+        return {
+          ma: '03',
+          ten: maNguonVon === '2' ? 'Cho vay GQVL ĐP tỉnh' : 'Cho vay GQVL xã',
+        };
+      });
   }
   return [...CHUONG_TRINH_VISIBLE];
 }
@@ -213,6 +227,18 @@ export function nguonVonListLabel(list: string[]): string {
 export function chuongTrinhLabel(ma: string): string {
   return CHUONG_TRINH_LIST.find((c) => c.ma === ma)?.ten ?? ma;
 }
+
+/** Cấu hình các báo cáo "Cho vay GQVL xã" — mỗi Mã nhà đầu tư ứng với 1 báo cáo/1 xã.
+ *  Dùng để render card riêng trong Báo cáo thực hiện (và filter ở Báo cáo nếu cần).
+ *  Thêm dần theo từng xã; mảng có thể mở rộng sau mà không phải sửa code. */
+export const XA_GQVL_REPORTS: {
+  maXa: string;
+  tenXa: string;
+  maNhaDauTu: string;
+  title: string;
+}[] = [
+  { maXa: '460050', tenXa: 'Phú Vinh', maNhaDauTu: 'INV2503260091396', title: 'Cho vay GQVL xã Phú Vinh' },
+];
 
 export function xaLabel(ma: string): string {
   return XA_LIST.find((x) => x.maXa === ma)?.tenXa ?? ma;

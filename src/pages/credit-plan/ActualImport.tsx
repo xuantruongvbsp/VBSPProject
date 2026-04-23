@@ -58,6 +58,8 @@ export function ActualImport() {
           skippedRows: result.skippedRows,
           detectedIdCols: result.detectedIdCols,
           duplicateLoanIds: result.duplicateLoanIds,
+          hasInvestorCol: result.hasInvestorCol,
+          gqvlXaReclassified: result.gqvlXaReclassified,
         },
         result.loanDetailsByBucket,
       );
@@ -436,6 +438,26 @@ export function ActualImport() {
                 <div>Dòng cộng/tổng (bỏ): <span className={`font-mono font-semibold ${(actualDiag.skippedRows ?? 0) > 0 ? 'text-rose-600' : 'text-slate-400'}`}>{(actualDiag.skippedRows ?? 0).toLocaleString('vi-VN')}</span></div>
                 <div>Dòng trùng (đã loại): <span className={`font-mono font-semibold ${(actualDiag.duplicateLoanIds ?? 0) > 0 ? 'text-amber-600' : 'text-slate-400'}`}>{(actualDiag.duplicateLoanIds ?? 0).toLocaleString('vi-VN')}</span></div>
                 <div className="md:col-span-4">Cột nhận dạng: <span className="font-mono text-slate-700 dark:text-slate-200">{(actualDiag.detectedIdCols ?? []).join(', ') || '—'}</span></div>
+                <div className="md:col-span-2">
+                  Cột "Mã nhà đầu tư":{' '}
+                  <span
+                    className={`font-mono font-semibold ${
+                      actualDiag.hasInvestorCol ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300'
+                    }`}
+                  >
+                    {actualDiag.hasInvestorCol ? 'Phát hiện' : 'Không có'}
+                  </span>
+                </div>
+                <div className="md:col-span-2">
+                  Dòng GQVL xã (đổi NV 2→3):{' '}
+                  <span
+                    className={`font-mono font-semibold ${
+                      (actualDiag.gqvlXaReclassified ?? 0) > 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-400'
+                    }`}
+                  >
+                    {(actualDiag.gqvlXaReclassified ?? 0).toLocaleString('vi-VN')}
+                  </span>
+                </div>
               </div>
               {(actualDiag.duplicateLoanIds ?? 0) > 0 && (
                 <div className="mt-2 text-amber-700 dark:text-amber-300">
@@ -447,6 +469,18 @@ export function ActualImport() {
                 <div className="mt-2 text-rose-600 dark:text-rose-300">
                   ⚠ Không phát hiện cột nhận dạng dòng chi tiết (Số khế ước / Mã món vay / Mã KH / Tên KH).
                   Mọi dòng có Mã xã đều được tính — có khả năng cộng cả dòng cộng/tổng. Vui lòng gửi tên cột chính xác để điều chỉnh bộ lọc.
+                </div>
+              )}
+              {!actualDiag.hasInvestorCol && (
+                <div className="mt-2 text-rose-600 dark:text-rose-300">
+                  ⚠ Không tìm thấy cột "Mã nhà đầu tư" — các dòng GQVL không thể tách thành "Cho vay GQVL xã ..." theo Mã NĐT.
+                  Vui lòng gửi tên cột chính xác trong tiêu đề để bổ sung alias.
+                </div>
+              )}
+              {actualDiag.hasInvestorCol && (actualDiag.gqvlXaReclassified ?? 0) === 0 && (
+                <div className="mt-2 text-amber-700 dark:text-amber-300">
+                  ℹ Cột "Mã nhà đầu tư" có nhưng không có dòng CT=03 NV=2 nào được đổi sang NV=3 ("GQVL xã").
+                  Có thể tất cả các món GQVL đều thuộc Nhà đầu tư tỉnh (INV0802140002662, INV0603170027393), hoặc file chưa có rows GQVL địa phương.
                 </div>
               )}
             </div>

@@ -43,6 +43,13 @@ export async function parseActualFile(
 
   // Map column indices — so sánh theo chuỗi normalized.
   const col = (name: string) => headers.indexOf(norm(name));
+  const colAny = (names: string[]) => {
+    for (const n of names) {
+      const i = col(n);
+      if (i !== -1) return i;
+    }
+    return -1;
+  };
   const iMaXa = col('Mã xã');
   const iTenXa = col('Tên xã');
   const iNguonVon = col('Nguồn vốn');
@@ -56,6 +63,14 @@ export async function parseActualFile(
   const iNgaySL = col('Ngày số liệu');
 
   const iCapQLV = col('Cấp QL vốn');
+  const iMaNhaDauTu = colAny([
+    'Mã nhà đầu tư',
+    'Mã Nhà Đầu Tư',
+    'Mã NĐT',
+    'Mã nha dau tu',
+    'Ma nha dau tu',
+    'Nhà đầu tư',
+  ]);
   const iTenQD = col('Tên Quyết định');
   const iMaMonVay = col('Mã món vay');
   const iSoKheUoc = col('Số khế ước');
@@ -81,6 +96,7 @@ export async function parseActualFile(
   let scannedRows = 0;
   let skippedRows = 0;
   let duplicateLoanIds = 0;
+  let gqvlXaReclassified = 0; // Số dòng CT=03 NV=2 được định lại NV=3 theo Mã NĐT
   const seenLoanIds = new Set<string>();
   let ngaySoLieu: string | null = null;
 
@@ -145,6 +161,17 @@ export async function parseActualFile(
       maCT = (capQLV && capQLV !== '21') ? '03A' : '03B';
     }
 
+    // Split CT=03 + NV=2 by Mã nhà đầu tư:
+    //   Nhà đầu tư tỉnh (INV0802140002662, INV0603170027393) → giữ NV=2 ("Cho vay GQVL ĐP tỉnh")
+    //   Nhà đầu tư còn lại → chuyển NV=3 ("Cho vay GQVL xã {tenXa}")
+    if (maCT === '03' && maNguonVon === '2' && iMaNhaDauTu !== -1) {
+      const ndt = String(row[iMaNhaDauTu] ?? '').trim();
+      if (ndt !== 'INV0802140002662' && ndt !== 'INV0603170027393') {
+        maNguonVon = '3';
+        gqvlXaReclassified++;
+      }
+    }
+
     const key = `${maXa}|${maNguonVon}|${maCT}`;
 
     if (!ngaySoLieu && iNgaySL !== -1) {
@@ -201,15 +228,18 @@ export async function parseActualFile(
       existing.tongGiaiNgan += num(iTongGN);
       existing.soMonVay += 1;
     } else {
+      const tenXa = String(row[iTenXa] ?? '').trim();
       let tenCT = String(row[iTenCT] ?? '').trim();
       // Override label for split/derived sub-programs
       if (maCT === '03A') tenCT = 'Cho vay GQVL — Ngân sách TW cấp';
       else if (maCT === '03B') tenCT = 'Cho vay GQVL — NHCSXH huy động';
       else if (maCT === 'STEM') tenCT = 'Cho vay HSSV các ngành học STEM';
+      else if (maCT === '03' && maNguonVon === '2') tenCT = 'Cho vay GQVL ĐP tỉnh';
+      else if (maCT === '03' && maNguonVon === '3') tenCT = `Cho vay GQVL xã ${tenXa}`;
 
       map.set(key, {
         maXa,
-        tenXa: String(row[iTenXa] ?? '').trim(),
+        tenXa,
         maNguonVon,
         maChuongTrinh: maCT,
         tenChuongTrinh: tenCT,
@@ -251,6 +281,8 @@ export async function parseActualFile(
     skippedRows,
     detectedIdCols: detailIdCols.map((c) => c.name),
     duplicateLoanIds,
+    hasInvestorCol: iMaNhaDauTu !== -1,
+    gqvlXaReclassified,
     loanDetailsByBucket,
   };
 }

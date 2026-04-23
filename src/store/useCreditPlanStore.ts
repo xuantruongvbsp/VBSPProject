@@ -39,6 +39,8 @@ interface CreditPlanState {
     skippedRows?: number;
     detectedIdCols?: string[];
     duplicateLoanIds?: number;
+    hasInvestorCol?: boolean;
+    gqvlXaReclassified?: number;
   } | null;
   /** Chi tiết món vay theo bucket — không persist (kích thước lớn; mất khi reload, cần import lại). */
   loanDetailsByBucket: Record<string, BucketLoanDetail[]>;
@@ -47,7 +49,7 @@ interface CreditPlanState {
     date: string | null,
     totalRows: number,
     nq11MatchByXa?: Nq11MatchXa[],
-    diag?: { scannedRows?: number; skippedRows?: number; detectedIdCols?: string[]; duplicateLoanIds?: number },
+    diag?: { scannedRows?: number; skippedRows?: number; detectedIdCols?: string[]; duplicateLoanIds?: number; hasInvestorCol?: boolean; gqvlXaReclassified?: number },
     loanDetailsByBucket?: Record<string, BucketLoanDetail[]>
   ) => void;
   clearActuals: () => void;

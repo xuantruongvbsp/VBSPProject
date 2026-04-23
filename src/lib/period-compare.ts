@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { LoanRecord } from './types';
-import { computeKpi, type PortfolioKpi } from './metrics';
+import { computeKpi, isOpenLoan, type PortfolioKpi } from './metrics';
 
 // ─── Khóa nối ────────────────────────────────────────────────────────────────
 
@@ -247,12 +247,32 @@ export interface KpiDelta {
   pct: Record<keyof PortfolioKpi, number | null>;
 }
 
+function countOpen(rows: LoanRecord[]): { soKheUoc: number; soKhachHang: number } {
+  const kh = new Set<string>();
+  let soKheUoc = 0;
+  for (const r of rows) {
+    if (!isOpenLoan(r)) continue;
+    soKheUoc++;
+    if (r.maKH) kh.add(r.maKH);
+  }
+  return { soKheUoc, soKhachHang: kh.size };
+}
+
 export function compareKpi(
   prevRows: LoanRecord[],
   currRows: LoanRecord[]
 ): KpiDelta {
   const prev = computeKpi(prevRows);
   const curr = computeKpi(currRows);
+  const prevOpen = countOpen(prevRows);
+  const currOpen = countOpen(currRows);
+  prev.soKheUoc = prevOpen.soKheUoc;
+  prev.soKhachHang = prevOpen.soKhachHang;
+  curr.soKheUoc = currOpen.soKheUoc;
+  curr.soKhachHang = currOpen.soKhachHang;
+  // Mức vay BQ (So sánh hai kỳ) = Tổng dư nợ / Số khách hàng đang hoạt động.
+  prev.mucVayBQ = prev.soKhachHang > 0 ? prev.tongDuNo / prev.soKhachHang : 0;
+  curr.mucVayBQ = curr.soKhachHang > 0 ? curr.tongDuNo / curr.soKhachHang : 0;
   const delta = {} as PortfolioKpi;
   const pct = {} as Record<keyof PortfolioKpi, number | null>;
   for (const k of Object.keys(prev) as Array<keyof PortfolioKpi>) {

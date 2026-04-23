@@ -8,7 +8,6 @@ import type { PlanEntry, Decision } from '@/lib/credit-plan-types';
 import {
   XA_LIST,
   NGUON_VON_LIST,
-  CHUONG_TRINH_LIST,
   visibleProgramsFor,
   nguonVonLabel,
   nguonVonListLabel,
@@ -219,7 +218,7 @@ export function PlanManager() {
 
     // Bỏ qua dòng = 0; cho phép số âm (điều chỉnh giảm).
     for (const [maCT, soTien] of nonZero) {
-      const ct = CHUONG_TRINH_LIST.find((c) => c.ma === maCT);
+      const ct = programsForNV.find((c) => c.ma === maCT);
       addPlan({
         id: crypto.randomUUID(),
         decisionId: base.decisionId,
@@ -242,7 +241,7 @@ export function PlanManager() {
     if (!base.maXa) return setFormError('Vui lòng chọn Xã.');
     if (!editCT) return setFormError('Vui lòng chọn Chương trình.');
     if (editAmount === 0) return setFormError('Số tiền = 0 không được lưu. Vui lòng nhập giá trị khác 0.');
-    const ct = CHUONG_TRINH_LIST.find((c) => c.ma === editCT);
+    const ct = programsForNV.find((c) => c.ma === editCT);
     updatePlan(editId, {
       decisionId: base.decisionId,
       maXa: base.maXa,

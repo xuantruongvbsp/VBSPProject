@@ -27,10 +27,10 @@ export const METRIC_EXPLANATIONS: Record<string, MetricExplanation> = {
   khachHang: {
     title: 'Số khách hàng',
     definition:
-      'Số lượng khách hàng riêng biệt còn dư nợ tại thời điểm chốt số liệu, sau khi đã khử trùng lặp theo mã khách hàng.',
+      'Số lượng khách hàng riêng biệt còn dư nợ đang hoạt động tại thời điểm chốt số liệu, sau khi đã khử trùng lặp theo mã khách hàng.',
     formula:
-      'Đếm số giá trị duy nhất của trường "Mã khách hàng" trên tập dữ liệu Báo cáo 31 đã được lọc. Một khách hàng vay nhiều khế ước chỉ được tính một lần.',
-    note: 'Một khế ước là một hợp đồng vay; một khách hàng có thể đồng thời có nhiều khế ước ở các chương trình khác nhau.',
+      'Đếm số giá trị duy nhất của trường "Mã khách hàng" trên các khế ước có Tình trạng món vay khác rỗng và khác "close". Một khách hàng vay nhiều khế ước chỉ được tính một lần.',
+    note: 'Khế ước đã tất toán (Tình trạng món vay = "close") hoặc không có trạng thái sẽ không đóng góp vào số khách hàng. Một khách hàng có thể có nhiều khế ước ở các chương trình khác nhau.',
   },
   giaiNganLuyKe: {
     title: 'Tổng giải ngân lũy kế',
@@ -43,10 +43,10 @@ export const METRIC_EXPLANATIONS: Record<string, MetricExplanation> = {
   mucVayBinhQuan: {
     title: 'Mức vay bình quân',
     definition:
-      'Giá trị trung bình của một khế ước tính theo dư nợ hiện tại, phản ánh quy mô vay bình quân trên mỗi hợp đồng tín dụng.',
+      'Dư nợ bình quân trên mỗi khách hàng đang còn dư nợ — phản ánh quy mô vay bình quân của một khách hàng trong danh mục.',
     formula:
-      'Mức vay bình quân = Tổng dư nợ / Số khế ước. Trong đó số khế ước là số dòng (bản ghi) trên Báo cáo 31 sau khi đã áp dụng bộ lọc.',
-    note: 'Chỉ tiêu tính trên khế ước, không phải trên khách hàng. Để tính bình quân theo khách hàng cần chia cho số khách hàng riêng biệt.',
+      'Mức vay bình quân = Tổng dư nợ / Số khách hàng. Số khách hàng là số mã khách hàng riêng biệt trên Báo cáo 31 sau khi đã áp dụng bộ lọc.',
+    note: 'Chỉ tiêu tính trên khách hàng, không phải trên khế ước — một khách hàng có thể có nhiều khế ước và chỉ được đếm một lần.',
   },
   duNoQuaHan: {
     title: 'Dư nợ quá hạn',

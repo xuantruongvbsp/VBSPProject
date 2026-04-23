@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
-import { XA_LIST } from '@/lib/credit-plan-types';
+import { XA_LIST, XA_GQVL_REPORTS } from '@/lib/credit-plan-types';
 
 type ProgramGroup = {
   title: string;
@@ -9,7 +9,20 @@ type ProgramGroup = {
   maNguonVon: string;
   /** Trừ thêm "Dư nợ đã thu hồi NQ11" khỏi "Còn phải thực hiện" theo xã. */
   subtractNq11Recovered?: boolean;
+  /** Giới hạn card chỉ hiển thị 1 xã (dùng cho các báo cáo GQVL xã theo Mã NĐT). */
+  limitToXa?: string;
+  /** Hiển thị Mã nhà đầu tư ngay dưới tiêu đề card (tham chiếu nhanh). */
+  maNhaDauTu?: string;
 };
+
+/** Báo cáo GQVL xã — 1 card/1 Mã nhà đầu tư, suy từ cấu hình trong credit-plan-types. */
+const XA_GROUPS: ProgramGroup[] = XA_GQVL_REPORTS.map((r) => ({
+  title: r.title,
+  codes: ['03'],
+  maNguonVon: '3',
+  limitToXa: r.maXa,
+  maNhaDauTu: r.maNhaDauTu,
+}));
 
 const TW_GROUPS: ProgramGroup[] = [
   { title: 'HN, HCN, HTN TW', codes: ['01', '19', '09'], maNguonVon: '1' },
@@ -72,12 +85,14 @@ export function PerformanceReport() {
     for (const c of comparison) {
       if (c.maNguonVon !== group.maNguonVon) continue;
       if (!codeSet.has(c.maChuongTrinh)) continue;
+      if (group.limitToXa && c.maXa !== group.limitToXa) continue;
       const x = byXa.get(c.maXa) ?? { kh: 0, tt: 0 };
       x.kh += c.planAmount;
       x.tt += c.actualAmount;
       byXa.set(c.maXa, x);
     }
-    const rows = XA_ORDER.map((maXa, idx) => {
+    const xaList = group.limitToXa ? [group.limitToXa] : XA_ORDER;
+    const rows = xaList.map((maXa, idx) => {
       const x = byXa.get(maXa);
       const kh = x?.kh ?? 0;
       const tt = x?.tt ?? 0;
@@ -100,6 +115,11 @@ export function PerformanceReport() {
       <Card key={group.title} className="overflow-hidden">
         <div className="border-b border-slate-200 bg-rose-50 px-2 py-2 text-center text-sm font-bold text-rose-700 dark:border-slate-700 dark:bg-rose-900/30 dark:text-rose-300">
           {group.title}
+          {group.maNhaDauTu && (
+            <div className="mt-0.5 font-mono text-[10px] font-normal text-rose-500/80 dark:text-rose-400/80">
+              {group.maNhaDauTu}
+            </div>
+          )}
         </div>
         <table className="w-full text-sm">
           <thead>
@@ -173,6 +193,22 @@ export function PerformanceReport() {
           {DP_GROUPS.map(renderCard)}
         </div>
       </section>
+
+      {XA_GROUPS.length > 0 && (
+        <section>
+          <div className="mb-3 text-center">
+            <h2 className="text-base font-bold uppercase text-rose-700 dark:text-rose-300">
+              CHỈ TIÊU ĐỊA PHƯƠNG XÃ CÒN LẠI
+            </h2>
+            <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              THỜI ĐIỂM {actualDate ?? '—'}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+            {XA_GROUPS.map(renderCard)}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

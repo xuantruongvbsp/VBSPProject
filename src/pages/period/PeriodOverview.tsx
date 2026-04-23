@@ -154,7 +154,7 @@ export function PeriodOverviewPage() {
           tone="bad-up"
         />
         <DeltaCard
-          label="Mức vay BQ"
+          label="Mức BQ/KH"
           prevValue={prev.mucVayBQ}
           currValue={curr.mucVayBQ}
           formatter={fmtCompact}

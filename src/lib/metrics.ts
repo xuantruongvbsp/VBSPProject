@@ -1,5 +1,14 @@
 import type { LoanRecord } from './types';
 
+// Khế ước "đang hoạt động": có `tinhTrangMonVay` và khác "close"/"closed".
+// Dùng để loại các khế ước trống trạng thái hoặc đã tất toán ra khỏi
+// các chỉ tiêu đếm/bình quân cấp khách hàng.
+export function isOpenLoan(r: LoanRecord): boolean {
+  const s = (r.tinhTrangMonVay ?? '').trim().toLowerCase();
+  if (s === '') return false;
+  return s !== 'close' && s !== 'closed';
+}
+
 export interface PortfolioKpi {
   soKheUoc: number;
   soKhachHang: number;
@@ -47,7 +56,7 @@ export function computeKpi(rows: LoanRecord[]): PortfolioKpi {
     laiTonTH += r.laiTonTH;
     thuLaiTHThang += r.thuLaiTHThang;
     weightedRate += r.laiSuat * r.tongDuNo;
-    if (r.maKH) kh.add(r.maKH);
+    if (r.maKH && isOpenLoan(r)) kh.add(r.maKH);
   }
 
   return {
@@ -61,7 +70,7 @@ export function computeKpi(rows: LoanRecord[]): PortfolioKpi {
     laiTonTH,
     thuLaiTHThang,
     laiSuatBQ: tongDuNo > 0 ? weightedRate / tongDuNo : 0,
-    mucVayBQ: rows.length > 0 ? tongGiaiNgan / rows.length : 0,
+    mucVayBQ: kh.size > 0 ? tongDuNo / kh.size : 0,
   };
 }
 
