@@ -88,6 +88,17 @@ Lobby → bấm **"Đang ở chế độ quản trị · Thoát"** ở cuối tr
 
 Trình duyệt sẽ trở về vai Người xem. Khi muốn thao tác lại, lặp bước 2.1.
 
+### 2.6 Quy ước hiển thị dữ liệu trong "Phân tích một kỳ"
+
+Để báo cáo gọn và đúng trọng tâm, ứng dụng áp dụng các quy ước sau:
+
+- **Khế ước đã tất toán bị ẩn hoàn toàn.** Dòng có `Tình trạng món vay = close` không xuất hiện ở bất kỳ KPI, biểu đồ, bộ lọc, bảng Tra cứu chi tiết hay bản xuất Excel/PDF nào. Nếu cần xem, dùng trực tiếp tệp Excel gốc.
+- **"Lịch đáo hạn theo tháng" dùng cột "Ngày ĐH theo GDXA".** Chỉ khế ước có giá trị ở cột này mới được đếm vào biểu đồ nhiệt. Khế ước để trống cột GDXA sẽ không xuất hiện trên lịch (kể cả khi còn "Ngày ĐH theo hợp đồng" hoặc "Ngày ĐH theo Gia hạn").
+- **Cột "Ngày đến hạn" trong Tra cứu chi tiết là "Ngày ĐH theo GDXA"** — không còn là "Ngày ĐH HĐ" như phiên bản cũ.
+- **Tiêu đề cột trong Excel được đối chiếu dung thứ.** Khác biệt nhỏ về chữ hoa/thường, khoảng trắng, hoặc dấu tiếng Việt vẫn được nhận diện. Mỗi lần nhập tệp, ứng dụng in danh sách cột phát hiện vào DevTools Console (`F12 → Console → [parser] Excel columns detected:…`) — tiện để kiểm tra nếu một biểu đồ không có dữ liệu.
+
+> Chế độ "So sánh giữa hai kỳ" **không** áp dụng các quy ước này (dùng kho dữ liệu riêng). Khế ước đã tất toán vẫn được giữ để nhận biết biến động "tất toán giữa hai kỳ".
+
 ---
 
 ## 3. Quy trình của Người xem
@@ -208,6 +219,12 @@ A: Có. Cứ chia sẻ mật khẩu cho ai cần và họ tự mở khóa trên 
 
 **Q: Tôi quên thoát chế độ quản trị trên một máy khách, làm sao đăng xuất từ xa?**
 A: Không có cách đăng xuất từ xa (vì không có server lưu phiên). Nếu mất kiểm soát, **đổi mật khẩu** (mục 6) — nhưng ai đã mở khóa rồi vẫn có quyền cho đến khi họ tự xóa `localStorage` hoặc bạn bảo họ vào Lobby bấm "Thoát".
+
+**Q: Tổng dư nợ trong "Phân tích một kỳ" thấp hơn số trên tệp Excel gốc?**
+A: Đúng theo thiết kế — ứng dụng đã ẩn tất cả khế ước `Tình trạng món vay = close`. Muốn đối chiếu tổng, lọc cùng điều kiện trong Excel trước khi so sánh. (Xem mục 2.6.)
+
+**Q: "Lịch đáo hạn theo tháng" trống hoặc ít dữ liệu hơn kỳ vọng?**
+A: Biểu đồ chỉ đếm khế ước có giá trị ở cột "Ngày ĐH theo GDXA". Mở DevTools Console (F12) → tìm dòng `[parser] Excel columns detected:…` để chắc chắn cột GDXA có trong tệp và tên cột đúng. Nếu cột GDXA tồn tại nhưng để trống cho đa số dòng, đó là lý do biểu đồ ít điểm.
 
 ---
 
