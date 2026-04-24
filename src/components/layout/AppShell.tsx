@@ -1,5 +1,4 @@
-import { useEffect, useRef } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   GitCompare,
@@ -19,27 +18,6 @@ import { useIsOwner } from '@/store/useAuthStore';
 import { fmtDate } from '@/lib/format';
 import { PublishButton } from '@/components/owner/PublishButton';
 
-/**
- * Theo dõi điều hướng giữa các trang. Khi người dùng rời khỏi
- * `/du-lieu` (Tra cứu chi tiết), mọi bộ lọc / range filter sinh ra do
- * thao tác drill-down trên biểu đồ sẽ được xóa tự động — tránh trường
- * hợp dữ liệu ở Tổng quan vẫn bị lọc trong khi không hiện chip nào.
- */
-function DrillDownClearer() {
-  const location = useLocation();
-  const prev = useRef(location.pathname);
-  const clearDrillDown = useDataStore((s) => s.clearDrillDown);
-  useEffect(() => {
-    const wasOnExplorer = prev.current.endsWith('/du-lieu');
-    const isOnExplorer = location.pathname.endsWith('/du-lieu');
-    if (wasOnExplorer && !isOnExplorer) {
-      clearDrillDown();
-    }
-    prev.current = location.pathname;
-  }, [location.pathname, clearDrillDown]);
-  return null;
-}
-
 const navItems = [
   { to: '/snapshot', label: 'Tổng quan', icon: LayoutDashboard, end: true },
   { to: '/snapshot/no-xau', label: 'Báo cáo NPL', icon: AlertTriangle },
@@ -55,9 +33,8 @@ export function AppShell() {
   const { theme, toggle: toggleTheme } = useThemeStore();
   return (
     <div className="flex h-screen w-full bg-white dark:bg-slate-900">
-      <DrillDownClearer />
-      <aside className="flex w-64 flex-col border-r border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
-        <div className="border-b border-slate-200 px-3 py-3 dark:border-slate-700">
+      <aside className="flex w-64 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+        <div className="border-b border-slate-200 px-3 py-3 dark:border-slate-800">
           <button
             type="button"
             onClick={() => navigate('/')}
@@ -66,7 +43,7 @@ export function AppShell() {
             <ArrowLeft className="h-3 w-3" /> Quay lại trang chính
           </button>
           <div className="flex items-center gap-3 px-2">
-            <div className="rounded-lg bg-brand-700 p-2 text-white">
+            <div className="rounded-lg bg-brand-700 p-2 text-white dark:bg-brand-500 dark:text-slate-950">
               <Landmark className="h-5 w-5" />
             </div>
             <div className="leading-tight">
@@ -90,8 +67,8 @@ export function AppShell() {
                 cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                   isActive
-                    ? 'bg-brand-50 text-brand-800 dark:bg-brand-900/30 dark:text-brand-300'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+                    ? 'bg-brand-50 text-brand-800 dark:bg-brand-500/15 dark:text-brand-200'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100'
                 )
               }
             >
@@ -101,7 +78,7 @@ export function AppShell() {
           ))}
         </nav>
 
-        <div className="border-t border-slate-200 p-4 dark:border-slate-700">
+        <div className="border-t border-slate-200 p-4 dark:border-slate-800">
           <div className="flex items-center justify-between">
             <div className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
               {isOwner ? 'Tệp dữ liệu hiện tại' : 'Bộ dữ liệu đang phân tích'}

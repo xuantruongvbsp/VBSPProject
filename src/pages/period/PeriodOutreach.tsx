@@ -253,6 +253,7 @@ function CustomerListCard({
                 <th className="px-3 py-2">#</th>
                 <th className="px-3 py-2">Khách hàng</th>
                 <th className="px-3 py-2">PGD · ĐVUT</th>
+                <th className="px-3 py-2">Tổ TK&VV</th>
                 <th className="px-3 py-2 text-right">Số khế ước</th>
                 <th className="px-3 py-2 text-right">Tổng dư nợ</th>
               </tr>
@@ -271,6 +272,12 @@ function CustomerListCard({
                     <td className="px-3 py-2 text-slate-600">
                       <div>{slice.tenPGD}</div>
                       <div className="text-[10px] text-slate-500">{slice.tenDVUT}</div>
+                    </td>
+                    <td
+                      className="max-w-[160px] truncate px-3 py-2 text-slate-600"
+                      title={slice.tenTo}
+                    >
+                      {slice.tenTo || '—'}
                     </td>
                     <td className="px-3 py-2 text-right text-slate-700">
                       {fmtNumber(slice.soKheUoc)}
@@ -329,6 +336,7 @@ function MoversListCard({
                 <th className="px-3 py-2">#</th>
                 <th className="px-3 py-2">Khách hàng</th>
                 <th className="px-3 py-2">PGD · ĐVUT</th>
+                <th className="px-3 py-2">Tổ TK&VV</th>
                 <th className="px-3 py-2 text-right">Dư nợ kỳ trước</th>
                 <th className="px-3 py-2 text-right">Dư nợ kỳ sau</th>
                 <th className="px-3 py-2 text-right">Δ dư nợ</th>
@@ -347,6 +355,12 @@ function MoversListCard({
                     <td className="px-3 py-2 text-slate-600">
                       <div>{ref.tenPGD}</div>
                       <div className="text-[10px] text-slate-500">{ref.tenDVUT}</div>
+                    </td>
+                    <td
+                      className="max-w-[160px] truncate px-3 py-2 text-slate-600"
+                      title={ref.tenTo}
+                    >
+                      {ref.tenTo || '—'}
                     </td>
                     <td className="px-3 py-2 text-right text-slate-600">
                       {j.prev ? fmtCurrency(j.prev.tongDuNo) : '—'}

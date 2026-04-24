@@ -26,6 +26,7 @@ const COLS: Col[] = [
   { key: 'tenPGD', label: 'PGD', width: 160 },
   { key: 'tenXa', label: 'Xã/Phường', width: 140 },
   { key: 'tenDVUT', label: 'Đơn vị ủy thác', width: 160 },
+  { key: 'tenTo', label: 'Tổ TK&VV', width: 180 },
   { key: 'tenChuongTrinh', label: 'Chương trình', width: 220 },
   { key: 'tinhTrangMonVay', label: 'Tình trạng', width: 110 },
   { key: 'mucVay', label: 'Mức vay', width: 130, align: 'right', render: (r) => fmtCurrency(r.mucVay) },

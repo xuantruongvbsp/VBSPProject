@@ -32,16 +32,18 @@ const STATUS_LABELS: Record<string, string> = {
   duNoQuaHan: 'Quá hạn',
   duNoKhoanh: 'Khoanh',
 };
-const STATUS_COLORS: Record<string, string> = {
-  duNoTrongHan: '#16a34a',
-  duNoQuaHan: '#dc2626',
-  duNoKhoanh: '#f59e0b',
-};
-
-const DVUT_PALETTE = ['#1d4ed8', '#0891b2', '#16a34a', '#ea580c', '#a21caf', '#dc2626'];
-
 export function StackedStatus({ data, limit = 10, onClick, chartType = 'stacked' }: Props) {
   const cc = useChartColors();
+  const STATUS_COLORS = useMemo<Record<string, string>>(
+    () => ({
+      duNoTrongHan: cc.semantic.duNoTrongHan,
+      duNoQuaHan: cc.semantic.duNoQuaHan,
+      // Khoanh = amber — dùng slot amber (3) trong palette để đồng bộ với chart khác.
+      duNoKhoanh: cc.palette[3],
+    }),
+    [cc.semantic.duNoTrongHan, cc.semantic.duNoQuaHan, cc.palette],
+  );
+  const DVUT_PALETTE = cc.palette;
   const top = data.slice(0, limit);
   const handleBarClick = (d: any) => {
     const key = d?.key ?? d?.payload?.key;
@@ -68,7 +70,7 @@ export function StackedStatus({ data, limit = 10, onClick, chartType = 'stacked'
       };
     }).filter((s) => s.value > 0);
     return { slices, total };
-  }, [top, chartType]);
+  }, [top, chartType, DVUT_PALETTE]);
 
   /* treemap flat data */
   const treemapData = useMemo(() => {
@@ -81,7 +83,7 @@ export function StackedStatus({ data, limit = 10, onClick, chartType = 'stacked'
         key: d.key,
       })),
     ).filter((d) => d.size > 0);
-  }, [top, chartType]);
+  }, [top, chartType, STATUS_COLORS]);
 
   if (chartType === 'treemap') {
     return (
@@ -190,7 +192,7 @@ export function StackedStatus({ data, limit = 10, onClick, chartType = 'stacked'
           dataKey="duNoTrongHan"
           name="Trong hạn"
           stackId={isGrouped ? undefined : 'a'}
-          fill="#16a34a"
+          fill={STATUS_COLORS.duNoTrongHan}
           radius={isGrouped ? [4, 4, 4, 4] : [4, 0, 0, 4]}
           onClick={handleBarClick}
           cursor={cursor}
@@ -199,7 +201,7 @@ export function StackedStatus({ data, limit = 10, onClick, chartType = 'stacked'
           dataKey="duNoQuaHan"
           name="Quá hạn"
           stackId={isGrouped ? undefined : 'a'}
-          fill="#dc2626"
+          fill={STATUS_COLORS.duNoQuaHan}
           radius={isGrouped ? [4, 4, 4, 4] : undefined}
           onClick={handleBarClick}
           cursor={cursor}
@@ -208,7 +210,7 @@ export function StackedStatus({ data, limit = 10, onClick, chartType = 'stacked'
           dataKey="duNoKhoanh"
           name="Khoanh"
           stackId={isGrouped ? undefined : 'a'}
-          fill="#f59e0b"
+          fill={STATUS_COLORS.duNoKhoanh}
           radius={isGrouped ? [4, 4, 4, 4] : [0, 4, 4, 0]}
           onClick={handleBarClick}
           cursor={cursor}

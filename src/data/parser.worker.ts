@@ -59,6 +59,20 @@ function asString(v: unknown): string {
   return String(v).trim();
 }
 
+/**
+ * Chuẩn hóa giới tính. Báo cáo 31 mã hóa 01 = Nam, 02 = Nữ. Một số bản
+ * xuất đã để sẵn "Nam"/"Nữ" hoặc "M"/"F" → nhận luôn. Giá trị trống giữ
+ * nguyên để UI tự nhóm vào "—".
+ */
+function mapGioiTinh(v: string): string {
+  const s = v.trim();
+  if (!s) return '';
+  const k = s.toLowerCase();
+  if (k === '01' || k === '1' || k === 'nam' || k === 'm' || k === 'male') return 'Nam';
+  if (k === '02' || k === '2' || k === 'nu' || k === 'nữ' || k === 'f' || k === 'female') return 'Nữ';
+  return s;
+}
+
 function normalize(row: Row, idx: Record<string, number>): LoanRecord {
   const raw: Record<string, unknown> = {};
   for (const [key, i] of Object.entries(idx)) raw[key] = row[i];
@@ -77,7 +91,7 @@ function normalize(row: Row, idx: Record<string, number>): LoanRecord {
     ngaySinh: parseVnDate(get(row, idx, 'Ngày sinh')),
     phanLoai: asString(get(row, idx, 'Phân loại')),
     loaiKH: asString(get(row, idx, 'Loại KH')),
-    gioiTinh: asString(get(row, idx, 'Giới tính')),
+    gioiTinh: mapGioiTinh(asString(get(row, idx, 'Giới tính'))),
     maDanToc: asString(get(row, idx, 'Mã dân tộc')),
     tenDanToc: asString(get(row, idx, 'Tên DT')),
     soCMND: asString(get(row, idx, 'Số CMND')),

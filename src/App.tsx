@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useDataStore } from '@/store/useDataStore';
 import { useIsOwner } from '@/store/useAuthStore';
 import { ImportDropzone } from '@/components/import/ImportDropzone';
@@ -70,10 +71,34 @@ function SnapshotApp() {
   );
 }
 
+/**
+ * Theo dõi điều hướng toàn ứng dụng. Khi người dùng rời khỏi trang Tra
+ * cứu chi tiết (`/snapshot/du-lieu`) đi đến BẤT KỲ URL nào — kể cả khi
+ * thoát ra khỏi `/snapshot/*` — mọi bộ lọc drill-down sẽ được xóa tự
+ * động. Đặt ở App root (không phải trong AppShell) để sống sót qua các
+ * transition khiến AppShell bị tháo gỡ (ví dụ: bấm "Quay lại trang
+ * chính" từ Explorer về Lobby rồi quay lại Phân tích một kỳ).
+ */
+function DrillDownClearer() {
+  const location = useLocation();
+  const prev = useRef(location.pathname);
+  const clearDrillDown = useDataStore((s) => s.clearDrillDown);
+  useEffect(() => {
+    const wasOnExplorer = prev.current.endsWith('/snapshot/du-lieu');
+    const isOnExplorer = location.pathname.endsWith('/snapshot/du-lieu');
+    if (wasOnExplorer && !isOnExplorer) {
+      clearDrillDown();
+    }
+    prev.current = location.pathname;
+  }, [location.pathname, clearDrillDown]);
+  return null;
+}
+
 export default function App() {
   return (
     <>
       <ViewerBootstrap />
+      <DrillDownClearer />
       <Routes>
         {/* Lobby — luôn hiển thị tại / */}
         <Route path="/" element={<Lobby />} />

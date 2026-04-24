@@ -12,7 +12,10 @@ export type FilterField =
   | 'tenDanToc'
   | 'nguonVon'
   | 'tenTo'
-  | 'hinhThucVay';
+  | 'hinhThucVay'
+  // Chỉ dùng cho drill-down (ví dụ từ biểu đồ "Phân bố mức vay" theo khách hàng).
+  // Không xuất hiện trong FilterBar thủ công — người dùng không thể tự thêm.
+  | 'maKH';
 
 export interface ActiveFilter {
   id: string;
@@ -66,7 +69,7 @@ interface State {
    * Mọi bộ lọc cũ trên cùng trường sẽ bị thay thế; các bộ lọc trên trường
    * khác được giữ nguyên. Bộ lọc mới được đánh dấu source='drilldown'.
    */
-  drillDown: (field: FilterField, value: string) => void;
+  drillDown: (field: FilterField, value: string | string[]) => void;
   /**
    * Áp một range filter sinh ra từ drill-down (histogram, time-series).
    * Range được ghi vào danh sách drillRangeKeys để có thể tự xóa khi
@@ -151,13 +154,14 @@ export const useDataStore = create<State>((set) => ({
   drillDown: (field, value) =>
     set((s) => {
       const others = s.filters.filter((f) => f.field !== field);
+      const values = Array.isArray(value) ? value : [value];
       return {
         filters: [
           ...others,
           {
             id: Math.random().toString(36).slice(2, 9),
             field,
-            values: [value],
+            values,
             source: 'drilldown',
           },
         ],
@@ -280,4 +284,5 @@ export const FIELD_LABEL: Record<FilterField, string> = {
   nguonVon: 'Nguồn vốn',
   tenTo: 'Tổ TK&VV',
   hinhThucVay: 'Hình thức vay',
+  maKH: 'Mã KH',
 };

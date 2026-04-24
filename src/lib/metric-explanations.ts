@@ -118,10 +118,12 @@ export const METRIC_EXPLANATIONS: Record<string, MetricExplanation> = {
   chartHistogram: {
     title: 'Phân bố mức vay',
     definition:
-      'Số khế ước phân theo các khoảng giá trị mức vay (dưới 50 triệu, 50–100 triệu, …).',
+      'Số lượng khế ước hoặc khách hàng phân theo các khoảng giá trị mức vay: < 10tr, 10–30tr, 30–50tr, 50–100tr, 100–200tr, ≥ 200tr.',
     formula:
-      'Đếm số khế ước rơi vào từng khoảng dư nợ, dữ liệu lấy từ Báo cáo 31 đã lọc.',
-    note: 'Giúp nhận diện nhóm khế ước phổ biến và các khoản vay quy mô lớn.',
+      'Chế độ "Khế ước": đếm số khế ước có "Mức vay" rơi vào từng khoảng. ' +
+      'Chế độ "Khách hàng": gom theo Mã KH, cộng tổng "Mức vay" của tất cả khế ước thuộc cùng khách hàng, rồi đếm số khách hàng theo khoảng tổng đó. ' +
+      'Dữ liệu lấy từ Báo cáo 31 sau khi áp bộ lọc.',
+    note: 'Chuyển giữa "Khế ước" và "Khách hàng" để so sánh phân bố theo món vay với phân bố theo tổng mức vay của mỗi khách.',
   },
   chartTimeSeries: {
     title: 'Giải ngân theo thời gian',
@@ -134,10 +136,12 @@ export const METRIC_EXPLANATIONS: Record<string, MetricExplanation> = {
   chartCustomerStructure: {
     title: 'Cơ cấu khách hàng',
     definition:
-      'Tỷ trọng số khách hàng theo phân loại hộ vay, giới tính hoặc dân tộc.',
+      'Tỷ trọng khách hàng/dư nợ theo phân loại hộ vay, giới tính, dân tộc hoặc độ tuổi.',
     formula:
-      'Đếm số khách hàng riêng biệt theo trường được chọn từ menu trên biểu đồ.',
-    note: 'Hỗ trợ phân tích cơ cấu đối tượng vay vốn chính sách.',
+      'Với các tiêu chí phân loại/giới tính/dân tộc: gom khế ước theo trường tương ứng. ' +
+      'Với "Theo độ tuổi": tính tuổi trọn năm của khách hàng tại ngày số liệu, gom vào 6 nhóm ' +
+      '(< 25, 25–34, 35–44, 45–54, 55–64, ≥ 65); khế ước không có ngày sinh xếp vào nhóm "Không rõ".',
+    note: 'Hỗ trợ phân tích cơ cấu đối tượng vay vốn chính sách; click một nhóm tuổi để xem toàn bộ khế ước của các KH trong nhóm.',
   },
   chartMaturity: {
     title: 'Lịch đáo hạn theo tháng',

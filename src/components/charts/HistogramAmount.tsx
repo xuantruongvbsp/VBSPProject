@@ -15,14 +15,19 @@ import type { HistogramBucket } from '@/lib/metrics';
 
 export type HistogramChartType = 'bar' | 'hbar' | 'area';
 
+export type HistogramUnit = 'loan' | 'customer';
+
 interface Props {
   data: HistogramBucket[];
   onClick?: (bucket: HistogramBucket) => void;
   chartType?: HistogramChartType;
+  unit?: HistogramUnit;
 }
 
-export function HistogramAmount({ data, onClick, chartType = 'bar' }: Props) {
+export function HistogramAmount({ data, onClick, chartType = 'bar', unit = 'loan' }: Props) {
   const cc = useChartColors();
+  // Chuỗi chính của histogram — dùng slot sky (index 1) cho light/dark đều sáng rõ.
+  const histColor = cc.palette[1];
   const handleBarClick = (d: any) => {
     const payload = d?.payload ?? d;
     if (payload && onClick) onClick(payload as HistogramBucket);
@@ -32,10 +37,11 @@ export function HistogramAmount({ data, onClick, chartType = 'bar' }: Props) {
     if (payload && onClick) onClick(payload as HistogramBucket);
   };
   const cursor = onClick ? 'pointer' : undefined;
+  const unitLabel = unit === 'customer' ? 'khách hàng' : 'khế ước';
 
   const tooltipProps = {
     contentStyle: { fontSize: 12, borderRadius: 8, background: cc.tooltipBg, borderColor: cc.tooltipBorder, color: cc.text },
-    formatter: (v: number) => [fmtNumber(v) + ' khế ước', 'Số lượng'],
+    formatter: (v: number) => [fmtNumber(v) + ' ' + unitLabel, 'Số lượng'],
   } as const;
 
   if (chartType === 'hbar') {
@@ -48,7 +54,7 @@ export function HistogramAmount({ data, onClick, chartType = 'bar' }: Props) {
           <Tooltip {...tooltipProps} />
           <Bar
             dataKey="count"
-            fill="#0891b2"
+            fill={histColor}
             radius={[0, 6, 6, 0]}
             onClick={handleBarClick}
             cursor={cursor}
@@ -69,8 +75,8 @@ export function HistogramAmount({ data, onClick, chartType = 'bar' }: Props) {
         >
           <defs>
             <linearGradient id="histGrad" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="#0891b2" stopOpacity={0.4} />
-              <stop offset="100%" stopColor="#0891b2" stopOpacity={0.05} />
+              <stop offset="0%" stopColor={histColor} stopOpacity={0.4} />
+              <stop offset="100%" stopColor={histColor} stopOpacity={0.05} />
             </linearGradient>
           </defs>
           <CartesianGrid stroke={cc.grid} strokeDasharray="3 3" />
@@ -80,7 +86,7 @@ export function HistogramAmount({ data, onClick, chartType = 'bar' }: Props) {
           <Area
             type="monotone"
             dataKey="count"
-            stroke="#0891b2"
+            stroke={histColor}
             strokeWidth={2}
             fill="url(#histGrad)"
           />
@@ -99,7 +105,7 @@ export function HistogramAmount({ data, onClick, chartType = 'bar' }: Props) {
         <Tooltip {...tooltipProps} />
         <Bar
           dataKey="count"
-          fill="#0891b2"
+          fill={histColor}
           radius={[6, 6, 0, 0]}
           onClick={handleBarClick}
           cursor={cursor}

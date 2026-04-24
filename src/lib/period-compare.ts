@@ -136,6 +136,8 @@ export interface CustomerSlice {
   tenKH: string;
   tenPGD: string;
   tenDVUT: string;
+  /** Tên Tổ TK&VV — lấy từ khế ước đầu tiên gặp của khách hàng */
+  tenTo: string;
   soKheUoc: number;
   tongDuNo: number;
   /** ngày giao dịch gần nhất tổng hợp từ tất cả khế ước */
@@ -166,12 +168,15 @@ function aggregateCustomers(rows: LoanRecord[]): Map<string, CustomerSlice> {
         tenKH: r.tenKH,
         tenPGD: r.tenPGD,
         tenDVUT: r.tenDVUT,
+        tenTo: r.tenTo ?? '',
         soKheUoc: 0,
         tongDuNo: 0,
         ngayHoatDongCuoi: null,
       };
       map.set(r.maKH, s);
     }
+    // Nếu slice đã tồn tại nhưng chưa có tenTo (KƯ đầu thiếu), lấy từ KƯ sau
+    if (!s.tenTo && r.tenTo) s.tenTo = r.tenTo;
     s.soKheUoc += 1;
     s.tongDuNo += r.tongDuNo;
     if (r.ngayGiaoDichGanNhat) {

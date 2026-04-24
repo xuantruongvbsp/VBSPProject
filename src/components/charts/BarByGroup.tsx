@@ -34,8 +34,6 @@ interface Props {
   tooltipLabel?: string;
 }
 
-const palette = ['#1d4ed8', '#0891b2', '#16a34a', '#ea580c', '#a21caf', '#4338ca'];
-
 function splitTwoLines(s: string, perLine: number): string[] {
   if (!s) return [''];
   if (s.length <= perLine) return [s];
@@ -100,6 +98,8 @@ export function BarByGroup({
   tooltipLabel = 'Tổng dư nợ',
 }: Props) {
   const cc = useChartColors();
+  const palette = cc.palette;
+  const highlightColor = cc.semantic.highlight;
   const trimmed = data.slice(0, limit);
   const isVertical = layout === 'vertical';
   const h = Math.max(280, trimmed.length * 38 + 40);
@@ -115,7 +115,7 @@ export function BarByGroup({
       fill: palette[i % palette.length],
     })).filter((d) => d.size > 0);
     return items;
-  }, [trimmed, chartType, metric]);
+  }, [trimmed, chartType, metric, palette]);
 
   const treemapTotal = useMemo(
     () => treemapData.reduce((s, d) => s + d.size, 0),
@@ -129,7 +129,7 @@ export function BarByGroup({
         key: d.key,
         label: d.label,
         value: (d as any)[metric] as number || 0,
-        fill: d.key === highlightKey ? '#dc2626' : palette[i % palette.length],
+        fill: d.key === highlightKey ? highlightColor : palette[i % palette.length],
       }))
       .filter((d) => d.value > 0);
     const pieTotal = pieData.reduce((s, d) => s + d.value, 0);
@@ -345,7 +345,7 @@ export function BarByGroup({
           {trimmed.map((d, i) => (
             <Cell
               key={d.key}
-              fill={d.key === highlightKey ? '#dc2626' : palette[i % palette.length]}
+              fill={d.key === highlightKey ? highlightColor : palette[i % palette.length]}
             />
           ))}
         </Bar>

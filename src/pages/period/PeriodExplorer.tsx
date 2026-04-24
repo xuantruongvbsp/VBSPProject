@@ -155,6 +155,7 @@ export function PeriodExplorerPage() {
                   <th className="px-3 py-2">Loại</th>
                   <th className="px-3 py-2">Khế ước · Khách hàng</th>
                   <th className="px-3 py-2">PGD · ĐVUT</th>
+                  <th className="px-3 py-2">Tổ TK&VV</th>
                   <th className="px-3 py-2 text-right">Dư nợ kỳ trước</th>
                   <th className="px-3 py-2 text-right">Dư nợ kỳ sau</th>
                   <th className="px-3 py-2 text-right">Δ dư nợ</th>
@@ -185,6 +186,12 @@ export function PeriodExplorerPage() {
                       <td className="px-3 py-2 text-slate-600">
                         <div>{ref.tenPGD}</div>
                         <div className="text-[10px] text-slate-500">{ref.tenDVUT}</div>
+                      </td>
+                      <td
+                        className="max-w-[160px] truncate px-3 py-2 text-slate-600"
+                        title={ref.tenTo}
+                      >
+                        {ref.tenTo || '—'}
                       </td>
                       <td className="px-3 py-2 text-right text-slate-600">
                         {c.prev ? fmtCurrency(c.prev.tongDuNo) : '—'}

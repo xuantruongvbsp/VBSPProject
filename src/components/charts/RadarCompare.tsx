@@ -18,8 +18,6 @@ import { useChartColors } from '@/lib/useChartColors';
 
 export type RadarChartType = 'radar' | 'groupedBar';
 
-const palette = ['#1d4ed8', '#0891b2', '#16a34a', '#ea580c', '#a21caf', '#dc2626'];
-
 interface Props {
   data: Array<Record<string, string | number>>;
   groups: Array<{ label: string }>;
@@ -28,6 +26,7 @@ interface Props {
 
 export function RadarCompare({ data, groups, chartType = 'radar' }: Props) {
   const cc = useChartColors();
+  const palette = cc.palette;
   if (chartType === 'groupedBar') {
     return (
       <>

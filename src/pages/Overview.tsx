@@ -19,11 +19,14 @@ import {
 
   Activity,
   Table,
+  Search,
+  X,
 } from 'lucide-react';
 import { applyFilters, useDataStore, type FilterField } from '@/store/useDataStore';
 import {
   computeKpi,
   groupBy,
+  groupByAge,
   histogramMucVay,
   timeSeriesGiaiNgan,
   heatmapDaoHan,
@@ -40,7 +43,7 @@ import { BarByGroup } from '@/components/charts/BarByGroup';
 import { DonutByField } from '@/components/charts/DonutByField';
 import { StackedStatus } from '@/components/charts/StackedStatus';
 import { LineDisbursement } from '@/components/charts/LineDisbursement';
-import { HistogramAmount } from '@/components/charts/HistogramAmount';
+import { HistogramAmount, type HistogramUnit } from '@/components/charts/HistogramAmount';
 import { HeatmapMaturity } from '@/components/charts/HeatmapMaturity';
 import { LoanDetailDrawer } from '@/components/detail/LoanDetailDrawer';
 import { ChartSwitcher, type ChartTypeOption } from '@/components/ui/ChartSwitcher';
@@ -76,6 +79,10 @@ const HIST_OPTS: ChartTypeOption<HistogramChartType>[] = [
   { id: 'hbar', icon: AlignLeft, tooltip: 'Thanh ngang' },
   { id: 'area', icon: Activity, tooltip: 'Biểu đồ vùng' },
 ];
+const HIST_UNIT_OPTS: ChartTypeOption<HistogramUnit>[] = [
+  { id: 'loan', icon: FileText, tooltip: 'Đếm theo khế ước' },
+  { id: 'customer', icon: Users, tooltip: 'Đếm theo khách hàng (theo tổng mức vay)' },
+];
 const HEAT_OPTS: ChartTypeOption<HeatmapChartType>[] = [
   { id: 'heatmap', icon: Table, tooltip: 'Bảng nhiệt' },
   { id: 'stackedBar', icon: BarChart2, tooltip: 'Cột xếp chồng theo năm' },
@@ -102,10 +109,11 @@ export function OverviewPage() {
   const { rows, filters, ranges, search, ngaySoLieu, drillDown, drillDownRange } =
     useDataStore();
   const navigate = useNavigate();
-  const [donutField, setDonutField] = useState<'phanLoai' | 'gioiTinh' | 'tenDanToc'>(
-    'phanLoai'
-  );
+  const [donutField, setDonutField] = useState<
+    'gioiTinh' | 'tenDanToc' | 'age'
+  >('gioiTinh');
   const [dormantBucket, setDormantBucket] = useState<DormantBucketId>('all');
+  const [dormantSearch, setDormantSearch] = useState('');
   const [detail, setDetail] = useState<LoanRecord | null>(null);
   const [dormantExporting, setDormantExporting] = useState(false);
   const [stackedType, setStackedType] = useState<StackedChartType>('percent');
@@ -114,6 +122,7 @@ export function OverviewPage() {
 
   const [lineType, setLineType] = useState<LineChartType>('area');
   const [histType, setHistType] = useState<HistogramChartType>('hbar');
+  const [histUnit, setHistUnit] = useState<HistogramUnit>('loan');
   const [heatType, setHeatType] = useState<HeatmapChartType>('heatmap');
 
   // Drill-down: áp bộ lọc theo trường rồi điều hướng sang Tra cứu chi tiết.
@@ -125,7 +134,7 @@ export function OverviewPage() {
     [drillDown, navigate]
   );
 
-  // Drill-down theo khoảng giá trị mức vay (histogram).
+  // Drill-down theo khoảng giá trị mức vay (histogram - mode khế ước).
   const drillByMucVay = useCallback(
     (range: [number, number]) => {
       // Infinity không tuần tự hóa được — clamp về một mức hợp lý
@@ -134,6 +143,17 @@ export function OverviewPage() {
       navigate('/snapshot/du-lieu');
     },
     [drillDownRange, navigate]
+  );
+
+  // Drill-down theo danh sách khách hàng của một bucket (histogram - mode khách hàng).
+  // Hiển thị toàn bộ khế ước của những khách hàng có tổng mức vay rơi vào bucket.
+  const drillByCustomers = useCallback(
+    (maKHs: string[]) => {
+      if (!maKHs?.length) return;
+      drillDown('maKH', maKHs);
+      navigate('/snapshot/du-lieu');
+    },
+    [drillDown, navigate]
   );
 
   // Drill-down theo tháng giải ngân (line chart).
@@ -178,8 +198,15 @@ export function OverviewPage() {
   const byProgram = useMemo(() => groupBy(filtered, 'tenChuongTrinh'), [filtered]);
   const byDVUT = useMemo(() => groupBy(filtered, 'tenDVUT'), [filtered]);
   const byXa = useMemo(() => groupBy(filtered, 'tenXa'), [filtered]);
-  const byClassification = useMemo(() => groupBy(filtered, donutField), [filtered, donutField]);
-  const histogram = useMemo(() => histogramMucVay(filtered), [filtered]);
+  // "Cơ cấu khách hàng" — khi chọn "Theo độ tuổi", tuổi được tính tại ngày
+  // số liệu (fallback: hôm nay) để kết quả đồng nhất với các chỉ tiêu khác.
+  const byClassification = useMemo(() => {
+    if (donutField === 'age') {
+      return groupByAge(filtered, ngaySoLieu ?? new Date());
+    }
+    return groupBy(filtered, donutField);
+  }, [filtered, donutField, ngaySoLieu]);
+  const histogram = useMemo(() => histogramMucVay(filtered, histUnit), [filtered, histUnit]);
   const ts = useMemo(() => timeSeriesGiaiNgan(filtered), [filtered]);
   const maturity = useMemo(() => heatmapDaoHan(filtered), [filtered]);
   const topKH = useMemo(
@@ -197,14 +224,25 @@ export function OverviewPage() {
     return dormantCustomers(filtered, bucket.min, ngaySoLieu, bucket.max);
   }, [filtered, dormantBucket, ngaySoLieu]);
 
-  // Xuất bảng "Khách hàng ngừng giao dịch" theo đúng khoảng tháng đang chọn.
+  // Lọc bảng theo tên khách hàng — so khớp không phân biệt hoa/thường và dấu.
+  const dormantVisible = useMemo(() => {
+    const q = dormantSearch.trim();
+    if (!q) return dormant;
+    const norm = (s: string) =>
+      s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
+    const needle = norm(q);
+    return dormant.filter((d) => norm(d.tenKH ?? '').includes(needle));
+  }, [dormant, dormantSearch]);
+
+  // Xuất bảng "Khách hàng ngừng giao dịch" — dùng đúng danh sách người dùng đang
+  // nhìn thấy (đã áp cả bucket lẫn tìm kiếm tên khách hàng).
   const handleExportDormant = useCallback(async () => {
-    if (dormantExporting || dormant.length === 0) return;
+    if (dormantExporting || dormantVisible.length === 0) return;
     const bucket = DORMANT_BUCKETS.find((b) => b.id === dormantBucket)!;
     setDormantExporting(true);
     try {
       await exportDormantToXlsx({
-        customers: dormant,
+        customers: dormantVisible,
         bucketLabel: bucket.label,
         referenceDate: ngaySoLieu,
         totalFilteredRows: filtered.length,
@@ -214,7 +252,7 @@ export function OverviewPage() {
     } finally {
       setDormantExporting(false);
     }
-  }, [dormant, dormantBucket, dormantExporting, filtered.length, ngaySoLieu]);
+  }, [dormantVisible, dormantBucket, dormantExporting, filtered.length, ngaySoLieu]);
 
   return (
     <div className="space-y-5 p-6">
@@ -374,6 +412,7 @@ export function OverviewPage() {
             <div className="flex items-center justify-between">
               <CardTitle>Phân bố mức vay</CardTitle>
               <div className="flex items-center gap-1">
+                <ChartSwitcher options={HIST_UNIT_OPTS} value={histUnit} onChange={setHistUnit} />
                 <ChartSwitcher options={HIST_OPTS} value={histType} onChange={setHistType} />
                 <InfoPopover metricKey="chartHistogram" />
               </div>
@@ -382,8 +421,13 @@ export function OverviewPage() {
           <CardContent id="chart-histogram">
             <HistogramAmount
               data={histogram}
-              onClick={(b) => drillByMucVay([b.min, b.max])}
+              onClick={(b) =>
+                histUnit === 'loan'
+                  ? drillByMucVay([b.min, b.max])
+                  : drillByCustomers(b.maKHs ?? [])
+              }
               chartType={histType}
+              unit={histUnit}
             />
           </CardContent>
         </Card>
@@ -434,9 +478,9 @@ export function OverviewPage() {
                   onChange={(e) => setDonutField(e.target.value as any)}
                   className="h-7 rounded border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 text-[11px] text-slate-700 dark:text-slate-200 outline-none focus:border-brand-400 dark:focus:border-brand-500"
                 >
-                  <option value="phanLoai">Theo phân loại</option>
                   <option value="gioiTinh">Theo giới tính</option>
                   <option value="tenDanToc">Theo dân tộc</option>
+                  <option value="age">Theo độ tuổi</option>
                 </select>
                 <InfoPopover metricKey="chartCustomerStructure" />
               </div>
@@ -445,7 +489,14 @@ export function OverviewPage() {
           <CardContent id="chart-customer-structure">
             <DonutByField
               data={byClassification}
-              onClick={(v) => drillTo(donutField as FilterField, v)}
+              onClick={(v) => {
+                if (donutField === 'age') {
+                  const bucket = byClassification.find((g) => g.key === v);
+                  if (bucket?.maKHs?.length) drillByCustomers(bucket.maKHs);
+                  return;
+                }
+                drillTo(donutField as FilterField, v);
+              }}
               chartType={'donut'}
             />
           </CardContent>
@@ -482,6 +533,7 @@ export function OverviewPage() {
                   <tr className="text-left text-slate-500 dark:text-slate-400">
                     <th className="px-3 py-2">#</th>
                     <th className="px-3 py-2">Khách hàng</th>
+                    <th className="px-3 py-2">Tổ TK&VV</th>
                     <th className="px-3 py-2 text-right">Tổng dư nợ</th>
                   </tr>
                 </thead>
@@ -498,6 +550,12 @@ export function OverviewPage() {
                         <div className="text-[10px] text-slate-500 dark:text-slate-400">
                           {r.tenPGD} · {r.tenDVUT}
                         </div>
+                      </td>
+                      <td
+                        className="max-w-[180px] truncate px-3 py-2 text-slate-600 dark:text-slate-300"
+                        title={r.tenTo}
+                      >
+                        {r.tenTo || '—'}
                       </td>
                       <td className="px-3 py-2 text-right font-semibold text-slate-900 dark:text-slate-100">
                         {fmtCurrency(r.tongDuNo)}
@@ -517,11 +575,32 @@ export function OverviewPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <CardTitle>Khách hàng ngừng giao dịch</CardTitle>
-              <span className="rounded-full bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
-                {fmtNumber(dormant.length)} khách hàng
+              <span className="rounded-full bg-amber-100 dark:bg-slate-800 dark:ring-1 dark:ring-amber-500/30 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                {dormantSearch.trim()
+                  ? `${fmtNumber(dormantVisible.length)} / ${fmtNumber(dormant.length)} khách hàng`
+                  : `${fmtNumber(dormant.length)} khách hàng`}
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+                <input
+                  value={dormantSearch}
+                  onChange={(e) => setDormantSearch(e.target.value)}
+                  placeholder="Tìm tên khách hàng..."
+                  className="h-7 w-56 rounded-md border border-slate-200 bg-white pl-7 pr-7 text-[11px] text-slate-700 outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                />
+                {dormantSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setDormantSearch('')}
+                    aria-label="Xóa tìm kiếm"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-rose-600 dark:hover:bg-slate-700"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
               <span className="text-[11px] font-medium text-slate-500">
                 Khoảng thời gian không phát sinh giao dịch
               </span>
@@ -548,11 +627,13 @@ export function OverviewPage() {
               <button
                 type="button"
                 onClick={handleExportDormant}
-                disabled={dormantExporting || dormant.length === 0}
+                disabled={dormantExporting || dormantVisible.length === 0}
                 title={
-                  dormant.length === 0
+                  dormantVisible.length === 0
                     ? 'Không có dữ liệu để xuất'
-                    : `Xuất danh sách (${DORMANT_BUCKETS.find((b) => b.id === dormantBucket)?.label})`
+                    : `Xuất danh sách (${DORMANT_BUCKETS.find((b) => b.id === dormantBucket)?.label})${
+                        dormantSearch.trim() ? ` — lọc theo "${dormantSearch.trim()}"` : ''
+                      }`
                 }
                 aria-label="Xuất khách hàng ngừng giao dịch"
                 className={cn(
@@ -578,6 +659,10 @@ export function OverviewPage() {
               Không có khách hàng nào ngừng giao dịch trong khoảng{' '}
               {DORMANT_BUCKETS.find((b) => b.id === dormantBucket)?.label} theo bộ lọc hiện tại.
             </div>
+          ) : dormantVisible.length === 0 ? (
+            <div className="px-5 py-12 text-center text-xs text-slate-400">
+              Không tìm thấy khách hàng nào khớp với “{dormantSearch.trim()}”.
+            </div>
           ) : (
             <div className="scrollbar-thin max-h-[480px] overflow-y-auto">
               <table className="w-full text-xs">
@@ -595,7 +680,7 @@ export function OverviewPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {dormant.slice(0, 200).map((d, i) => {
+                  {dormantVisible.slice(0, 200).map((d, i) => {
                     const record = filtered.find((r) => r.maKH === d.maKH) ?? null;
                     return (
                       <tr
@@ -628,7 +713,7 @@ export function OverviewPage() {
                           {fmtDate(d.ngayHoatDongCuoi)}
                         </td>
                         <td className="px-3 py-2 text-right">
-                          <span className="rounded-full bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-300">
+                          <span className="rounded-full bg-amber-100 dark:bg-slate-800 dark:ring-1 dark:ring-amber-500/30 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-300">
                             {fmtNumber(d.daysSince)} ngày
                           </span>
                         </td>
@@ -637,10 +722,10 @@ export function OverviewPage() {
                   })}
                 </tbody>
               </table>
-              {dormant.length > 200 && (
+              {dormantVisible.length > 200 && (
                 <div className="border-t border-slate-100 dark:border-slate-700 px-3 py-2 text-center text-[10px] text-slate-500 dark:text-slate-400">
-                  Hiển thị 200 / {fmtNumber(dormant.length)} khách hàng. Sử dụng bộ lọc phía trên
-                  để thu hẹp danh sách.
+                  Hiển thị 200 / {fmtNumber(dormantVisible.length)} khách hàng. Sử dụng bộ lọc
+                  hoặc ô tìm kiếm phía trên để thu hẹp danh sách.
                 </div>
               )}
             </div>

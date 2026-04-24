@@ -86,6 +86,11 @@ export interface GroupAgg {
   tyLeNoQH: number;
   laiTonTH: number;
   thuLaiTHThang: number;
+  /**
+   * Danh sách maKH thuộc nhóm — chỉ set ở các groupBy dẫn xuất (ví dụ theo
+   * độ tuổi), để phục vụ drill-down khi key không phải là trường của LoanRecord.
+   */
+  maKHs?: string[];
 }
 
 export function groupBy(
@@ -132,6 +137,105 @@ export function groupBy(
   return out.sort((a, b) => b.tongDuNo - a.tongDuNo);
 }
 
+/* ── Cơ cấu khách hàng theo độ tuổi ──────────────────────────────────── */
+
+/**
+ * Các khoảng độ tuổi (năm trọn), bám theo quy ước phân tích khách hàng VBSP:
+ *  - "< 25" (thanh niên khởi nghiệp)
+ *  - "25–34", "35–44", "45–54", "55–64"
+ *  - "≥ 65" (người cao tuổi)
+ *  - "Không rõ" dành cho khế ước không có ngày sinh.
+ * Khoảng nửa mở [min, max) → không đếm trùng giữa các nhóm liền kề.
+ */
+const AGE_BUCKETS: { key: string; label: string; min: number; max: number }[] = [
+  { key: 'lt25', label: '< 25', min: 0, max: 25 },
+  { key: '25-34', label: '25–34', min: 25, max: 35 },
+  { key: '35-44', label: '35–44', min: 35, max: 45 },
+  { key: '45-54', label: '45–54', min: 45, max: 55 },
+  { key: '55-64', label: '55–64', min: 55, max: 65 },
+  { key: 'gte65', label: '≥ 65', min: 65, max: Infinity },
+];
+const AGE_UNKNOWN = { key: 'unknown', label: 'Không rõ' };
+
+/** Tính tuổi trọn năm tại `ref` (năm + tháng + ngày). Trả null nếu thiếu DOB. */
+function ageYears(dob: Date | null, ref: Date): number | null {
+  if (!dob) return null;
+  let age = ref.getFullYear() - dob.getFullYear();
+  const m = ref.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && ref.getDate() < dob.getDate())) age--;
+  return age >= 0 ? age : null;
+}
+
+function ageBucketKey(age: number | null): string {
+  if (age == null) return AGE_UNKNOWN.key;
+  for (const b of AGE_BUCKETS) {
+    if (age >= b.min && age < b.max) return b.key;
+  }
+  return AGE_UNKNOWN.key;
+}
+
+/**
+ * Gom khế ước theo độ tuổi của khách hàng tại ngày tham chiếu (thường là
+ * `ngaySoLieu`). Mỗi bucket giữ lại danh sách `maKHs` để phục vụ drill-down
+ * xuống trang Tra cứu chi tiết (tất cả khế ước thuộc các KH trong bucket).
+ *
+ * Thứ tự output giữ nguyên theo tuổi tăng dần — không sort theo `tongDuNo`
+ * như `groupBy` để các nhóm tuổi hiển thị liên tục.
+ */
+export function groupByAge(rows: LoanRecord[], refDate: Date): GroupAgg[] {
+  const labels = new Map<string, string>();
+  for (const b of AGE_BUCKETS) labels.set(b.key, b.label);
+  labels.set(AGE_UNKNOWN.key, AGE_UNKNOWN.label);
+
+  const order = [...AGE_BUCKETS.map((b) => b.key), AGE_UNKNOWN.key];
+  const map = new Map<string, GroupAgg & { _kh: Set<string>; _maKHs: Set<string> }>();
+
+  for (const r of rows) {
+    const key = ageBucketKey(ageYears(r.ngaySinh, refDate));
+    let g = map.get(key);
+    if (!g) {
+      g = {
+        key,
+        label: labels.get(key) ?? key,
+        soKheUoc: 0,
+        soKhachHang: 0,
+        tongDuNo: 0,
+        duNoTrongHan: 0,
+        duNoQuaHan: 0,
+        duNoKhoanh: 0,
+        tyLeNoQH: 0,
+        laiTonTH: 0,
+        thuLaiTHThang: 0,
+        _kh: new Set<string>(),
+        _maKHs: new Set<string>(),
+      };
+      map.set(key, g);
+    }
+    g.soKheUoc += 1;
+    g.tongDuNo += r.tongDuNo;
+    g.duNoTrongHan += r.duNoTrongHan;
+    g.duNoQuaHan += r.duNoQuaHan;
+    g.duNoKhoanh += r.duNoKhoanh;
+    g.laiTonTH += r.laiTonTH;
+    g.thuLaiTHThang += r.thuLaiTHThang;
+    if (r.maKH) {
+      g._kh.add(r.maKH);
+      g._maKHs.add(r.maKH);
+    }
+  }
+
+  const out: GroupAgg[] = [];
+  for (const key of order) {
+    const g = map.get(key);
+    if (!g) continue;
+    g.soKhachHang = g._kh.size;
+    g.tyLeNoQH = g.tongDuNo > 0 ? (g.duNoQuaHan / g.tongDuNo) * 100 : 0;
+    const { _kh, _maKHs, ...rest } = g;
+    out.push({ ...rest, maKHs: Array.from(_maKHs) });
+  }
+  return out;
+}
+
 export function timeSeriesGiaiNgan(
   rows: LoanRecord[]
 ): { month: string; giaiNgan: number; soKheUoc: number }[] {
@@ -157,9 +261,22 @@ export interface HistogramBucket {
   count: number;
   min: number;
   max: number;
+  /** Danh sách maKH thuộc bucket — chỉ có ở mode='customer' để phục vụ drill-down */
+  maKHs?: string[];
 }
 
-export function histogramMucVay(rows: LoanRecord[]): HistogramBucket[] {
+export type HistogramMode = 'loan' | 'customer';
+
+/**
+ * Phân bố mức vay theo khoảng giá trị.
+ * - `mode = 'loan'` (mặc định): mỗi khế ước là 1 đơn vị, bucket theo `mucVay` của khế ước.
+ * - `mode = 'customer'`: gom theo `maKH`, cộng tổng `mucVay` của tất cả khế ước của khách hàng,
+ *   rồi bucket theo tổng đó — đếm số khách hàng riêng biệt trong từng khoảng.
+ */
+export function histogramMucVay(
+  rows: LoanRecord[],
+  mode: HistogramMode = 'loan'
+): HistogramBucket[] {
   const buckets: { name: string; min: number; max: number }[] = [
     { name: '< 10tr', min: 0, max: 10e6 },
     { name: '10–30tr', min: 10e6, max: 30e6 },
@@ -169,20 +286,42 @@ export function histogramMucVay(rows: LoanRecord[]): HistogramBucket[] {
     { name: '≥ 200tr', min: 200e6, max: Infinity },
   ];
   const counts = new Array(buckets.length).fill(0);
-  for (const r of rows) {
-    const v = r.mucVay;
-    for (let i = 0; i < buckets.length; i++) {
-      if (v < buckets[i].max) {
-        counts[i]++;
-        break;
+  const keysPerBucket: string[][] | null =
+    mode === 'customer' ? buckets.map(() => [] as string[]) : null;
+
+  if (mode === 'customer') {
+    const perKH = new Map<string, number>();
+    for (const r of rows) {
+      const key = r.maKH || `__${r.soKheUoc}`; // khế ước không có maKH → tự đếm như 1 KH
+      perKH.set(key, (perKH.get(key) ?? 0) + r.mucVay);
+    }
+    for (const [key, v] of perKH.entries()) {
+      for (let i = 0; i < buckets.length; i++) {
+        if (v < buckets[i].max) {
+          counts[i]++;
+          keysPerBucket![i].push(key);
+          break;
+        }
+      }
+    }
+  } else {
+    for (const r of rows) {
+      const v = r.mucVay;
+      for (let i = 0; i < buckets.length; i++) {
+        if (v < buckets[i].max) {
+          counts[i]++;
+          break;
+        }
       }
     }
   }
+
   return buckets.map((b, i) => ({
     bucket: b.name,
     count: counts[i],
     min: b.min,
     max: b.max,
+    ...(keysPerBucket ? { maKHs: keysPerBucket[i] } : {}),
   }));
 }
 

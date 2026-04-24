@@ -24,6 +24,7 @@ interface Props {
 
 export function LineDisbursement({ data, onClick, chartType = 'area' }: Props) {
   const cc = useChartColors();
+  const seriesColor = cc.semantic.areaBase;
   const handleChartClick = (e: any) => {
     const month = e?.activePayload?.[0]?.payload?.month;
     if (month && onClick) onClick(month);
@@ -58,9 +59,9 @@ export function LineDisbursement({ data, onClick, chartType = 'area' }: Props) {
           <Line
             type="monotone"
             dataKey="giaiNgan"
-            stroke="#1d4ed8"
+            stroke={seriesColor}
             strokeWidth={2}
-            dot={{ r: 3, fill: '#1d4ed8' }}
+            dot={{ r: 3, fill: seriesColor }}
             activeDot={{ r: 5 }}
           />
         </LineChart>
@@ -78,7 +79,7 @@ export function LineDisbursement({ data, onClick, chartType = 'area' }: Props) {
           {sharedAxes}
           <Bar
             dataKey="giaiNgan"
-            fill="#1d4ed8"
+            fill={seriesColor}
             radius={[4, 4, 0, 0]}
             onClick={handleBarClick}
             cursor={onClick ? 'pointer' : undefined}
@@ -99,12 +100,12 @@ export function LineDisbursement({ data, onClick, chartType = 'area' }: Props) {
       >
         <defs>
           <linearGradient id="gnGrad" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#1d4ed8" stopOpacity={0.4} />
-            <stop offset="100%" stopColor="#1d4ed8" stopOpacity={0.05} />
+            <stop offset="0%" stopColor={seriesColor} stopOpacity={0.4} />
+            <stop offset="100%" stopColor={seriesColor} stopOpacity={0.05} />
           </linearGradient>
         </defs>
         {sharedAxes}
-        <Area type="monotone" dataKey="giaiNgan" stroke="#1d4ed8" strokeWidth={2} fill="url(#gnGrad)" />
+        <Area type="monotone" dataKey="giaiNgan" stroke={seriesColor} strokeWidth={2} fill="url(#gnGrad)" />
       </AreaChart>
     </ResponsiveContainer>
   );

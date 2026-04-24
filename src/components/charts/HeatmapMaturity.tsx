@@ -29,13 +29,21 @@ const MONTH_LABELS_VI: Record<number, string> = {
   9: 'Tháng 9', 10: 'Tháng 10', 11: 'Tháng 11', 12: 'Tháng 12',
 };
 
-const MONTH_COLORS = [
+const MONTH_COLORS_LIGHT = [
   '#1d4ed8', '#2563eb', '#3b82f6', '#0891b2', '#06b6d4', '#14b8a6',
   '#16a34a', '#65a30d', '#ca8a04', '#ea580c', '#dc2626', '#a21caf',
+];
+// Light-mode palette giảm sâu luminance khiến ô tháng cuối (magenta/đỏ/cam)
+// bị glow khó chịu trên nền tối. Dark palette dịch lên -400 để đảm bảo mọi
+// ô đều clear 3:1 so với slate-950 mà không chiếm attention quá mức.
+const MONTH_COLORS_DARK = [
+  '#60a5fa', '#93c5fd', '#bfdbfe', '#38bdf8', '#7dd3fc', '#5eead4',
+  '#34d399', '#a3e635', '#facc15', '#fb923c', '#fb7185', '#c084fc',
 ];
 
 export function HeatmapMaturity({ data, chartType = 'heatmap', onClick }: Props) {
   const cc = useChartColors();
+  const MONTH_COLORS = cc.isDark ? MONTH_COLORS_DARK : MONTH_COLORS_LIGHT;
 
   const byYear = useMemo(() => {
     const m = new Map<string, { month: number; v: typeof data[number] }[]>();
@@ -158,7 +166,7 @@ export function HeatmapMaturity({ data, chartType = 'heatmap', onClick }: Props)
                                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1'
                               )}
                               style={{
-                                background: `rgba(29, 78, 216, ${0.1 + intensity * 0.7})`,
+                                background: `rgba(${cc.semantic.heatmapRgb}, ${0.12 + intensity * 0.72})`,
                                 color: intensity > 0.5 ? 'white' : undefined,
                               }}
                             >
