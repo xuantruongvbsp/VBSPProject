@@ -22,6 +22,8 @@ const navItems = [
   { to: '/snapshot', label: 'Tổng quan', icon: LayoutDashboard, end: true },
   { to: '/snapshot/no-xau', label: 'Báo cáo NPL', icon: AlertTriangle },
   { to: '/snapshot/no-khoanh', label: 'Báo cáo Dư nợ khoanh', icon: Snowflake },
+  // Tạm ẩn — sẽ bật lại sau khi hoàn thiện. Route /snapshot/doanh-so vẫn hoạt động.
+  // { to: '/snapshot/doanh-so', label: 'Báo cáo doanh số', icon: TrendingUp },
   { to: '/snapshot/so-sanh', label: 'Báo cáo so sánh', icon: GitCompare },
   { to: '/snapshot/du-lieu', label: 'Tra cứu chi tiết', icon: Table },
 ];

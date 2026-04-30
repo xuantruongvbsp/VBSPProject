@@ -608,4 +608,45 @@ export const METRIC_EXPLANATIONS: Record<string, MetricExplanation> = {
     formula: 'Lọc duNoKhoanh > 0, sắp xếp giảm dần, lấy 20 khế ước đầu.',
     note: 'Nhấp một dòng để mở ngăn chi tiết toàn bộ thông tin khế ước.',
   },
+
+  /* ── Doanh số (BH → ĐH GDXA) ───────────────────────────────────────── */
+  doanhSoChoVay: {
+    title: 'Doanh số cho vay',
+    definition:
+      'Tổng số tiền giải ngân của các khế ước có "Ngày vay" (BH) rơi vào kỳ được chọn.',
+    formula:
+      'Cộng dồn cột "Tổng giải ngân" theo tháng / quý / năm của "Ngày vay" trên Báo cáo 31.',
+    note: 'Khế ước có nhiều lần giải ngân (top-up) sẽ được gán toàn bộ vào kỳ mở khế ước. Thiếu "Ngày vay" → không được tính.',
+  },
+  doanhSoThuNoDuKien: {
+    title: 'Doanh số thu nợ dự kiến',
+    definition:
+      'Số tiền gốc thu nợ theo lịch hợp đồng — chia đều "Tổng giải ngân" cho số tháng giữa BH (Ngày vay) và ĐH (Ngày ĐH theo GDXA), rồi gán mỗi tháng một phần.',
+    formula:
+      'Với mỗi khế ước: số tháng = số tháng từ BH đến ĐH GDXA (bao gồm cả hai đầu). Phân bổ tháng = Tổng giải ngân ÷ số tháng. Sau đó cộng dồn theo tháng / quý / năm.',
+    note: 'Đây là lịch trả dự kiến, KHÔNG phải số thực thu. Khế ước thiếu BH/ĐH GDXA hoặc ĐH ≤ BH bị loại khỏi phần thu nợ.',
+  },
+  doanhSoNetFlow: {
+    title: 'Net flow',
+    definition: 'Chênh lệch giữa cho vay và thu nợ dự kiến trong kỳ.',
+    formula: 'Net flow = Doanh số cho vay − Doanh số thu nợ dự kiến.',
+    note: 'Net > 0 → kỳ mở rộng dư nợ. Net < 0 → kỳ thu hẹp dư nợ (thanh toán nhiều hơn giải ngân theo lịch).',
+  },
+  doanhSoSoMonMoi: {
+    title: 'Số món vay mới',
+    definition: 'Số khế ước có "Ngày vay" rơi vào kỳ được chọn.',
+    formula: 'Đếm số khế ước theo "Ngày vay" gom theo tháng / quý / năm.',
+  },
+  doanhSoSoMonDaoHan: {
+    title: 'Số món đáo hạn',
+    definition:
+      'Số khế ước có "Ngày ĐH theo GDXA" rơi vào kỳ được chọn — áp lực thu hồi gốc của kỳ.',
+    formula: 'Đếm số khế ước theo "Ngày ĐH theo GDXA" gom theo tháng / quý / năm.',
+    note: 'Khế ước thiếu ngày ĐH GDXA bị bỏ qua khỏi chỉ tiêu này.',
+  },
+  doanhSoTicketTB: {
+    title: 'Ticket trung bình',
+    definition: 'Mức cho vay trung bình trên một khế ước mới trong kỳ.',
+    formula: 'Doanh số cho vay ÷ Số món vay mới (cùng kỳ).',
+  },
 };

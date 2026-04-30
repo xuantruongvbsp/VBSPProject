@@ -11,6 +11,7 @@ import { ComparePage } from '@/pages/Compare';
 import { ExplorerPage } from '@/pages/Explorer';
 import { NplPage } from '@/pages/Npl';
 import { KhoanhPage } from '@/pages/Khoanh';
+import { DoanhSoPage } from '@/pages/DoanhSo';
 import { Lobby } from '@/pages/Lobby';
 import { PeriodShell } from '@/components/layout/PeriodShell';
 import { PeriodOverviewPage } from '@/pages/period/PeriodOverview';
@@ -64,6 +65,7 @@ function SnapshotApp() {
         <Route index element={<OverviewPage />} />
         <Route path="no-xau" element={<NplPage />} />
         <Route path="no-khoanh" element={<KhoanhPage />} />
+        <Route path="doanh-so" element={<DoanhSoPage />} />
         <Route path="so-sanh" element={<ComparePage />} />
         <Route path="du-lieu" element={<ExplorerPage />} />
       </Route>

@@ -12,6 +12,21 @@ export function fmtCurrency(v: number | null | undefined): string {
   return vnNumber.format(Math.round(v)) + ' đ';
 }
 
+/** Quy đổi VNĐ ra "tỷ" với 2 chữ số thập phân — dùng cho trang Doanh số. */
+export function fmtTy(v: number | null | undefined, digits = 2): string {
+  if (v === null || v === undefined || Number.isNaN(v)) return '—';
+  return (v / 1e9).toFixed(digits).replace('.', ',') + ' tỷ';
+}
+
+/** Trục biểu đồ: chỉ số "tỷ" rút gọn (không hậu tố). */
+export function fmtTyAxis(v: number | null | undefined): string {
+  if (v === null || v === undefined || Number.isNaN(v)) return '';
+  const ty = v / 1e9;
+  if (Math.abs(ty) >= 100) return ty.toFixed(0);
+  if (Math.abs(ty) >= 10) return ty.toFixed(1).replace('.', ',');
+  return ty.toFixed(2).replace('.', ',');
+}
+
 /** Rút gọn theo đơn vị tỷ / triệu / nghìn cho biểu đồ */
 export function fmtCompact(v: number | null | undefined): string {
   if (v === null || v === undefined || Number.isNaN(v)) return '—';
