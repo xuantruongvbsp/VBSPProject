@@ -1,34 +1,37 @@
-// Lưu trữ cục bộ các cặp tệp Báo cáo 31 đã được nhập cho ứng dụng
-// "So sánh giữa hai kỳ". Hai slot (`prev`, `curr`) được lưu trong cùng một
-// bản ghi để mở lại đúng cặp ban đầu. Nguyên tắc kế thừa từ
-// `recent-files.ts` — mọi dữ liệu nằm hoàn toàn trong IndexedDB của
-// trình duyệt, không gửi lên máy chủ.
+// Lưu trữ cục bộ "bộ tệp" đã nhập cho ứng dụng "So sánh giữa hai kỳ".
+// Mô hình mới (DB v2) lưu tới 3 slot: `lastYear`, `lastMonth`, `now`.
+// Mỗi bản ghi giữ nguyên đủ các slot đã nạp, để khi mở lại phục hồi
+// chính xác trạng thái ban đầu (không chỉ cặp đang so sánh tại thời
+// điểm lưu). Toàn bộ dữ liệu nằm trong IndexedDB của trình duyệt.
 
 import type { LoanRecord } from './types';
 
 const DB_NAME = 'vsppro-period-pairs';
-const DB_VERSION = 1;
+// v2: schema 3 slot. Khi nâng cấp từ v1, các bản ghi cặp cũ bị xóa —
+// chấp nhận mất lịch sử (chỉ là cache cục bộ).
+const DB_VERSION = 2;
 const META_STORE = 'meta';
 const DATA_STORE = 'data';
 
+export type PeriodSlotKey = 'lastYear' | 'lastMonth' | 'now';
+
+export interface PeriodSlotMeta {
+  filename: string;
+  size: number;
+  ngaySoLieu: Date | null;
+  totalRows: number;
+}
+
 export interface RecentPeriodPairMeta {
   id: string;
-  prevFilename: string;
-  currFilename: string;
-  prevSize: number;
-  currSize: number;
-  prevNgaySoLieu: Date | null;
-  currNgaySoLieu: Date | null;
-  prevTotalRows: number;
-  currTotalRows: number;
+  slots: Partial<Record<PeriodSlotKey, PeriodSlotMeta>>;
   importedAt: number;
   lastOpenedAt: number;
 }
 
 interface RecentPeriodPairData {
   id: string;
-  prevRows: LoanRecord[];
-  currRows: LoanRecord[];
+  rows: Partial<Record<PeriodSlotKey, LoanRecord[]>>;
 }
 
 let dbPromise: Promise<IDBDatabase> | null = null;
@@ -39,12 +42,12 @@ function openDb(): Promise<IDBDatabase> {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
       const db = req.result;
-      if (!db.objectStoreNames.contains(META_STORE)) {
-        db.createObjectStore(META_STORE, { keyPath: 'id' });
+      // Xóa stores cũ (schema v1 dạng prev/curr) nếu có và tạo lại sạch.
+      for (const name of Array.from(db.objectStoreNames)) {
+        db.deleteObjectStore(name);
       }
-      if (!db.objectStoreNames.contains(DATA_STORE)) {
-        db.createObjectStore(DATA_STORE, { keyPath: 'id' });
-      }
+      db.createObjectStore(META_STORE, { keyPath: 'id' });
+      db.createObjectStore(DATA_STORE, { keyPath: 'id' });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error ?? new Error('Không mở được IndexedDB'));
@@ -108,8 +111,25 @@ function reqAsPromise<T>(req: IDBRequest<T>): Promise<T> {
   });
 }
 
-export function makePairId(prev: File, curr: File): string {
-  return `${prev.name}::${prev.size}::${prev.lastModified}|${curr.name}::${curr.size}::${curr.lastModified}`;
+const SLOT_ORDER: readonly PeriodSlotKey[] = ['lastYear', 'lastMonth', 'now'] as const;
+
+/** Sinh ID ổn định từ tên tệp + ngày số liệu của từng slot — đủ để cùng
+ *  một bộ tệp luôn ra cùng ID, đồng thời cho phép tính lại ID từ
+ *  PeriodSnapshot trong store (không cần đối tượng File). */
+export function makeTripleId(
+  slots: Partial<Record<PeriodSlotKey, { filename: string; ngaySoLieu: Date | null }>>
+): string {
+  const parts: string[] = [];
+  for (const k of SLOT_ORDER) {
+    const s = slots[k];
+    if (!s) {
+      parts.push(`${k}:-`);
+    } else {
+      const ts = s.ngaySoLieu ? s.ngaySoLieu.toISOString().slice(0, 10) : '';
+      parts.push(`${k}:${s.filename}::${ts}`);
+    }
+  }
+  return parts.join('|');
 }
 
 export async function listRecentPeriodPairs(): Promise<RecentPeriodPairMeta[]> {
@@ -121,37 +141,54 @@ export async function listRecentPeriodPairs(): Promise<RecentPeriodPairMeta[]> {
   });
 }
 
-export interface SaveRecentPairInput {
-  prev: { file: File; rows: LoanRecord[]; ngaySoLieu: Date | null };
-  curr: { file: File; rows: LoanRecord[]; ngaySoLieu: Date | null };
+export interface SaveRecentTripleSlot {
+  filename: string;
+  /** Kích thước tệp gốc (byte) — tùy chọn, dùng để hiển thị; không tham gia ID. */
+  size?: number;
+  rows: LoanRecord[];
+  ngaySoLieu: Date | null;
+}
+
+export interface SaveRecentTripleInput {
+  slots: Partial<Record<PeriodSlotKey, SaveRecentTripleSlot>>;
 }
 
 export async function saveRecentPeriodPair(
-  input: SaveRecentPairInput
+  input: SaveRecentTripleInput
 ): Promise<RecentPeriodPairMeta> {
-  const { prev, curr } = input;
+  const idInput: Partial<Record<PeriodSlotKey, { filename: string; ngaySoLieu: Date | null }>> = {};
+  for (const k of SLOT_ORDER) {
+    const s = input.slots[k];
+    if (s) idInput[k] = { filename: s.filename, ngaySoLieu: s.ngaySoLieu };
+  }
+  const id = makeTripleId(idInput);
   const now = Date.now();
+
+  const slotsMeta: Partial<Record<PeriodSlotKey, PeriodSlotMeta>> = {};
+  const rowsBySlot: Partial<Record<PeriodSlotKey, LoanRecord[]>> = {};
+  for (const k of SLOT_ORDER) {
+    const s = input.slots[k];
+    if (!s) continue;
+    slotsMeta[k] = {
+      filename: s.filename,
+      size: s.size ?? 0,
+      ngaySoLieu: s.ngaySoLieu,
+      totalRows: s.rows.length,
+    };
+    rowsBySlot[k] = s.rows;
+  }
+
   const meta: RecentPeriodPairMeta = {
-    id: makePairId(prev.file, curr.file),
-    prevFilename: prev.file.name,
-    currFilename: curr.file.name,
-    prevSize: prev.file.size,
-    currSize: curr.file.size,
-    prevNgaySoLieu: prev.ngaySoLieu,
-    currNgaySoLieu: curr.ngaySoLieu,
-    prevTotalRows: prev.rows.length,
-    currTotalRows: curr.rows.length,
+    id,
+    slots: slotsMeta,
     importedAt: now,
     lastOpenedAt: now,
   };
-  const data: RecentPeriodPairData = {
-    id: meta.id,
-    prevRows: prev.rows,
-    currRows: curr.rows,
-  };
+  const data: RecentPeriodPairData = { id, rows: rowsBySlot };
+
   await tx([META_STORE, DATA_STORE], 'readwrite', async (t) => {
     const existing = await reqAsPromise(
-      t.objectStore(META_STORE).get(meta.id) as IDBRequest<RecentPeriodPairMeta | undefined>
+      t.objectStore(META_STORE).get(id) as IDBRequest<RecentPeriodPairMeta | undefined>
     );
     if (existing) meta.importedAt = existing.importedAt;
     await reqAsPromise(t.objectStore(META_STORE).put(meta));
@@ -160,11 +197,14 @@ export async function saveRecentPeriodPair(
   return meta;
 }
 
-export async function loadRecentPeriodPair(id: string): Promise<{
+export interface LoadRecentTripleResult {
   meta: RecentPeriodPairMeta;
-  prevRows: LoanRecord[];
-  currRows: LoanRecord[];
-} | null> {
+  rows: Partial<Record<PeriodSlotKey, LoanRecord[]>>;
+}
+
+export async function loadRecentPeriodPair(
+  id: string
+): Promise<LoadRecentTripleResult | null> {
   return tx([META_STORE, DATA_STORE], 'readwrite', async (t) => {
     const meta = await reqAsPromise(
       t.objectStore(META_STORE).get(id) as IDBRequest<RecentPeriodPairMeta | undefined>
@@ -176,7 +216,7 @@ export async function loadRecentPeriodPair(id: string): Promise<{
     if (!data) return null;
     meta.lastOpenedAt = Date.now();
     await reqAsPromise(t.objectStore(META_STORE).put(meta));
-    return { meta, prevRows: data.prevRows, currRows: data.currRows };
+    return { meta, rows: data.rows };
   });
 }
 

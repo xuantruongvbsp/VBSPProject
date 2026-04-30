@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -11,9 +11,12 @@ import {
   LayoutGrid,
   PieChart,
   Download,
+  Search,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { applyFilters, useDataStore, type FilterField } from '@/store/useDataStore';
-import { computeKpi, groupBy, type GroupAgg } from '@/lib/metrics';
+import { computeKpi, groupBy, isOpenLoan, type GroupAgg } from '@/lib/metrics';
 import { fmtCompact, fmtCurrency, fmtDate, fmtNumber, fmtPercent } from '@/lib/format';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { KpiCard } from '@/components/ui/KpiCard';
@@ -46,6 +49,10 @@ export function NplPage() {
   const [chartXaType, setChartXaType] = useState<BarGroupChartType>('bar');
   const [chartProgramType, setChartProgramType] = useState<BarGroupChartType>('bar');
   const [exporting, setExporting] = useState(false);
+  const [exportingChuyenNQH, setExportingChuyenNQH] = useState(false);
+  const [qhSearch, setQhSearch] = useState('');
+  const [qhPage, setQhPage] = useState(0);
+  const QH_PAGE_SIZE = 10;
 
   const drillTo = useCallback(
     (field: FilterField, value: string) => {
@@ -112,18 +119,54 @@ export function NplPage() {
   const byDVUT_QH = useMemo(() => sortByQH(byDVUT), [byDVUT]);
   const byProgram_QH = useMemo(() => sortByQH(byProgram), [byProgram]);
 
-  // Top 20 khế ước có dư nợ quá hạn lớn nhất
-  const topOverdue = useMemo(
-    () => [...nplLoans].sort((a, b) => b.duNoQuaHan - a.duNoQuaHan).slice(0, 20),
-    [nplLoans]
-  );
-
-  // Danh sách đầy đủ các khế ước có dư nợ quá hạn > 0 (để xuất Excel).
+  // Danh sách đầy đủ các khế ước có dư nợ quá hạn > 0, sắp xếp giảm dần.
   // Khoanh có báo cáo riêng nên ở đây chỉ lấy QH thuần.
   const qhLoansOnly = useMemo(
-    () => filtered.filter((r) => r.duNoQuaHan > 0),
+    () =>
+      [...filtered]
+        .filter((r) => r.duNoQuaHan > 0)
+        .sort((a, b) => b.duNoQuaHan - a.duNoQuaHan),
     [filtered]
   );
+
+  // Lọc nhanh tại bảng theo tên KH / mã KH / số khế ước / xã / ĐVUT / tổ /
+  // chương trình. So khớp lowercase substring trên các trường text chính.
+  const qhSearchFiltered = useMemo(() => {
+    const q = qhSearch.trim().toLowerCase();
+    if (!q) return qhLoansOnly;
+    return qhLoansOnly.filter((r) => {
+      const hay = [
+        r.tenKH,
+        r.maKH,
+        r.soKheUoc,
+        r.tenXa,
+        r.tenDVUT,
+        r.tenTo,
+        r.tenChuongTrinh,
+        r.soCMND,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [qhLoansOnly, qhSearch]);
+
+  const qhTotalPages = Math.max(1, Math.ceil(qhSearchFiltered.length / QH_PAGE_SIZE));
+  const qhCurrentPage = Math.min(qhPage, qhTotalPages - 1);
+  const qhPaged = useMemo(
+    () =>
+      qhSearchFiltered.slice(
+        qhCurrentPage * QH_PAGE_SIZE,
+        qhCurrentPage * QH_PAGE_SIZE + QH_PAGE_SIZE
+      ),
+    [qhSearchFiltered, qhCurrentPage]
+  );
+
+  // Quay về trang đầu khi từ khóa hoặc bộ dữ liệu nguồn thay đổi.
+  useEffect(() => {
+    setQhPage(0);
+  }, [qhSearch, qhLoansOnly]);
 
   const handleExportQh = useCallback(async () => {
     if (exporting || qhLoansOnly.length === 0) return;
@@ -141,6 +184,48 @@ export function NplPage() {
       setExporting(false);
     }
   }, [exporting, qhLoansOnly, ngaySoLieu, filtered.length]);
+
+  // Khế ước "chuyển NQH trong tháng": Ngày ĐH theo GDXA rơi vào tháng của
+  // ngày chốt số liệu, và Tình trạng món vay = OPEN.
+  const chuyenNQHThang = useMemo(() => {
+    if (!ngaySoLieu) return [];
+    const y = ngaySoLieu.getFullYear();
+    const m = ngaySoLieu.getMonth();
+    return filtered
+      .filter((r) => {
+        if (!isOpenLoan(r)) return false;
+        const d = r.ngayDHGDXA;
+        if (!d) return false;
+        return d.getFullYear() === y && d.getMonth() === m;
+      })
+      .sort((a, b) => {
+        const da = a.ngayDHGDXA?.getTime() ?? 0;
+        const db = b.ngayDHGDXA?.getTime() ?? 0;
+        return da - db;
+      });
+  }, [filtered, ngaySoLieu]);
+
+  const tongChuyenNQH = useMemo(
+    () => chuyenNQHThang.reduce((s, r) => s + r.duNoQuaHan, 0),
+    [chuyenNQHThang]
+  );
+
+  const handleExportChuyenNQH = useCallback(async () => {
+    if (exportingChuyenNQH || chuyenNQHThang.length === 0) return;
+    setExportingChuyenNQH(true);
+    try {
+      await exportBadDebtToXlsx({
+        kind: 'chuyenNQHThang',
+        loans: chuyenNQHThang,
+        referenceDate: ngaySoLieu,
+        totalFilteredRows: filtered.length,
+      });
+    } catch (e) {
+      console.error('Xuất danh sách chuyển NQH trong tháng thất bại:', e);
+    } finally {
+      setExportingChuyenNQH(false);
+    }
+  }, [exportingChuyenNQH, chuyenNQHThang, ngaySoLieu, filtered.length]);
 
   // Bảng "hotspot" — tỷ lệ QH theo xã, sắp xếp giảm dần (tối thiểu 3 khế ước
   // để tránh tạp nhiễu từ các xã quá nhỏ).
@@ -166,6 +251,7 @@ export function NplPage() {
               '#chart-npl-dvut',
               '#chart-npl-xa',
               '#chart-npl-program',
+              '#chart-npl-chuyen-nqh-thang',
               '#chart-npl-hotspot',
               '#chart-npl-top',
             ]}
@@ -250,12 +336,15 @@ export function NplPage() {
           caption="Cộng dồn từ khế ước NPL"
         />
         <KpiCard
-          label="Mức NPL bình quân/khế ước"
-          value={qhLoansCount > 0 ? (kpi.duNoQuaHan + kpi.duNoKhoanh) / qhLoansCount : 0}
-          tone="default"
-          icon={<Coins className="h-4 w-4" />}
-          formatter={fmtCompact}
-          caption="(QH + Khoanh) / số KƯ NPL"
+          label="Chuyển NQH trong tháng"
+          value={chuyenNQHThang.length}
+          tone="danger"
+          icon={<FileWarning className="h-4 w-4" />}
+          caption={
+            ngaySoLieu
+              ? `Tháng ${String(ngaySoLieu.getMonth() + 1).padStart(2, '0')}/${ngaySoLieu.getFullYear()} · Dư nợ QH ${fmtCompact(tongChuyenNQH)}`
+              : 'Không có ngày chốt số liệu'
+          }
         />
       </div>
 
@@ -352,7 +441,129 @@ export function NplPage() {
         </CardContent>
       </Card>
 
-      {/* Row 3: Hotspot — Tỷ lệ NPL cao nhất theo Xã */}
+      {/* Row 3: Danh sách chuyển NQH trong tháng */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <CardTitle>Danh sách chuyển NQH trong tháng</CardTitle>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                {ngaySoLieu
+                  ? `Tháng ${String(ngaySoLieu.getMonth() + 1).padStart(2, '0')}/${ngaySoLieu.getFullYear()} · ${fmtNumber(chuyenNQHThang.length)} khế ước · Tổng dư nợ QH ${fmtCurrency(tongChuyenNQH)}`
+                  : `${fmtNumber(chuyenNQHThang.length)} khế ước`}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleExportChuyenNQH}
+                disabled={exportingChuyenNQH || chuyenNQHThang.length === 0}
+                title={
+                  chuyenNQHThang.length === 0
+                    ? 'Không có khế ước chuyển NQH trong tháng để xuất'
+                    : `Xuất ${chuyenNQHThang.length} khế ước ra Excel`
+                }
+                aria-label="Xuất danh sách chuyển NQH trong tháng ra Excel"
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors',
+                  exportingChuyenNQH || chuyenNQHThang.length === 0
+                    ? 'cursor-not-allowed bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'
+                    : 'bg-rose-600 text-white hover:bg-rose-700'
+                )}
+              >
+                <Download
+                  className={cn('h-3.5 w-3.5', exportingChuyenNQH && 'animate-pulse')}
+                />
+                {exportingChuyenNQH ? 'Đang xuất…' : 'Xuất Excel'}
+              </button>
+              <InfoPopover metricKey="chartNplChuyenNQHThang" />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent id="chart-npl-chuyen-nqh-thang" className="p-0">
+          {!ngaySoLieu ? (
+            <div className="p-6 text-center text-xs text-slate-400 dark:text-slate-500">
+              Không xác định được ngày chốt số liệu.
+            </div>
+          ) : chuyenNQHThang.length === 0 ? (
+            <div className="p-6 text-center text-xs text-slate-400 dark:text-slate-500">
+              Không có khế ước nào có "Ngày ĐH theo GDXA" trong tháng{' '}
+              {String(ngaySoLieu.getMonth() + 1).padStart(2, '0')}/
+              {ngaySoLieu.getFullYear()} với tình trạng OPEN.
+            </div>
+          ) : (
+            <div className="scrollbar-thin max-h-[520px] overflow-auto">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800">
+                  <tr className="text-left text-slate-500 dark:text-slate-400">
+                    <th className="px-3 py-2">#</th>
+                    <th className="px-3 py-2">Khách hàng</th>
+                    <th className="px-3 py-2">Xã · ĐVUT</th>
+                    <th className="px-3 py-2">Tổ TK&amp;VV</th>
+                    <th className="px-3 py-2">Chương trình</th>
+                    <th className="px-3 py-2 text-right">Ngày ĐH GDXA</th>
+                    <th className="px-3 py-2 text-right">Mức vay</th>
+                    <th className="px-3 py-2 text-right">Dư nợ QH</th>
+                    <th className="px-3 py-2 text-right">Dư nợ khoanh</th>
+                    <th className="px-3 py-2 text-right">Lãi tồn QH</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {chuyenNQHThang.map((r, i) => (
+                    <tr
+                      key={r.soKheUoc || `${r.maKH}-${i}`}
+                      onClick={() => setDetail(r)}
+                      className="cursor-pointer border-t border-slate-100 hover:bg-rose-50 dark:border-slate-700 dark:hover:bg-rose-900/20"
+                    >
+                      <td className="px-3 py-2 text-slate-500 dark:text-slate-400">{i + 1}</td>
+                      <td className="px-3 py-2">
+                        <div className="font-medium text-slate-800 dark:text-slate-100">
+                          {r.tenKH}
+                        </div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                          {r.soKheUoc}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
+                        <div>{r.tenXa || '—'}</div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                          {r.tenDVUT || '—'}
+                        </div>
+                      </td>
+                      <td
+                        className="max-w-[160px] truncate px-3 py-2 text-slate-600 dark:text-slate-300"
+                        title={r.tenTo}
+                      >
+                        {r.tenTo || '—'}
+                      </td>
+                      <td className="max-w-[200px] truncate px-3 py-2 text-slate-600 dark:text-slate-300">
+                        {r.tenChuongTrinh}
+                      </td>
+                      <td className="px-3 py-2 text-right text-slate-600 dark:text-slate-300">
+                        {fmtDate(r.ngayDHGDXA)}
+                      </td>
+                      <td className="px-3 py-2 text-right text-slate-700 dark:text-slate-300">
+                        {fmtCurrency(r.mucVay)}
+                      </td>
+                      <td className="px-3 py-2 text-right font-semibold text-rose-700 dark:text-rose-300">
+                        {fmtCurrency(r.duNoQuaHan)}
+                      </td>
+                      <td className="px-3 py-2 text-right text-amber-700 dark:text-amber-300">
+                        {fmtCurrency(r.duNoKhoanh)}
+                      </td>
+                      <td className="px-3 py-2 text-right text-slate-700 dark:text-slate-300">
+                        {fmtCurrency(r.laiTonQH)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Row 4: Hotspot — Tỷ lệ NPL cao nhất theo Xã */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -419,17 +630,30 @@ export function NplPage() {
         </CardContent>
       </Card>
 
-      {/* Row 4: Top khế ước quá hạn lớn nhất */}
+      {/* Row 5: Danh sách khế ước quá hạn (toàn bộ, phân trang 10/trang) */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <CardTitle>Top 20 khế ước quá hạn lớn nhất</CardTitle>
+              <CardTitle>Danh sách khế ước quá hạn</CardTitle>
               <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                (Excel xuất đầy đủ {fmtNumber(qhLoansOnly.length)} khế ước)
+                {qhSearch
+                  ? `${fmtNumber(qhSearchFiltered.length)}/${fmtNumber(qhLoansOnly.length)} khế ước`
+                  : `${fmtNumber(qhLoansOnly.length)} khế ước`}
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="search"
+                  value={qhSearch}
+                  onChange={(e) => setQhSearch(e.target.value)}
+                  placeholder="Tìm tên KH, mã KH, số khế ước, xã, ĐVUT…"
+                  aria-label="Tìm trong danh sách khế ước quá hạn"
+                  className="w-64 rounded-md border border-slate-200 bg-white py-1 pl-7 pr-2 text-[11px] text-slate-700 placeholder:text-slate-400 focus:border-rose-400 focus:outline-none focus:ring-1 focus:ring-rose-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:placeholder:text-slate-500"
+                />
+              </div>
               <button
                 type="button"
                 onClick={handleExportQh}
@@ -455,75 +679,135 @@ export function NplPage() {
           </div>
         </CardHeader>
         <CardContent id="chart-npl-top" className="p-0">
-          {topOverdue.length === 0 ? (
+          {qhLoansOnly.length === 0 ? (
             <div className="p-6 text-center text-xs text-slate-400 dark:text-slate-500">
               Không có khế ước quá hạn trong phạm vi lọc.
             </div>
-          ) : (
-            <div className="scrollbar-thin max-h-[520px] overflow-auto">
-              <table className="w-full text-xs">
-                <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800">
-                  <tr className="text-left text-slate-500 dark:text-slate-400">
-                    <th className="px-3 py-2">#</th>
-                    <th className="px-3 py-2">Khách hàng</th>
-                    <th className="px-3 py-2">Xã · ĐVUT</th>
-                    <th className="px-3 py-2">Tổ TK&VV</th>
-                    <th className="px-3 py-2">Chương trình</th>
-                    <th className="px-3 py-2 text-right">Ngày chuyển NQH</th>
-                    <th className="px-3 py-2 text-right">Mức vay</th>
-                    <th className="px-3 py-2 text-right">Dư nợ QH</th>
-                    <th className="px-3 py-2 text-right">Dư nợ khoanh</th>
-                    <th className="px-3 py-2 text-right">Lãi tồn QH</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topOverdue.map((r, i) => (
-                    <tr
-                      key={r.soKheUoc || `${r.maKH}-${i}`}
-                      onClick={() => setDetail(r)}
-                      className="cursor-pointer border-t border-slate-100 hover:bg-rose-50 dark:border-slate-700 dark:hover:bg-rose-900/20"
-                    >
-                      <td className="px-3 py-2 text-slate-500 dark:text-slate-400">{i + 1}</td>
-                      <td className="px-3 py-2">
-                        <div className="font-medium text-slate-800 dark:text-slate-100">
-                          {r.tenKH}
-                        </div>
-                        <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                          {r.soKheUoc}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
-                        <div>{r.tenXa || '—'}</div>
-                        <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                          {r.tenDVUT || '—'}
-                        </div>
-                      </td>
-                      <td className="max-w-[160px] truncate px-3 py-2 text-slate-600 dark:text-slate-300" title={r.tenTo}>
-                        {r.tenTo || '—'}
-                      </td>
-                      <td className="max-w-[200px] truncate px-3 py-2 text-slate-600 dark:text-slate-300">
-                        {r.tenChuongTrinh}
-                      </td>
-                      <td className="px-3 py-2 text-right text-slate-600 dark:text-slate-300">
-                        {fmtDate(r.ngayDHGDXA)}
-                      </td>
-                      <td className="px-3 py-2 text-right text-slate-700 dark:text-slate-300">
-                        {fmtCurrency(r.mucVay)}
-                      </td>
-                      <td className="px-3 py-2 text-right font-semibold text-rose-700 dark:text-rose-300">
-                        {fmtCurrency(r.duNoQuaHan)}
-                      </td>
-                      <td className="px-3 py-2 text-right text-amber-700 dark:text-amber-300">
-                        {fmtCurrency(r.duNoKhoanh)}
-                      </td>
-                      <td className="px-3 py-2 text-right text-slate-700 dark:text-slate-300">
-                        {fmtCurrency(r.laiTonQH)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          ) : qhSearchFiltered.length === 0 ? (
+            <div className="p-6 text-center text-xs text-slate-400 dark:text-slate-500">
+              Không có khế ước nào khớp từ khóa "{qhSearch}".
             </div>
+          ) : (
+            <>
+              <div className="scrollbar-thin overflow-auto">
+                <table className="w-full text-xs">
+                  <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800">
+                    <tr className="text-left text-slate-500 dark:text-slate-400">
+                      <th className="px-3 py-2">#</th>
+                      <th className="px-3 py-2">Khách hàng</th>
+                      <th className="px-3 py-2">Xã · ĐVUT</th>
+                      <th className="px-3 py-2">Tổ TK&VV</th>
+                      <th className="px-3 py-2">Chương trình</th>
+                      <th className="px-3 py-2 text-right">Ngày chuyển NQH</th>
+                      <th className="px-3 py-2 text-right">Mức vay</th>
+                      <th className="px-3 py-2 text-right">Dư nợ QH</th>
+                      <th className="px-3 py-2 text-right">Dư nợ khoanh</th>
+                      <th className="px-3 py-2 text-right">Lãi tồn QH</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {qhPaged.map((r, i) => {
+                      const idx = qhCurrentPage * QH_PAGE_SIZE + i + 1;
+                      return (
+                        <tr
+                          key={r.soKheUoc || `${r.maKH}-${idx}`}
+                          onClick={() => setDetail(r)}
+                          className="cursor-pointer border-t border-slate-100 hover:bg-rose-50 dark:border-slate-700 dark:hover:bg-rose-900/20"
+                        >
+                          <td className="px-3 py-2 text-slate-500 dark:text-slate-400">{idx}</td>
+                          <td className="px-3 py-2">
+                            <div className="font-medium text-slate-800 dark:text-slate-100">
+                              {r.tenKH}
+                            </div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                              {r.soKheUoc}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
+                            <div>{r.tenXa || '—'}</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                              {r.tenDVUT || '—'}
+                            </div>
+                          </td>
+                          <td
+                            className="max-w-[160px] truncate px-3 py-2 text-slate-600 dark:text-slate-300"
+                            title={r.tenTo}
+                          >
+                            {r.tenTo || '—'}
+                          </td>
+                          <td className="max-w-[200px] truncate px-3 py-2 text-slate-600 dark:text-slate-300">
+                            {r.tenChuongTrinh}
+                          </td>
+                          <td className="px-3 py-2 text-right text-slate-600 dark:text-slate-300">
+                            {fmtDate(r.ngayDHGDXA)}
+                          </td>
+                          <td className="px-3 py-2 text-right text-slate-700 dark:text-slate-300">
+                            {fmtCurrency(r.mucVay)}
+                          </td>
+                          <td className="px-3 py-2 text-right font-semibold text-rose-700 dark:text-rose-300">
+                            {fmtCurrency(r.duNoQuaHan)}
+                          </td>
+                          <td className="px-3 py-2 text-right text-amber-700 dark:text-amber-300">
+                            {fmtCurrency(r.duNoKhoanh)}
+                          </td>
+                          <td className="px-3 py-2 text-right text-slate-700 dark:text-slate-300">
+                            {fmtCurrency(r.laiTonQH)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-3 py-2 text-[11px] text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                <div>
+                  Hiển thị{' '}
+                  <span className="font-semibold text-slate-700 dark:text-slate-200">
+                    {qhCurrentPage * QH_PAGE_SIZE + 1}
+                    {'–'}
+                    {qhCurrentPage * QH_PAGE_SIZE + qhPaged.length}
+                  </span>{' '}
+                  trên {fmtNumber(qhSearchFiltered.length)} khế ước
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setQhPage((p) => Math.max(0, p - 1))}
+                    disabled={qhCurrentPage === 0}
+                    aria-label="Trang trước"
+                    className={cn(
+                      'inline-flex h-6 w-6 items-center justify-center rounded border border-slate-200 dark:border-slate-700',
+                      qhCurrentPage === 0
+                        ? 'cursor-not-allowed text-slate-300 dark:text-slate-600'
+                        : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                    )}
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="px-1">
+                    Trang{' '}
+                    <span className="font-semibold text-slate-700 dark:text-slate-200">
+                      {qhCurrentPage + 1}
+                    </span>
+                    /{qhTotalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setQhPage((p) => Math.min(qhTotalPages - 1, p + 1))}
+                    disabled={qhCurrentPage >= qhTotalPages - 1}
+                    aria-label="Trang sau"
+                    className={cn(
+                      'inline-flex h-6 w-6 items-center justify-center rounded border border-slate-200 dark:border-slate-700',
+                      qhCurrentPage >= qhTotalPages - 1
+                        ? 'cursor-not-allowed text-slate-300 dark:text-slate-600'
+                        : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                    )}
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

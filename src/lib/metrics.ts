@@ -268,12 +268,12 @@ export interface HistogramBucket {
 export type HistogramMode = 'loan' | 'customer';
 
 /**
- * Phân bố mức vay theo khoảng giá trị.
- * - `mode = 'loan'` (mặc định): mỗi khế ước là 1 đơn vị, bucket theo `mucVay` của khế ước.
- * - `mode = 'customer'`: gom theo `maKH`, cộng tổng `mucVay` của tất cả khế ước của khách hàng,
+ * Phân bố tổng dư nợ theo khoảng giá trị (số dư hiện tại của khế ước/khách).
+ * - `mode = 'loan'` (mặc định): mỗi khế ước là 1 đơn vị, bucket theo `tongDuNo` của khế ước.
+ * - `mode = 'customer'`: gom theo `maKH`, cộng tổng `tongDuNo` của tất cả khế ước của khách hàng,
  *   rồi bucket theo tổng đó — đếm số khách hàng riêng biệt trong từng khoảng.
  */
-export function histogramMucVay(
+export function histogramTongDuNo(
   rows: LoanRecord[],
   mode: HistogramMode = 'loan'
 ): HistogramBucket[] {
@@ -285,15 +285,18 @@ export function histogramMucVay(
     { name: '100–200tr', min: 100e6, max: 200e6 },
     { name: '≥ 200tr', min: 200e6, max: Infinity },
   ];
+  // Loại các khế ước rỗng "Tình trạng món vay" — đây là dữ liệu rác hay rơi
+  // vào bucket "<10tr" và làm sai lệch phân bố thực tế.
+  const cleaned = rows.filter((r) => (r.tinhTrangMonVay ?? '').trim() !== '');
   const counts = new Array(buckets.length).fill(0);
   const keysPerBucket: string[][] | null =
     mode === 'customer' ? buckets.map(() => [] as string[]) : null;
 
   if (mode === 'customer') {
     const perKH = new Map<string, number>();
-    for (const r of rows) {
+    for (const r of cleaned) {
       const key = r.maKH || `__${r.soKheUoc}`; // khế ước không có maKH → tự đếm như 1 KH
-      perKH.set(key, (perKH.get(key) ?? 0) + r.mucVay);
+      perKH.set(key, (perKH.get(key) ?? 0) + r.tongDuNo);
     }
     for (const [key, v] of perKH.entries()) {
       for (let i = 0; i < buckets.length; i++) {
@@ -305,8 +308,8 @@ export function histogramMucVay(
       }
     }
   } else {
-    for (const r of rows) {
-      const v = r.mucVay;
+    for (const r of cleaned) {
+      const v = r.tongDuNo;
       for (let i = 0; i < buckets.length; i++) {
         if (v < buckets[i].max) {
           counts[i]++;

@@ -29,17 +29,12 @@ import { cn } from '@/lib/utils';
 import type { LoanRecord } from '@/lib/types';
 
 const FIELDS: FilterField[] = [
-  'tenPGD',
   'tenXa',
   'tenDVUT',
   'tenChuongTrinh',
-  'tinhTrangMonVay',
-  'phanLoai',
   'gioiTinh',
-  'tenDanToc',
   'nguonVon',
   'tenTo',
-  'hinhThucVay',
 ];
 
 /**

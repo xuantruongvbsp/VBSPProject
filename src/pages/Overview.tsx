@@ -27,7 +27,7 @@ import {
   computeKpi,
   groupBy,
   groupByAge,
-  histogramMucVay,
+  histogramTongDuNo,
   timeSeriesGiaiNgan,
   heatmapDaoHan,
   dormantCustomers,
@@ -134,19 +134,19 @@ export function OverviewPage() {
     [drillDown, navigate]
   );
 
-  // Drill-down theo khoảng giá trị mức vay (histogram - mode khế ước).
-  const drillByMucVay = useCallback(
+  // Drill-down theo khoảng giá trị tổng dư nợ (histogram - mode khế ước).
+  const drillByTongDuNo = useCallback(
     (range: [number, number]) => {
       // Infinity không tuần tự hóa được — clamp về một mức hợp lý
       const upper = Number.isFinite(range[1]) ? range[1] : Number.MAX_SAFE_INTEGER;
-      drillDownRange('mucVay', [range[0], upper]);
+      drillDownRange('tongDuNo', [range[0], upper]);
       navigate('/snapshot/du-lieu');
     },
     [drillDownRange, navigate]
   );
 
   // Drill-down theo danh sách khách hàng của một bucket (histogram - mode khách hàng).
-  // Hiển thị toàn bộ khế ước của những khách hàng có tổng mức vay rơi vào bucket.
+  // Hiển thị toàn bộ khế ước của những khách hàng có tổng dư nợ rơi vào bucket.
   const drillByCustomers = useCallback(
     (maKHs: string[]) => {
       if (!maKHs?.length) return;
@@ -206,7 +206,7 @@ export function OverviewPage() {
     }
     return groupBy(filtered, donutField);
   }, [filtered, donutField, ngaySoLieu]);
-  const histogram = useMemo(() => histogramMucVay(filtered, histUnit), [filtered, histUnit]);
+  const histogram = useMemo(() => histogramTongDuNo(filtered, histUnit), [filtered, histUnit]);
   const ts = useMemo(() => timeSeriesGiaiNgan(filtered), [filtered]);
   const maturity = useMemo(() => heatmapDaoHan(filtered), [filtered]);
   const topKH = useMemo(
@@ -410,7 +410,7 @@ export function OverviewPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Phân bố mức vay</CardTitle>
+              <CardTitle>Phân bố tổng dư nợ</CardTitle>
               <div className="flex items-center gap-1">
                 <ChartSwitcher options={HIST_UNIT_OPTS} value={histUnit} onChange={setHistUnit} />
                 <ChartSwitcher options={HIST_OPTS} value={histType} onChange={setHistType} />
@@ -423,7 +423,7 @@ export function OverviewPage() {
               data={histogram}
               onClick={(b) =>
                 histUnit === 'loan'
-                  ? drillByMucVay([b.min, b.max])
+                  ? drillByTongDuNo([b.min, b.max])
                   : drillByCustomers(b.maKHs ?? [])
               }
               chartType={histType}

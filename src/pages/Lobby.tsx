@@ -163,9 +163,9 @@ export function Lobby() {
             <div>
               <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">So sánh giữa hai kỳ</h3>
               <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                Nhập hai tệp Báo cáo 31 ở hai thời điểm khác nhau (ví dụ cuối quý trước
-                và cuối quý này) để xem diễn biến danh mục: chuyển nhóm, vào/ra,
-                roll rate, cure rate, thay đổi chất lượng tài sản.
+                Nhập tối đa 3 tệp Báo cáo 31 (Cuối năm trước · Cuối tháng trước ·
+                Hiện tại) rồi chọn 2 trong 3 để xem diễn biến danh mục: chuyển
+                nhóm, vào/ra, roll rate, cure rate, thay đổi chất lượng tài sản.
               </p>
             </div>
 
@@ -184,7 +184,7 @@ export function Lobby() {
                 ) : isOwner && periodRecentCount !== null && periodRecentCount > 0 ? (
                   <>{periodRecentCount} cặp tệp đã lưu — sẵn sàng mở lại</>
                 ) : isOwner ? (
-                  'Chưa có dữ liệu — nhập hai tệp ở bước tiếp theo'
+                  'Chưa có dữ liệu — nhập 2–3 tệp ở bước tiếp theo'
                 ) : (
                   'Đang chờ dữ liệu được xuất bản'
                 )}

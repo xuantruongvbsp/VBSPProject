@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Upload,
   FileSpreadsheet,
@@ -9,10 +9,17 @@ import {
   Trash2,
   CheckCircle2,
   AlertTriangle,
-  ArrowLeftRight,
+  Calendar,
 } from 'lucide-react';
 import { parseExcelFile } from '@/data/parser';
-import { usePeriodStore } from '@/store/usePeriodStore';
+import {
+  usePeriodStore,
+  PERIOD_SLOT_KEYS,
+  PERIOD_SLOT_LABEL,
+  type ComparePair,
+  type PeriodSlotKey,
+  type PeriodSnapshot,
+} from '@/store/usePeriodStore';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { fmtDate, fmtNumber } from '@/lib/format';
@@ -43,17 +50,36 @@ const EMPTY_SLOT: SlotState = {
 };
 
 interface Props {
-  /** Gọi sau khi đã nạp đủ hai slot và lưu vào store. */
+  /** Gọi sau khi đã nạp đủ ≥ 2 slot và lưu vào store. */
   onLoaded?: () => void;
 }
 
+const SLOT_HINTS: Record<PeriodSlotKey, string> = {
+  lastYear: 'Báo cáo 31 chốt 31/12 năm trước (ví dụ 31/12/2025)',
+  lastMonth: 'Báo cáo 31 chốt ngày cuối cùng của tháng trước',
+  now: 'Báo cáo 31 mới nhất hiện có',
+};
+
+/** Gợi ý ngày kỳ vọng cho từng slot, tính theo ngày hôm nay. */
+function expectedDate(key: PeriodSlotKey, today = new Date()): Date | null {
+  const y = today.getFullYear();
+  const m = today.getMonth();
+  if (key === 'lastYear') return new Date(y - 1, 11, 31);
+  if (key === 'lastMonth') return new Date(y, m, 0); // ngày 0 của tháng hiện tại = cuối tháng trước
+  return null;
+}
+
 export function PeriodImportDropzone({ onLoaded }: Props) {
-  const setBoth = usePeriodStore((s) => s.setBoth);
+  const setSlots = usePeriodStore((s) => s.setSlots);
+  const setComparePair = usePeriodStore((s) => s.setComparePair);
   const setError = usePeriodStore((s) => s.setError);
   const error = usePeriodStore((s) => s.error);
 
-  const [prev, setPrev] = useState<SlotState>({ ...EMPTY_SLOT });
-  const [curr, setCurr] = useState<SlotState>({ ...EMPTY_SLOT });
+  const [slots, setSlotState] = useState<Record<PeriodSlotKey, SlotState>>({
+    lastYear: { ...EMPTY_SLOT },
+    lastMonth: { ...EMPTY_SLOT },
+    now: { ...EMPTY_SLOT },
+  });
   const [recents, setRecents] = useState<RecentPeriodPairMeta[] | null>(null);
   const [loadingRecentId, setLoadingRecentId] = useState<string | null>(null);
 
@@ -71,12 +97,19 @@ export function PeriodImportDropzone({ onLoaded }: Props) {
     refreshRecents();
   }, [refreshRecents]);
 
+  const updateSlot = useCallback(
+    (key: PeriodSlotKey, patch: SlotState | ((prev: SlotState) => SlotState)) => {
+      setSlotState((s) => ({
+        ...s,
+        [key]: typeof patch === 'function' ? patch(s[key]) : patch,
+      }));
+    },
+    []
+  );
+
   const parseInto = useCallback(
-    async (
-      file: File,
-      setSlot: React.Dispatch<React.SetStateAction<SlotState>>
-    ) => {
-      setSlot({ ...EMPTY_SLOT, file, loading: true });
+    async (key: PeriodSlotKey, file: File) => {
+      updateSlot(key, { ...EMPTY_SLOT, file, loading: true });
       try {
         const result = await parseExcelFile(file);
         if (!result.ngaySoLieu) {
@@ -84,7 +117,7 @@ export function PeriodImportDropzone({ onLoaded }: Props) {
             'Không xác định được "Ngày số liệu" trong tệp. Hãy chắc chắn tệp là Báo cáo 31 chuẩn.'
           );
         }
-        setSlot({
+        updateSlot(key, {
           file,
           rows: result.rows,
           ngaySoLieu: result.ngaySoLieu,
@@ -92,7 +125,7 @@ export function PeriodImportDropzone({ onLoaded }: Props) {
           error: null,
         });
       } catch (e) {
-        setSlot({
+        updateSlot(key, {
           file,
           rows: null,
           ngaySoLieu: null,
@@ -101,66 +134,89 @@ export function PeriodImportDropzone({ onLoaded }: Props) {
         });
       }
     },
-    []
+    [updateSlot]
+  );
+
+  const readyKeys = useMemo(
+    () =>
+      PERIOD_SLOT_KEYS.filter(
+        (k) => slots[k].rows != null && !slots[k].loading && !slots[k].error
+      ),
+    [slots]
   );
 
   const validateAndCommit = useCallback(async () => {
     setError(null);
-    if (
-      !prev.file ||
-      !curr.file ||
-      !prev.rows ||
-      !curr.rows ||
-      !prev.ngaySoLieu ||
-      !curr.ngaySoLieu
-    ) {
-      setError('Cần nạp đủ hai tệp Báo cáo 31 ở cả hai ô trước khi tiếp tục.');
-      return;
-    }
-    if (prev.ngaySoLieu.getTime() === curr.ngaySoLieu.getTime()) {
-      setError('Hai tệp có cùng "Ngày số liệu". Vui lòng chọn hai kỳ khác nhau.');
-      return;
-    }
-    if (prev.ngaySoLieu.getTime() > curr.ngaySoLieu.getTime()) {
-      setError(
-        `Tệp ở ô "Kỳ trước" (${fmtDate(prev.ngaySoLieu)}) đang muộn hơn ô "Kỳ sau" (${fmtDate(curr.ngaySoLieu)}). Vui lòng đổi vị trí.`
-      );
+    if (readyKeys.length < 2) {
+      setError('Cần nạp đủ ít nhất 2 trong 3 ô (Cuối năm trước / Cuối tháng trước / Hiện tại).');
       return;
     }
 
-    setBoth(
-      {
-        rows: prev.rows,
-        ngaySoLieu: prev.ngaySoLieu,
-        filename: prev.file.name,
-        source: 'file',
-      },
-      {
-        rows: curr.rows,
-        ngaySoLieu: curr.ngaySoLieu,
-        filename: curr.file.name,
-        source: 'file',
+    // Kiểm tra trùng "Ngày số liệu" giữa các slot đã nạp
+    const dateBuckets = new Map<number, PeriodSlotKey[]>();
+    for (const k of readyKeys) {
+      const t = slots[k].ngaySoLieu!.getTime();
+      const arr = dateBuckets.get(t) ?? [];
+      arr.push(k);
+      dateBuckets.set(t, arr);
+    }
+    for (const [, ks] of dateBuckets) {
+      if (ks.length > 1) {
+        setError(
+          `Hai ô có cùng "Ngày số liệu" (${ks.map((k) => PERIOD_SLOT_LABEL[k]).join(', ')}). Vui lòng chọn các kỳ khác nhau.`
+        );
+        return;
       }
-    );
+    }
 
+    // Đẩy vào store
+    const snaps: Partial<Record<PeriodSlotKey, PeriodSnapshot | null>> = {};
+    for (const k of PERIOD_SLOT_KEYS) {
+      const s = slots[k];
+      if (s.rows && s.file && s.ngaySoLieu) {
+        snaps[k] = {
+          rows: s.rows,
+          ngaySoLieu: s.ngaySoLieu,
+          filename: s.file.name,
+          source: 'file',
+        };
+      } else {
+        snaps[k] = null;
+      }
+    }
+    setSlots(snaps);
+
+    // Mặc định cặp so sánh: ưu tiên (lastMonth, now), fallback theo thứ tự thời gian
+    const ordered = readyKeys
+      .slice()
+      .sort((a, b) => slots[a].ngaySoLieu!.getTime() - slots[b].ngaySoLieu!.getTime());
+    const pair: ComparePair =
+      readyKeys.includes('lastMonth') && readyKeys.includes('now')
+        ? { a: 'lastMonth', b: 'now' }
+        : { a: ordered[0], b: ordered[ordered.length - 1] };
+    setComparePair(pair);
+
+    // Lưu toàn bộ slot đã nạp (1–3) vào IndexedDB recents.
     try {
-      await saveRecentPeriodPair({
-        prev: { file: prev.file, rows: prev.rows, ngaySoLieu: prev.ngaySoLieu },
-        curr: { file: curr.file, rows: curr.rows, ngaySoLieu: curr.ngaySoLieu },
-      });
+      const slotsForSave: Parameters<typeof saveRecentPeriodPair>[0]['slots'] = {};
+      for (const k of readyKeys) {
+        const s = slots[k];
+        if (s.file && s.rows) {
+          slotsForSave[k] = {
+            filename: s.file.name,
+            size: s.file.size,
+            rows: s.rows,
+            ngaySoLieu: s.ngaySoLieu,
+          };
+        }
+      }
+      await saveRecentPeriodPair({ slots: slotsForSave });
     } catch (persistErr) {
-      console.warn('Không lưu được cặp tệp:', persistErr);
+      console.warn('Không lưu được bộ tệp:', persistErr);
     }
 
     onLoaded?.();
-  }, [prev, curr, setBoth, setError, onLoaded]);
-
-  const handleSwap = useCallback(() => {
-    setPrev((prevSlot) => {
-      setCurr(prevSlot);
-      return curr;
-    });
-  }, [curr]);
+  }, [slots, readyKeys, setSlots, setComparePair, setError, onLoaded]);
 
   const handleLoadRecent = useCallback(
     async (id: string) => {
@@ -169,32 +225,53 @@ export function PeriodImportDropzone({ onLoaded }: Props) {
       try {
         const result = await loadRecentPeriodPair(id);
         if (!result) {
-          setError('Không tìm thấy cặp tệp đã lưu. Có thể đã bị xóa.');
+          setError('Không tìm thấy bộ tệp đã lưu. Có thể đã bị xóa.');
           await refreshRecents();
           return;
         }
-        setBoth(
-          {
-            rows: result.prevRows,
-            ngaySoLieu: result.meta.prevNgaySoLieu,
-            filename: result.meta.prevFilename,
-            source: 'recent',
-          },
-          {
-            rows: result.currRows,
-            ngaySoLieu: result.meta.currNgaySoLieu,
-            filename: result.meta.currFilename,
-            source: 'recent',
+        // Khôi phục tất cả các slot đã lưu (1–3 slot).
+        const restored: Parameters<typeof setSlots>[0] = {
+          lastYear: null,
+          lastMonth: null,
+          now: null,
+        };
+        for (const k of PERIOD_SLOT_KEYS) {
+          const slotMeta = result.meta.slots[k];
+          const slotRows = result.rows[k];
+          if (slotMeta && slotRows) {
+            restored[k] = {
+              rows: slotRows,
+              ngaySoLieu: slotMeta.ngaySoLieu,
+              filename: slotMeta.filename,
+              source: 'recent',
+            };
           }
-        );
+        }
+        setSlots(restored);
+        // Cặp mặc định: ưu tiên (lastMonth, now); fallback theo thứ tự thời gian
+        const loaded = PERIOD_SLOT_KEYS.filter((k) => restored[k] != null);
+        const pair: ComparePair =
+          loaded.includes('lastMonth') && loaded.includes('now')
+            ? { a: 'lastMonth', b: 'now' }
+            : (() => {
+                const ordered = loaded
+                  .slice()
+                  .sort(
+                    (a, b) =>
+                      (restored[a]!.ngaySoLieu?.getTime() ?? 0) -
+                      (restored[b]!.ngaySoLieu?.getTime() ?? 0)
+                  );
+                return { a: ordered[0], b: ordered[ordered.length - 1] };
+              })();
+        setComparePair(pair);
         onLoaded?.();
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Lỗi khi tải lại cặp tệp');
+        setError(e instanceof Error ? e.message : 'Lỗi khi tải lại bộ tệp');
       } finally {
         setLoadingRecentId(null);
       }
     },
-    [setBoth, setError, onLoaded, refreshRecents]
+    [setSlots, setComparePair, setError, onLoaded, refreshRecents]
   );
 
   const handleRemoveRecent = useCallback(
@@ -211,7 +288,7 @@ export function PeriodImportDropzone({ onLoaded }: Props) {
   );
 
   const handleClearAllRecents = useCallback(async () => {
-    if (!confirm('Xóa toàn bộ danh sách cặp tệp gần đây?')) return;
+    if (!confirm('Xóa toàn bộ danh sách bộ tệp gần đây?')) return;
     try {
       await clearAllRecentPeriodPairs();
       await refreshRecents();
@@ -220,18 +297,15 @@ export function PeriodImportDropzone({ onLoaded }: Props) {
     }
   }, [refreshRecents]);
 
-  const bothReady =
-    !!prev.rows && !!curr.rows && !prev.loading && !curr.loading && !prev.error && !curr.error;
-
   return (
-    <div className="mx-auto max-w-4xl space-y-4">
+    <div className="mx-auto max-w-5xl space-y-4">
       {recents && recents.length > 0 && (
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <History className="h-4 w-4 text-slate-500" />
               <h3 className="text-sm font-semibold text-slate-800">
-                Cặp tệp đã nhập gần đây
+                Bộ tệp đã nhập gần đây
               </h3>
               <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
                 {recents.length}
@@ -248,6 +322,7 @@ export function PeriodImportDropzone({ onLoaded }: Props) {
             {recents.map((it) => {
               const loading = loadingRecentId === it.id;
               const disabled = loadingRecentId !== null;
+              const filledKeys = PERIOD_SLOT_KEYS.filter((k) => it.slots[k] != null);
               return (
                 <div
                   key={it.id}
@@ -262,7 +337,7 @@ export function PeriodImportDropzone({ onLoaded }: Props) {
                     onClick={() => handleLoadRecent(it.id)}
                     disabled={disabled}
                     className="absolute inset-0 rounded-xl"
-                    aria-label={`Mở cặp tệp ${it.prevFilename} → ${it.currFilename}`}
+                    aria-label={`Mở bộ tệp ${filledKeys.length} slot`}
                   />
                   <div className="pointer-events-none rounded-lg bg-white p-2 text-period-700 shadow-sm">
                     {loading ? (
@@ -271,25 +346,34 @@ export function PeriodImportDropzone({ onLoaded }: Props) {
                       <FileSpreadsheet className="h-4 w-4" />
                     )}
                   </div>
-                  <div className="pointer-events-none flex min-w-0 flex-1 items-center gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-xs font-semibold text-slate-800">
-                        {it.prevFilename}
-                      </div>
-                      <div className="text-[10px] text-slate-500">
-                        {fmtDate(it.prevNgaySoLieu)} · {fmtNumber(it.prevTotalRows)} khế ước
-                      </div>
-                    </div>
-                    <ArrowRight className="h-4 w-4 shrink-0 text-period-500" />
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-xs font-semibold text-slate-800">
-                        {it.currFilename}
-                      </div>
-                      <div className="text-[10px] text-slate-500">
-                        {fmtDate(it.currNgaySoLieu)} · {fmtNumber(it.currTotalRows)} khế ước
-                      </div>
-                    </div>
+                  <div className="pointer-events-none flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                    {filledKeys.map((k, idx) => {
+                      const m = it.slots[k]!;
+                      return (
+                        <div key={k} className="flex items-center gap-2">
+                          {idx > 0 && (
+                            <ArrowRight className="h-3.5 w-3.5 shrink-0 text-period-500" />
+                          )}
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="rounded bg-period-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-period-700">
+                                {PERIOD_SLOT_LABEL[k]}
+                              </span>
+                              <span className="truncate text-xs font-semibold text-slate-800">
+                                {m.filename}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-slate-500">
+                              {fmtDate(m.ngaySoLieu)} · {fmtNumber(m.totalRows)} khế ước
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
+                  <span className="pointer-events-none rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                    {filledKeys.length}/3
+                  </span>
                   <button
                     type="button"
                     onClick={(e) => handleRemoveRecent(it.id, e)}
@@ -305,34 +389,27 @@ export function PeriodImportDropzone({ onLoaded }: Props) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-[1fr_auto_1fr]">
-        <Slot
-          label="Kỳ trước"
-          subtitle="Tệp Báo cáo 31 ở thời điểm cũ hơn"
-          state={prev}
-          accent="period"
-          onPick={(file) => parseInto(file, setPrev)}
-          onClear={() => setPrev({ ...EMPTY_SLOT })}
-        />
-        <div className="flex items-center justify-center">
-          <button
-            type="button"
-            onClick={handleSwap}
-            disabled={!prev.file && !curr.file}
-            title="Đổi vị trí hai ô"
-            className="rounded-full border border-slate-200 bg-white p-2 text-slate-500 shadow-sm transition-colors hover:border-period-400 hover:text-period-700 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ArrowLeftRight className="h-4 w-4" />
-          </button>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {PERIOD_SLOT_KEYS.map((key) => (
+          <Slot
+            key={key}
+            slotKey={key}
+            label={PERIOD_SLOT_LABEL[key]}
+            subtitle={SLOT_HINTS[key]}
+            expectedAt={expectedDate(key)}
+            state={slots[key]}
+            onPick={(file) => parseInto(key, file)}
+            onClear={() => updateSlot(key, { ...EMPTY_SLOT })}
+          />
+        ))}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
+        <div>
+          Đã nạp <span className="font-semibold text-slate-700">{readyKeys.length}/3</span> ô.
+          Cần ít nhất 2 ô để vào ứng dụng so sánh.
         </div>
-        <Slot
-          label="Kỳ sau"
-          subtitle="Tệp Báo cáo 31 ở thời điểm mới hơn"
-          state={curr}
-          accent="period"
-          onPick={(file) => parseInto(file, setCurr)}
-          onClear={() => setCurr({ ...EMPTY_SLOT })}
-        />
+        <div>Trong ứng dụng có thể đổi cặp đang so sánh bất kỳ lúc nào.</div>
       </div>
 
       {error && (
@@ -345,7 +422,7 @@ export function PeriodImportDropzone({ onLoaded }: Props) {
       <div className="flex justify-end">
         <Button
           onClick={validateAndCommit}
-          disabled={!bothReady}
+          disabled={readyKeys.length < 2}
           className="bg-period-700 hover:bg-period-800"
         >
           <ArrowRight className="h-4 w-4" /> Vào ứng dụng so sánh
@@ -356,18 +433,25 @@ export function PeriodImportDropzone({ onLoaded }: Props) {
 }
 
 interface SlotProps {
+  slotKey: PeriodSlotKey;
   label: string;
   subtitle: string;
+  expectedAt: Date | null;
   state: SlotState;
-  accent: 'period';
   onPick: (file: File) => void;
   onClear: () => void;
 }
 
-function Slot({ label, subtitle, state, onPick, onClear }: SlotProps) {
+function Slot({ label, subtitle, expectedAt, state, onPick, onClear }: SlotProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
   const ready = !!state.rows && !state.loading && !state.error;
+
+  // Cảnh báo nhẹ nếu Ngày số liệu lệch xa kỳ vọng (chỉ thông báo, không chặn)
+  const dateMismatch = useMemo(() => {
+    if (!ready || !expectedAt || !state.ngaySoLieu) return false;
+    return state.ngaySoLieu.getTime() !== expectedAt.getTime();
+  }, [ready, expectedAt, state.ngaySoLieu]);
 
   return (
     <div
@@ -383,7 +467,7 @@ function Slot({ label, subtitle, state, onPick, onClear }: SlotProps) {
         if (f) onPick(f);
       }}
       className={cn(
-        'relative flex min-h-[200px] flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed bg-white p-6 text-center transition-colors',
+        'relative flex min-h-[210px] flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed bg-white p-6 text-center transition-colors',
         ready
           ? 'border-emerald-300 bg-emerald-50/40'
           : drag
@@ -399,6 +483,11 @@ function Slot({ label, subtitle, state, onPick, onClear }: SlotProps) {
       >
         {label}
       </div>
+      {expectedAt && (
+        <div className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">
+          <Calendar className="h-2.5 w-2.5" /> Mong đợi {fmtDate(expectedAt)}
+        </div>
+      )}
 
       {ready ? (
         <>
@@ -412,6 +501,11 @@ function Slot({ label, subtitle, state, onPick, onClear }: SlotProps) {
             <div className="text-xs text-slate-500">
               {fmtDate(state.ngaySoLieu)} · {fmtNumber(state.rows?.length ?? 0)} khế ước
             </div>
+            {dateMismatch && (
+              <div className="mx-auto mt-1 max-w-xs rounded-md bg-amber-50 px-2 py-1 text-[10px] text-amber-700">
+                Ngày không khớp với mong đợi {fmtDate(expectedAt)}. Vẫn dùng được nhưng hãy kiểm tra lại tệp.
+              </div>
+            )}
           </div>
           <button
             type="button"

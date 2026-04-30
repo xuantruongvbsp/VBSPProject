@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Outlet, useNavigate, Navigate } from 'react-router-dom';
 import {
   Activity,
@@ -11,11 +11,22 @@ import {
   GitCompareArrows,
   ArrowLeft,
   RefreshCw,
+  ArrowRight,
+  Upload,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { usePeriodStore } from '@/store/usePeriodStore';
+import {
+  usePeriodStore,
+  PERIOD_SLOT_KEYS,
+  PERIOD_SLOT_LABEL,
+  type PeriodSlotKey,
+  type PeriodSnapshot,
+} from '@/store/usePeriodStore';
 import { useIsOwner } from '@/store/useAuthStore';
 import { fmtDate } from '@/lib/format';
+import { parseExcelFile } from '@/data/parser';
+import { saveRecentPeriodPair } from '@/lib/recent-period-pairs';
 import { PeriodImportDropzone } from '@/components/import/PeriodImportDropzone';
 import { ViewerEmptyState } from '@/components/auth/ViewerEmptyState';
 import { PublishButton } from '@/components/owner/PublishButton';
@@ -32,31 +43,124 @@ const navItems = [
 
 /**
  * Lớp bao trang ngoài cùng cho ứng dụng "So sánh giữa hai kỳ".
- * Khi chưa có cả hai snapshot, hiển thị `PeriodImportDropzone` thay vì
+ * Khi chưa có ≥2 trong 3 slot, hiển thị `PeriodImportDropzone` thay vì
  * sidebar — buộc người dùng nhập đủ tệp trước khi vào sâu.
  */
 export function PeriodShell() {
+  const lastYear = usePeriodStore((s) => s.lastYear);
+  const lastMonth = usePeriodStore((s) => s.lastMonth);
+  const nowSnap = usePeriodStore((s) => s.now);
   const prev = usePeriodStore((s) => s.prev);
   const curr = usePeriodStore((s) => s.curr);
+  const comparePair = usePeriodStore((s) => s.comparePair);
+  const setComparePair = usePeriodStore((s) => s.setComparePair);
+  const setSlot = usePeriodStore((s) => s.setSlot);
   const reset = usePeriodStore((s) => s.reset);
   const navigate = useNavigate();
   const isOwner = useIsOwner();
 
-  // Khi cả hai slot đã có dữ liệu, đảm bảo URL nằm trong vùng /period.
+  // Trạng thái thay tệp tại chỗ cho từng slot — không dùng store để tránh
+  // ô loading nhấp nháy trong các trang con khác.
+  const [replacing, setReplacing] = useState<PeriodSlotKey | null>(null);
+  const [replaceError, setReplaceError] = useState<string | null>(null);
+  const fileInputs = useRef<Record<PeriodSlotKey, HTMLInputElement | null>>({
+    lastYear: null,
+    lastMonth: null,
+    now: null,
+  });
+
+  const slotMap = useMemo(
+    () => ({ lastYear, lastMonth, now: nowSnap }),
+    [lastYear, lastMonth, nowSnap]
+  );
+  const loadedKeys = useMemo(
+    () => PERIOD_SLOT_KEYS.filter((k) => slotMap[k] != null),
+    [slotMap]
+  );
+  const ready = loadedKeys.length >= 2 && !!prev && !!curr;
+
+  // Khi đã đủ dữ liệu, đảm bảo URL nằm trong vùng /period.
   useEffect(() => {
-    if (prev && curr && window.location.pathname === '/period') {
+    if (ready && window.location.pathname === '/period') {
       navigate('/period/dien-bien', { replace: true });
     }
-  }, [prev, curr, navigate]);
+  }, [ready, navigate]);
 
-  if (!prev || !curr) {
+  /**
+   * Thay thế tại chỗ một tệp ở slot cụ thể — không xóa các slot còn lại,
+   * không thoát khỏi ứng dụng. Sau khi parse thành công sẽ cập nhật store
+   * và lưu lại bản ghi recents (dưới ID mới do filename/ngày đổi).
+   */
+  const handleReplaceSlot = useCallback(
+    async (key: PeriodSlotKey, file: File) => {
+      setReplaceError(null);
+      setReplacing(key);
+      try {
+        const result = await parseExcelFile(file);
+        if (!result.ngaySoLieu) {
+          throw new Error(
+            'Không xác định được "Ngày số liệu" trong tệp. Hãy chắc chắn tệp là Báo cáo 31 chuẩn.'
+          );
+        }
+        // Chặn trùng ngày với các slot còn lại đang còn dữ liệu.
+        const otherKeys = PERIOD_SLOT_KEYS.filter((k) => k !== key);
+        for (const k of otherKeys) {
+          const other = slotMap[k];
+          if (
+            other?.ngaySoLieu &&
+            other.ngaySoLieu.getTime() === result.ngaySoLieu.getTime()
+          ) {
+            throw new Error(
+              `Tệp mới có cùng "Ngày số liệu" với ô ${PERIOD_SLOT_LABEL[k]}. Hãy chọn kỳ khác.`
+            );
+          }
+        }
+        const snap: PeriodSnapshot = {
+          rows: result.rows,
+          ngaySoLieu: result.ngaySoLieu,
+          filename: file.name,
+          source: 'file',
+        };
+        setSlot(key, snap);
+        // Lưu lại recents với toàn bộ slot hiện tại (gồm slot vừa thay).
+        const next: Record<PeriodSlotKey, PeriodSnapshot | null> = {
+          ...slotMap,
+          [key]: snap,
+        };
+        try {
+          const slotsForSave: Parameters<typeof saveRecentPeriodPair>[0]['slots'] = {};
+          for (const k of PERIOD_SLOT_KEYS) {
+            const s = next[k];
+            if (s) {
+              slotsForSave[k] = {
+                filename: s.filename,
+                size: k === key ? file.size : undefined,
+                rows: s.rows,
+                ngaySoLieu: s.ngaySoLieu,
+              };
+            }
+          }
+          await saveRecentPeriodPair({ slots: slotsForSave });
+        } catch (err) {
+          console.warn('Không lưu được bộ tệp (sau khi thay slot):', err);
+        }
+      } catch (e) {
+        setReplaceError(e instanceof Error ? e.message : 'Lỗi khi xử lý tệp');
+      } finally {
+        setReplacing(null);
+      }
+    },
+    [slotMap, setSlot]
+  );
+
+  if (!ready) {
     // Người xem: không bao giờ thấy ô nhập tệp
     if (!isOwner) {
       return <ViewerEmptyState app="period" />;
     }
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-period-50/30 px-6 py-12">
-        <div className="mx-auto max-w-4xl">
+        <div className="mx-auto max-w-5xl">
           <button
             type="button"
             onClick={() => navigate('/')}
@@ -72,12 +176,13 @@ export function PeriodShell() {
               </span>
             </div>
             <h1 className="text-2xl font-bold text-slate-900">
-              Nhập hai tệp Báo cáo 31 để bắt đầu so sánh
+              Nhập tối đa 3 tệp Báo cáo 31 — chọn 2 để so sánh
             </h1>
             <p className="mt-2 text-sm text-slate-600">
-              Đặt tệp ở kỳ trước (thời điểm cũ hơn) vào ô bên trái và tệp ở kỳ sau vào ô bên phải.
-              Hệ thống sẽ tự kiểm tra <span className="whitespace-nowrap">"Ngày số liệu"</span>{' '}
-              của hai tệp.
+              Ba ô gồm{' '}
+              <span className="whitespace-nowrap">"Cuối năm trước" (31/12 năm trước)</span>,{' '}
+              <span className="whitespace-nowrap">"Cuối tháng trước"</span> và{' '}
+              <span className="whitespace-nowrap">"Hiện tại"</span>. Cần nạp ít nhất 2 ô để vào ứng dụng.
             </p>
           </header>
           <PeriodImportDropzone
@@ -138,20 +243,118 @@ export function PeriodShell() {
         </nav>
 
         <div className="border-t border-slate-200 p-4">
-          <div className="text-[11px] uppercase tracking-wide text-slate-500">Hai kỳ đang so sánh</div>
-          <div className="mt-1 space-y-1 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-500">Kỳ trước:</span>
-              <span className="font-semibold text-slate-700">{fmtDate(prev.ngaySoLieu)}</span>
+          <div className="text-[11px] uppercase tracking-wide text-slate-500">
+            Chọn 2 kỳ để so sánh
+          </div>
+          <div className="mt-2 space-y-1.5">
+            {PERIOD_SLOT_KEYS.map((key) => {
+              const snap = slotMap[key];
+              const role: 'a' | 'b' | null =
+                comparePair.a === key ? 'a' : comparePair.b === key ? 'b' : null;
+              const isReplacing = replacing === key;
+              return (
+                <div
+                  key={key}
+                  className={cn(
+                    'flex items-center gap-1 rounded-md border px-1 py-0.5 text-[11px] transition-colors',
+                    !snap && 'border-dashed border-slate-200 text-slate-400',
+                    snap && role === 'a' && 'border-slate-400 bg-slate-100 text-slate-800',
+                    snap && role === 'b' && 'border-period-400 bg-period-50 text-period-800',
+                    snap && role === null && 'border-slate-200 text-slate-600'
+                  )}
+                >
+                  <button
+                    type="button"
+                    disabled={!snap || isReplacing}
+                    onClick={() => onPickSlot(key, comparePair, setComparePair)}
+                    className={cn(
+                      'flex flex-1 items-center justify-between gap-2 rounded px-1 py-1 text-left',
+                      snap && role === null && 'hover:bg-period-50'
+                    )}
+                    title={
+                      !snap
+                        ? 'Slot này chưa có dữ liệu — dùng nút bên cạnh để nạp tệp'
+                        : role
+                          ? `Đang dùng làm Kỳ ${role.toUpperCase()} — bấm để đảo vai trò`
+                          : 'Bấm để dùng làm Kỳ B (mới hơn)'
+                    }
+                  >
+                    <span className="flex items-center gap-1.5">
+                      {role && (
+                        <span
+                          className={cn(
+                            'inline-flex h-4 w-4 items-center justify-center rounded text-[9px] font-bold',
+                            role === 'a' ? 'bg-slate-700 text-white' : 'bg-period-700 text-white'
+                          )}
+                        >
+                          {role.toUpperCase()}
+                        </span>
+                      )}
+                      <span className="font-semibold">{PERIOD_SLOT_LABEL[key]}</span>
+                    </span>
+                    <span
+                      className={cn(
+                        'text-[10px]',
+                        !snap
+                          ? 'text-slate-400'
+                          : role === 'b'
+                            ? 'text-period-700'
+                            : 'text-slate-500'
+                      )}
+                    >
+                      {snap ? fmtDate(snap.ngaySoLieu) : 'trống'}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isReplacing}
+                    onClick={() => fileInputs.current[key]?.click()}
+                    title={snap ? `Thay tệp ${PERIOD_SLOT_LABEL[key]}` : `Nạp tệp ${PERIOD_SLOT_LABEL[key]}`}
+                    aria-label={`Thay tệp ${PERIOD_SLOT_LABEL[key]}`}
+                    className={cn(
+                      'inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-slate-400 transition-colors',
+                      !isReplacing && 'hover:bg-period-100 hover:text-period-700',
+                      isReplacing && 'cursor-not-allowed text-period-500'
+                    )}
+                  >
+                    {isReplacing ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                  <input
+                    ref={(el) => {
+                      fileInputs.current[key] = el;
+                    }}
+                    type="file"
+                    accept=".xlsx,.xls"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) {
+                        handleReplaceSlot(key, f);
+                        // reset input để có thể chọn lại cùng tệp
+                        e.target.value = '';
+                      }
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+          {replaceError && (
+            <div className="mt-2 rounded-md border border-rose-200 bg-rose-50 px-2 py-1.5 text-[10px] text-rose-700">
+              {replaceError}
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-slate-500">Kỳ sau:</span>
-              <span className="font-semibold text-period-700">{fmtDate(curr.ngaySoLieu)}</span>
-            </div>
-            <div className="text-[10px] text-slate-400">
-              {prev.rows.length.toLocaleString('vi-VN')} → {curr.rows.length.toLocaleString('vi-VN')}{' '}
-              khế ước
-            </div>
+          )}
+          <div className="mt-2 flex items-center gap-1 text-[10px] text-slate-500">
+            <span className="font-semibold text-slate-700">Kỳ A</span>
+            <ArrowRight className="h-3 w-3" />
+            <span className="font-semibold text-period-700">Kỳ B</span>
+            <span className="ml-auto text-slate-400">
+              {prev.rows.length.toLocaleString('vi-VN')} → {curr.rows.length.toLocaleString('vi-VN')}
+            </span>
           </div>
           {isOwner && (
             <>
@@ -162,7 +365,7 @@ export function PeriodShell() {
                 }}
                 className="mt-3 inline-flex items-center gap-1 text-xs text-slate-500 hover:text-rose-600"
               >
-                <RefreshCw className="h-3 w-3" /> Đổi cặp tệp
+                <RefreshCw className="h-3 w-3" /> Đổi tệp
               </button>
               <div className="mt-3">
                 <PublishButton kind="period" />
@@ -177,4 +380,25 @@ export function PeriodShell() {
       </main>
     </div>
   );
+}
+
+/**
+ * Quy tắc bấm chip slot:
+ *  - Bấm chip đang là Kỳ A: chuyển nó thành Kỳ B (và ngược lại) — đảo vai trò
+ *    trong cùng cặp.
+ *  - Bấm chip ngoài cặp: thay thế Kỳ B (kỳ mới hơn / phía right) bằng slot này;
+ *    Kỳ A giữ nguyên. Nếu vô tình trùng A thì rơi sang Kỳ A.
+ */
+function onPickSlot(
+  key: PeriodSlotKey,
+  pair: { a: PeriodSlotKey; b: PeriodSlotKey },
+  setComparePair: (p: { a: PeriodSlotKey; b: PeriodSlotKey }) => void
+): void {
+  if (key === pair.a) {
+    setComparePair({ a: pair.b, b: key });
+  } else if (key === pair.b) {
+    setComparePair({ a: key, b: pair.a });
+  } else {
+    setComparePair({ a: pair.a, b: key });
+  }
 }

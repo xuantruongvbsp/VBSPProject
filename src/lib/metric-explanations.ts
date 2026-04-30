@@ -116,14 +116,14 @@ export const METRIC_EXPLANATIONS: Record<string, MetricExplanation> = {
     note: 'Phản ánh tỷ trọng đóng góp của từng phòng giao dịch vào tổng danh mục.',
   },
   chartHistogram: {
-    title: 'Phân bố mức vay',
+    title: 'Phân bố tổng dư nợ',
     definition:
-      'Số lượng khế ước hoặc khách hàng phân theo các khoảng giá trị mức vay: < 10tr, 10–30tr, 30–50tr, 50–100tr, 100–200tr, ≥ 200tr.',
+      'Số lượng khế ước hoặc khách hàng phân theo các khoảng giá trị tổng dư nợ hiện tại: < 10tr, 10–30tr, 30–50tr, 50–100tr, 100–200tr, ≥ 200tr.',
     formula:
-      'Chế độ "Khế ước": đếm số khế ước có "Mức vay" rơi vào từng khoảng. ' +
-      'Chế độ "Khách hàng": gom theo Mã KH, cộng tổng "Mức vay" của tất cả khế ước thuộc cùng khách hàng, rồi đếm số khách hàng theo khoảng tổng đó. ' +
-      'Dữ liệu lấy từ Báo cáo 31 sau khi áp bộ lọc.',
-    note: 'Chuyển giữa "Khế ước" và "Khách hàng" để so sánh phân bố theo món vay với phân bố theo tổng mức vay của mỗi khách.',
+      'Chế độ "Khế ước": đếm số khế ước có "Tổng dư nợ" rơi vào từng khoảng. ' +
+      'Chế độ "Khách hàng": gom theo Mã KH, cộng tổng "Tổng dư nợ" của tất cả khế ước thuộc cùng khách hàng, rồi đếm số khách hàng theo khoảng tổng đó. ' +
+      'Loại các khế ước có "Tình trạng món vay" rỗng (dữ liệu rác). Dữ liệu lấy từ Báo cáo 31 sau khi áp bộ lọc.',
+    note: 'Chuyển giữa "Khế ước" và "Khách hàng" để so sánh phân bố theo món vay với phân bố theo tổng dư nợ của mỗi khách.',
   },
   chartTimeSeries: {
     title: 'Giải ngân theo thời gian',
@@ -547,10 +547,19 @@ export const METRIC_EXPLANATIONS: Record<string, MetricExplanation> = {
     note: 'Nhấp vào một dòng để xem danh sách khế ước của xã trong Tra cứu chi tiết.',
   },
   chartNplTop: {
-    title: 'Top 20 khế ước quá hạn lớn nhất',
+    title: 'Danh sách khế ước quá hạn',
     definition:
-      'Danh sách 20 khế ước có dư nợ quá hạn lớn nhất theo bộ lọc hiện hành — để tập trung xử lý trước.',
-    formula: 'Lọc các khế ước có "Dư nợ quá hạn" > 0, sắp xếp giảm dần, lấy 20 khế ước đầu.',
+      'Toàn bộ khế ước có "Dư nợ quá hạn" > 0 theo bộ lọc hiện hành, sắp xếp giảm dần theo "Dư nợ quá hạn". Hỗ trợ tìm kiếm nhanh và phân trang 10 khế ước/trang.',
+    formula:
+      'Lọc các khế ước có "Dư nợ quá hạn" > 0, sắp xếp giảm dần. Ô tìm kiếm so khớp tên KH, mã KH, số khế ước, xã, ĐVUT, tổ và chương trình.',
+    note: 'Nhấp vào một dòng để mở ngăn chi tiết toàn bộ thông tin khế ước. Nút "Xuất Excel" luôn xuất đầy đủ danh sách (không bị giới hạn bởi từ khóa hay trang hiện tại).',
+  },
+  chartNplChuyenNQHThang: {
+    title: 'Danh sách chuyển NQH trong tháng',
+    definition:
+      'Khế ước có "Ngày ĐH theo GDXA" rơi vào tháng của ngày chốt số liệu và "Tình trạng món vay" = OPEN — tức là khế ước đến hạn cuối cùng và đã/đang chuyển sang nợ quá hạn trong tháng.',
+    formula:
+      'Lọc các khế ước thoả mãn: month(ngayDHGDXA) = month(ngaySoLieu) & year(ngayDHGDXA) = year(ngaySoLieu) & tinhTrangMonVay = "OPEN". Sắp xếp tăng dần theo Ngày ĐH GDXA.',
     note: 'Nhấp vào một dòng để mở ngăn chi tiết toàn bộ thông tin khế ước.',
   },
 

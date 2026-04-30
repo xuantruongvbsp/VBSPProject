@@ -13,7 +13,7 @@ export type FilterField =
   | 'nguonVon'
   | 'tenTo'
   | 'hinhThucVay'
-  // Chỉ dùng cho drill-down (ví dụ từ biểu đồ "Phân bố mức vay" theo khách hàng).
+  // Chỉ dùng cho drill-down (ví dụ từ biểu đồ "Phân bố tổng dư nợ" theo khách hàng).
   // Không xuất hiện trong FilterBar thủ công — người dùng không thể tự thêm.
   | 'maKH';
 
@@ -32,6 +32,7 @@ export interface ActiveFilter {
 
 export interface RangeFilters {
   mucVay: [number, number] | null;
+  tongDuNo: [number, number] | null;
   laiSuat: [number, number] | null;
   ngayVay: [string, string] | null; // ISO yyyy-mm-dd
   ngayDaoHan: [string, string] | null; // ISO yyyy-mm-dd — so khớp trên ngayDHGDXA (đồng bộ với heatmap & Explorer)
@@ -97,7 +98,7 @@ export const useDataStore = create<State>((set) => ({
   isLoading: false,
   error: null,
   filters: [],
-  ranges: { mucVay: null, laiSuat: null, ngayVay: null, ngayDaoHan: null },
+  ranges: { mucVay: null, tongDuNo: null, laiSuat: null, ngayVay: null, ngayDaoHan: null },
   search: { q: '' },
   drillRangeKeys: [],
 
@@ -110,7 +111,7 @@ export const useDataStore = create<State>((set) => ({
       rows: [],
       ngaySoLieu: null,
       filters: [],
-      ranges: { mucVay: null, laiSuat: null, ngayVay: null, ngayDaoHan: null },
+      ranges: { mucVay: null, tongDuNo: null, laiSuat: null, ngayVay: null, ngayDaoHan: null },
       search: { q: '' },
       drillRangeKeys: [],
       error: null,
@@ -142,7 +143,7 @@ export const useDataStore = create<State>((set) => ({
   clearFilters: () =>
     set({
       filters: [],
-      ranges: { mucVay: null, laiSuat: null, ngayVay: null, ngayDaoHan: null },
+      ranges: { mucVay: null, tongDuNo: null, laiSuat: null, ngayVay: null, ngayDaoHan: null },
       search: { q: '' },
       drillRangeKeys: [],
     }),
@@ -227,6 +228,10 @@ export function applyFilters(
   if (ranges.mucVay) {
     const [a, b] = ranges.mucVay;
     out = out.filter((r) => r.mucVay >= a && r.mucVay <= b);
+  }
+  if (ranges.tongDuNo) {
+    const [a, b] = ranges.tongDuNo;
+    out = out.filter((r) => r.tongDuNo >= a && r.tongDuNo <= b);
   }
   if (ranges.laiSuat) {
     const [a, b] = ranges.laiSuat;

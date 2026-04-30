@@ -250,7 +250,7 @@ const DORMANT_COLUMNS: {
 
 // ─── Xuất danh sách NPL / Khoanh ──────────────────────────────────────────
 
-export type BadDebtKind = 'qh' | 'khoanh';
+export type BadDebtKind = 'qh' | 'khoanh' | 'chuyenNQHThang';
 
 export interface BadDebtXlsxInput {
   /** Loại báo cáo: 'qh' = quá hạn (NPL), 'khoanh' = dư nợ khoanh */
@@ -304,9 +304,22 @@ export async function exportBadDebtToXlsx(input: BadDebtXlsxInput): Promise<void
   const { kind, loans, referenceDate, totalFilteredRows, filename } = input;
   const wb = XLSX.utils.book_new();
 
-  const sumField = kind === 'qh' ? 'duNoQuaHan' : 'duNoKhoanh';
-  const label = kind === 'qh' ? 'Dư nợ quá hạn (NPL)' : 'Dư nợ khoanh';
-  const sortedLoans = [...loans].sort((a, b) => b[sumField] - a[sumField]);
+  const sumField =
+    kind === 'khoanh' ? 'duNoKhoanh' : 'duNoQuaHan';
+  const label =
+    kind === 'qh'
+      ? 'Dư nợ quá hạn (NPL)'
+      : kind === 'khoanh'
+        ? 'Dư nợ khoanh'
+        : 'Danh sách chuyển NQH trong tháng';
+  const sortedLoans =
+    kind === 'chuyenNQHThang'
+      ? [...loans].sort((a, b) => {
+          const da = a.ngayDHGDXA?.getTime() ?? 0;
+          const db = b.ngayDHGDXA?.getTime() ?? 0;
+          return da - db;
+        })
+      : [...loans].sort((a, b) => b[sumField] - a[sumField]);
 
   const totalAmount = sortedLoans.reduce((s, r) => s + r[sumField], 0);
   const khUnique = new Set(sortedLoans.map((r) => r.maKH).filter(Boolean)).size;
@@ -321,7 +334,7 @@ export async function exportBadDebtToXlsx(input: BadDebtXlsxInput): Promise<void
     [`Số khế ước trong báo cáo: ${fmtNumber(sortedLoans.length)}`],
     [`Số khách hàng liên quan: ${fmtNumber(khUnique)}`],
     [
-      `Tổng ${kind === 'qh' ? 'dư nợ quá hạn' : 'dư nợ khoanh'}: ${fmtCurrency(totalAmount)}`,
+      `Tổng ${kind === 'khoanh' ? 'dư nợ khoanh' : 'dư nợ quá hạn'}: ${fmtCurrency(totalAmount)}`,
     ],
     [
       `Ngày xuất báo cáo: ${fmtDate(generated)} ${String(generated.getHours()).padStart(2, '0')}:${String(generated.getMinutes()).padStart(2, '0')}`,
@@ -331,7 +344,9 @@ export async function exportBadDebtToXlsx(input: BadDebtXlsxInput): Promise<void
     [
       kind === 'qh'
         ? 'Danh sách được sắp xếp giảm dần theo "Dư nợ quá hạn". "Ngày chuyển NQH" lấy từ "Ngày ĐH theo GDXA".'
-        : 'Danh sách được sắp xếp giảm dần theo "Dư nợ khoanh". "Ngày chuyển NQH" lấy từ "Ngày ĐH theo GDXA".',
+        : kind === 'khoanh'
+          ? 'Danh sách được sắp xếp giảm dần theo "Dư nợ khoanh". "Ngày chuyển NQH" lấy từ "Ngày ĐH theo GDXA".'
+          : 'Khế ước có "Ngày ĐH theo GDXA" rơi vào tháng của ngày chốt số liệu và "Tình trạng món vay" = OPEN. Sắp xếp tăng dần theo "Ngày ĐH theo GDXA".',
     ],
   ];
   const ctxWs = XLSX.utils.aoa_to_sheet(ctx);
@@ -366,7 +381,13 @@ export async function exportBadDebtToXlsx(input: BadDebtXlsxInput): Promise<void
       wch: Math.min(Math.max(c.header.length + 2, 14), 40),
     })),
   ];
-  const sheetName = safeSheetName(kind === 'qh' ? 'Danh sách NPL' : 'Danh sách khoanh');
+  const sheetName = safeSheetName(
+    kind === 'qh'
+      ? 'Danh sách NPL'
+      : kind === 'khoanh'
+        ? 'Danh sách khoanh'
+        : 'Chuyển NQH trong tháng'
+  );
   XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
   const out = filename ?? defaultFilename(label, 'xlsx');
