@@ -84,6 +84,7 @@ export interface GroupAgg {
   duNoQuaHan: number;
   duNoKhoanh: number;
   tyLeNoQH: number;
+  tyLeKhoanh: number;
   laiTonTH: number;
   thuLaiTHThang: number;
   /**
@@ -95,11 +96,14 @@ export interface GroupAgg {
 
 export function groupBy(
   rows: LoanRecord[],
-  field: keyof LoanRecord
+  field: keyof LoanRecord | ((r: LoanRecord) => string)
 ): GroupAgg[] {
+  const getKey = typeof field === 'function'
+    ? field
+    : (r: LoanRecord) => String(r[field] ?? '—') || '—';
   const map = new Map<string, GroupAgg & { _kh: Set<string> }>();
   for (const r of rows) {
-    const key = String(r[field] ?? '—') || '—';
+    const key = getKey(r) || '—';
     let g = map.get(key);
     if (!g) {
       g = {
@@ -112,6 +116,7 @@ export function groupBy(
         duNoQuaHan: 0,
         duNoKhoanh: 0,
         tyLeNoQH: 0,
+        tyLeKhoanh: 0,
         laiTonTH: 0,
         thuLaiTHThang: 0,
         _kh: new Set<string>(),
@@ -131,6 +136,7 @@ export function groupBy(
   for (const g of map.values()) {
     g.soKhachHang = g._kh.size;
     g.tyLeNoQH = g.tongDuNo > 0 ? (g.duNoQuaHan / g.tongDuNo) * 100 : 0;
+    g.tyLeKhoanh = g.tongDuNo > 0 ? (g.duNoKhoanh / g.tongDuNo) * 100 : 0;
     const { _kh, ...rest } = g;
     out.push(rest);
   }
@@ -204,6 +210,7 @@ export function groupByAge(rows: LoanRecord[], refDate: Date): GroupAgg[] {
         duNoQuaHan: 0,
         duNoKhoanh: 0,
         tyLeNoQH: 0,
+        tyLeKhoanh: 0,
         laiTonTH: 0,
         thuLaiTHThang: 0,
         _kh: new Set<string>(),
@@ -230,6 +237,7 @@ export function groupByAge(rows: LoanRecord[], refDate: Date): GroupAgg[] {
     if (!g) continue;
     g.soKhachHang = g._kh.size;
     g.tyLeNoQH = g.tongDuNo > 0 ? (g.duNoQuaHan / g.tongDuNo) * 100 : 0;
+    g.tyLeKhoanh = g.tongDuNo > 0 ? (g.duNoKhoanh / g.tongDuNo) * 100 : 0;
     const { _kh, _maKHs, ...rest } = g;
     out.push({ ...rest, maKHs: Array.from(_maKHs) });
   }

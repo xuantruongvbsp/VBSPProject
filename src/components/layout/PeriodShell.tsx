@@ -6,6 +6,7 @@ import {
   ShieldCheck,
   TrendingUpDown,
   Users2,
+  UserCheck,
   Table,
   Megaphone,
   GitCompareArrows,
@@ -37,6 +38,7 @@ const navItems = [
   { to: '/period/chat-luong', label: 'Chất lượng tài sản', icon: ShieldCheck },
   { to: '/period/top-bien-dong', label: 'Top tăng / giảm', icon: TrendingUpDown },
   { to: '/period/hoi-doan-the', label: 'Hội đoàn thể & Tổ', icon: Users2 },
+  { to: '/period/can-bo', label: 'So sánh hiệu quả cán bộ', icon: UserCheck },
   { to: '/period/khe-uoc', label: 'Bảng khế ước biến động', icon: Table },
   { to: '/period/khach-hang', label: 'Outreach & khách hàng', icon: Megaphone },
 ];

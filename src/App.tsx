@@ -13,7 +13,9 @@ import { NplPage } from '@/pages/Npl';
 import { KhoanhPage } from '@/pages/Khoanh';
 import { DoanhSoPage } from '@/pages/DoanhSo';
 import { StaffPage } from '@/pages/Staff';
+import { StaffPerformancePage } from '@/pages/StaffPerformance';
 import { TxnPointPage } from '@/pages/TxnPoint';
+import { TxnPointPerformancePage } from '@/pages/TxnPointPerformance';
 import { Lobby } from '@/pages/Lobby';
 import { PeriodShell } from '@/components/layout/PeriodShell';
 import { PeriodOverviewPage } from '@/pages/period/PeriodOverview';
@@ -23,6 +25,7 @@ import { PeriodMoversPage } from '@/pages/period/PeriodMovers';
 import { PeriodOrgGroupsPage } from '@/pages/period/PeriodOrgGroups';
 import { PeriodExplorerPage } from '@/pages/period/PeriodExplorer';
 import { PeriodOutreachPage } from '@/pages/period/PeriodOutreach';
+import { PeriodStaffComparisonPage } from '@/pages/period/PeriodStaffComparison';
 import { CreditPlanShell } from '@/components/layout/CreditPlanShell';
 import { PlanManager } from '@/pages/credit-plan/PlanManager';
 import { ActualImport } from '@/pages/credit-plan/ActualImport';
@@ -71,7 +74,9 @@ function SnapshotApp() {
         <Route path="so-sanh" element={<ComparePage />} />
         <Route path="du-lieu" element={<ExplorerPage />} />
         <Route path="can-bo" element={<StaffPage />} />
+        <Route path="can-bo-bao-cao" element={<StaffPerformancePage />} />
         <Route path="diem-giao-dich" element={<TxnPointPage />} />
+        <Route path="dgd-bao-cao" element={<TxnPointPerformancePage />} />
       </Route>
     </Routes>
   );
@@ -136,6 +141,7 @@ export default function App() {
         <Route path="hoi-doan-the" element={<PeriodOrgGroupsPage />} />
         <Route path="khe-uoc" element={<PeriodExplorerPage />} />
         <Route path="khach-hang" element={<PeriodOutreachPage />} />
+        <Route path="can-bo" element={<PeriodStaffComparisonPage />} />
       </Route>
 
       {/* Mọi đường dẫn lạ → quay về lobby */}

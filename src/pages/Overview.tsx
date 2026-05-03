@@ -23,6 +23,9 @@ import {
   X,
 } from 'lucide-react';
 import { applyFilters, useDataStore, type FilterField } from '@/store/useDataStore';
+import { useStaffStore } from '@/store/useStaffStore';
+import { useTxnPointStore } from '@/store/useTxnPointStore';
+import { makeStaffKeyExtractor, STAFF_AMBIGUOUS, STAFF_UNASSIGNED } from '@/lib/thon-coverage';
 import {
   computeKpi,
   groupBy,
@@ -117,8 +120,13 @@ export function OverviewPage() {
   const [detail, setDetail] = useState<LoanRecord | null>(null);
   const [dormantExporting, setDormantExporting] = useState(false);
   const [stackedType, setStackedType] = useState<StackedChartType>('percent');
+  const [stackedCBTDType, setStackedCBTDType] = useState<StackedChartType>('percent');
   const [barGroupType, setBarGroupType] = useState<BarGroupChartType>('bar');
   const [barXaType, setBarXaType] = useState<BarGroupChartType>('bar');
+
+  const staff = useStaffStore((s) => s.staff);
+  const selectStaff = useStaffStore((s) => s.selectStaff);
+  const points = useTxnPointStore((s) => s.points);
 
   const [lineType, setLineType] = useState<LineChartType>('area');
   const [histType, setHistType] = useState<HistogramChartType>('hbar');
@@ -198,6 +206,31 @@ export function OverviewPage() {
   const byProgram = useMemo(() => groupBy(filtered, 'tenChuongTrinh'), [filtered]);
   const byDVUT = useMemo(() => groupBy(filtered, 'tenDVUT'), [filtered]);
   const byXa = useMemo(() => groupBy(filtered, 'tenXa'), [filtered]);
+
+  // Dư nợ theo CBTD — chỉ tính khi danh mục Cán bộ + ĐGD đã có dữ liệu.
+  const cbtdExtractor = useMemo(
+    () => makeStaffKeyExtractor(staff, points),
+    [staff, points]
+  );
+  const byCBTD = useMemo(
+    () => (staff.length > 0 && points.length > 0 ? groupBy(filtered, cbtdExtractor) : []),
+    [filtered, staff.length, points.length, cbtdExtractor]
+  );
+
+  /** Drill-down từ biểu đồ CBTD: parse Mã NV ra khỏi key, set selectedStaffId. */
+  const drillToCBTD = useCallback(
+    (key: string) => {
+      if (key === STAFF_UNASSIGNED || key === STAFF_AMBIGUOUS) return;
+      const m = /^([^—]+) —/.exec(key);
+      if (!m) return;
+      const target = staff.find((s) => s.maNV === m[1].trim());
+      if (target) {
+        selectStaff(target.id);
+        navigate('/snapshot/du-lieu');
+      }
+    },
+    [staff, selectStaff, navigate]
+  );
   // "Cơ cấu khách hàng" — khi chọn "Theo độ tuổi", tuổi được tính tại ngày
   // số liệu (fallback: hôm nay) để kết quả đồng nhất với các chỉ tiêu khác.
   const byClassification = useMemo(() => {
@@ -404,6 +437,42 @@ export function OverviewPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Row 1.5: Dư nợ theo CBTD — chỉ hiển thị khi đã có Cán bộ + ĐGD */}
+      {byCBTD.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Dư nợ theo CBTD</CardTitle>
+              <div className="flex items-center gap-1">
+                <ChartSwitcher
+                  options={STACKED_OPTS}
+                  value={stackedCBTDType}
+                  onChange={setStackedCBTDType}
+                />
+                <InfoPopover
+                  explanation={{
+                    title: 'Dư nợ theo Cán bộ tín dụng',
+                    definition:
+                      'Cơ cấu dư nợ (Trong hạn / Quá hạn / Khoanh) của từng cán bộ tín dụng. Phạm vi mỗi cán bộ là hợp các Mã thôn của các Điểm giao dịch họ phụ trách (cấu hình ở danh mục Cán bộ + ĐGD).',
+                    formula:
+                      'Khế ước được phân về cán bộ duy nhất quản lý Mã thôn của khế ước đó. Khế ước thuộc thôn không có cán bộ duy nhất được gom vào nhóm "(Chưa gán cán bộ)" hoặc "(Nhiều cán bộ phụ trách)".',
+                    note: 'Bấm vào một cột cán bộ để mở Tra cứu chi tiết đã lọc theo cán bộ đó.',
+                  }}
+                />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent id="chart-cbtd">
+            <StackedStatus
+              data={byCBTD}
+              limit={10}
+              onClick={drillToCBTD}
+              chartType={stackedCBTDType}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Row 2: Histogram + Dư nợ theo Xã */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

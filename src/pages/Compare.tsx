@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowRight, GitCompare, Radar as RadarIcon, BarChart3, AlignLeft, Minus } from 'lucide-react';
+import { ArrowRight, GitCompare, Radar as RadarIcon, BarChart3, AlignLeft, Minus, Download } from 'lucide-react';
 import { applyFilters, useDataStore, FIELD_LABEL, type FilterField } from '@/store/useDataStore';
 import { computeKpi, distinctValues } from '@/lib/metrics';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -13,6 +13,10 @@ import { cn } from '@/lib/utils';
 import { ChartSwitcher, type ChartTypeOption } from '@/components/ui/ChartSwitcher';
 import { RadarCompare, type RadarChartType } from '@/components/charts/RadarCompare';
 import { RankingBars, type RankingChartType } from '@/components/charts/RankingBars';
+import { useStaffStore } from '@/store/useStaffStore';
+import { useTxnPointStore } from '@/store/useTxnPointStore';
+import { makePointKeyExtractor, makeStaffKeyExtractor } from '@/lib/thon-coverage';
+import { exportCompareToXlsx } from '@/lib/export-xlsx';
 
 const RADAR_OPTS: ChartTypeOption<RadarChartType>[] = [
   { id: 'radar', icon: RadarIcon, tooltip: 'Biểu đồ radar' },
@@ -22,6 +26,10 @@ const RANKING_OPTS: ChartTypeOption<RankingChartType>[] = [
   { id: 'bar', icon: AlignLeft, tooltip: 'Thanh ngang' },
   { id: 'lollipop', icon: Minus, tooltip: 'Biểu đồ kẹo mút' },
 ];
+
+/** Mở rộng tập dimension: ngoài các trường thuần của LoanRecord, hỗ trợ
+ * 2 dimension suy ra từ Mã thôn — "maNV" (Cán bộ) và "maDGD" (ĐGD). */
+type DimId = FilterField | 'maNV' | 'maDGD';
 
 const DIM_FIELDS: FilterField[] = [
   'tenPGD',
@@ -34,6 +42,15 @@ const DIM_FIELDS: FilterField[] = [
   'gioiTinh',
   'nguonVon',
 ];
+
+const SYNTHETIC_DIM_LABEL: Record<'maNV' | 'maDGD', string> = {
+  maNV: 'Cán bộ',
+  maDGD: 'Điểm giao dịch',
+};
+
+function dimLabel(d: DimId): string {
+  return d === 'maNV' || d === 'maDGD' ? SYNTHETIC_DIM_LABEL[d] : FIELD_LABEL[d];
+}
 
 const palette = ['#1d4ed8', '#0891b2', '#16a34a', '#ea580c', '#a21caf', '#dc2626'];
 
@@ -64,11 +81,14 @@ const KPI_ROWS: KpiRow[] = [
 ];
 
 export function ComparePage() {
-  const { rows, filters, ranges, search } = useDataStore();
+  const { rows, filters, ranges, search, ngaySoLieu } = useDataStore();
+  const staff = useStaffStore((s) => s.staff);
+  const points = useTxnPointStore((s) => s.points);
+
   const [mode, setMode] = useState<'between' | 'within'>('between');
-  const [dimension, setDimension] = useState<FilterField>('tenPGD');
+  const [dimension, setDimension] = useState<DimId>('tenPGD');
   const [parent, setParent] = useState<{ field: FilterField; value: string } | null>(null);
-  const [subDimension, setSubDimension] = useState<FilterField>('tenDVUT');
+  const [subDimension, setSubDimension] = useState<DimId>('tenDVUT');
   const [picked, setPicked] = useState<string[]>([]);
   const [radarType, setRadarType] = useState<RadarChartType>('radar');
   const [rankingType, setRankingType] = useState<RankingChartType>('bar');
@@ -88,20 +108,56 @@ export function ComparePage() {
     return baseFiltered;
   }, [mode, parent, baseFiltered]);
 
-  const dimToUse: FilterField = mode === 'within' ? subDimension : dimension;
+  const dimToUse: DimId = mode === 'within' ? subDimension : dimension;
 
-  const options = useMemo(() => distinctValues(scoped, dimToUse), [scoped, dimToUse]);
+  // Tách dimension danh sách + dimension suy ra (Cán bộ / ĐGD): xác định
+  // hàm trích key duy nhất để áp dụng cho mọi nơi cần `r[dim]`.
+  const staffExtractor = useMemo(() => makeStaffKeyExtractor(staff, points), [staff, points]);
+  const pointExtractor = useMemo(() => makePointKeyExtractor(points), [points]);
+  const extractKey = useMemo(() => {
+    return (r: LoanRecord) => {
+      if (dimToUse === 'maNV') return staffExtractor({ maThon: r.maThon ?? '' });
+      if (dimToUse === 'maDGD') return pointExtractor({ maThon: r.maThon ?? '' });
+      return String(r[dimToUse as FilterField] ?? '—') || '—';
+    };
+  }, [dimToUse, staffExtractor, pointExtractor]);
+
+  const options = useMemo(() => {
+    if (dimToUse === 'maNV' || dimToUse === 'maDGD') {
+      const set = new Set<string>();
+      for (const r of scoped) set.add(extractKey(r));
+      return Array.from(set).sort((a, b) => a.localeCompare(b, 'vi'));
+    }
+    return distinctValues(scoped, dimToUse as FilterField);
+  }, [scoped, dimToUse, extractKey]);
 
   const groups = useMemo(() => {
     return picked.map((value) => {
-      const subset = scoped.filter((r) => String(r[dimToUse] ?? '') === value);
+      const subset = scoped.filter((r) => extractKey(r) === value);
       return {
         label: value,
         rows: subset,
         kpi: computeKpi(subset),
       };
     });
-  }, [picked, scoped, dimToUse]);
+  }, [picked, scoped, extractKey]);
+
+  async function handleExportCompareTable() {
+    if (groups.length === 0) {
+      alert('Hãy chọn ít nhất 1 đối tượng để xuất.');
+      return;
+    }
+    await exportCompareToXlsx({
+      dimensionLabel: dimLabel(dimToUse),
+      groups: groups.map((g) => ({ label: g.label, kpi: g.kpi })),
+      kpiRows: KPI_ROWS.map((k) => ({ key: k.key, label: k.label, pick: k.pick })),
+      referenceDate: ngaySoLieu,
+      contextLine:
+        mode === 'within' && parent
+          ? `Trong cùng ${FIELD_LABEL[parent.field]}: "${parent.value}"`
+          : `Giữa các đối tượng theo ${dimLabel(dimToUse)}`,
+    });
+  }
 
   // Radar data: normalize each KPI 0..1 across selected groups
   const radarData = useMemo(() => {
@@ -129,7 +185,20 @@ export function ComparePage() {
   return (
     <div className="space-y-5 p-6">
       <header className="space-y-3">
-        <div>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleExportCompareTable}
+            disabled={groups.length === 0}
+            title={
+              groups.length === 0
+                ? 'Chọn ít nhất 1 đối tượng để xuất bảng'
+                : 'Xuất bảng so sánh KPI ra Excel'
+            }
+          >
+            <Download className="h-3.5 w-3.5" /> Xuất bảng so sánh
+          </Button>
           <ExportMenu
             pageTitle="Báo cáo so sánh"
             subtitle={`${baseFiltered.length.toLocaleString('vi-VN')} khế ước`}
@@ -196,7 +265,7 @@ export function ComparePage() {
                 <select
                   value={dimension}
                   onChange={(e) => {
-                    setDimension(e.target.value as FilterField);
+                    setDimension(e.target.value as DimId);
                     setPicked([]);
                   }}
                   className="h-8 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 text-xs text-slate-700 dark:text-slate-200"
@@ -206,6 +275,12 @@ export function ComparePage() {
                       {FIELD_LABEL[f]}
                     </option>
                   ))}
+                  {points.length > 0 && (
+                    <option value="maDGD">{SYNTHETIC_DIM_LABEL.maDGD}</option>
+                  )}
+                  {staff.length > 0 && points.length > 0 && (
+                    <option value="maNV">{SYNTHETIC_DIM_LABEL.maNV}</option>
+                  )}
                 </select>
               </>
             ) : (
@@ -242,7 +317,7 @@ export function ComparePage() {
                 <select
                   value={subDimension}
                   onChange={(e) => {
-                    setSubDimension(e.target.value as FilterField);
+                    setSubDimension(e.target.value as DimId);
                     setPicked([]);
                   }}
                   className="h-8 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 text-xs dark:text-slate-200"
@@ -252,6 +327,12 @@ export function ComparePage() {
                       {FIELD_LABEL[f]}
                     </option>
                   ))}
+                  {points.length > 0 && (
+                    <option value="maDGD">{SYNTHETIC_DIM_LABEL.maDGD}</option>
+                  )}
+                  {staff.length > 0 && points.length > 0 && (
+                    <option value="maNV">{SYNTHETIC_DIM_LABEL.maNV}</option>
+                  )}
                 </select>
               </>
             )}
