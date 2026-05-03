@@ -10,6 +10,8 @@ import {
   Sun,
   AlertTriangle,
   Snowflake,
+  Users,
+  MapPin,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDataStore } from '@/store/useDataStore';
@@ -26,6 +28,8 @@ const navItems = [
   // { to: '/snapshot/doanh-so', label: 'Báo cáo doanh số', icon: TrendingUp },
   { to: '/snapshot/so-sanh', label: 'Báo cáo so sánh', icon: GitCompare },
   { to: '/snapshot/du-lieu', label: 'Tra cứu chi tiết', icon: Table },
+  { to: '/snapshot/can-bo', label: 'Danh mục cán bộ', icon: Users },
+  { to: '/snapshot/diem-giao-dich', label: 'Điểm giao dịch', icon: MapPin },
 ];
 
 export function AppShell() {

@@ -12,6 +12,8 @@ import { ExplorerPage } from '@/pages/Explorer';
 import { NplPage } from '@/pages/Npl';
 import { KhoanhPage } from '@/pages/Khoanh';
 import { DoanhSoPage } from '@/pages/DoanhSo';
+import { StaffPage } from '@/pages/Staff';
+import { TxnPointPage } from '@/pages/TxnPoint';
 import { Lobby } from '@/pages/Lobby';
 import { PeriodShell } from '@/components/layout/PeriodShell';
 import { PeriodOverviewPage } from '@/pages/period/PeriodOverview';
@@ -68,6 +70,8 @@ function SnapshotApp() {
         <Route path="doanh-so" element={<DoanhSoPage />} />
         <Route path="so-sanh" element={<ComparePage />} />
         <Route path="du-lieu" element={<ExplorerPage />} />
+        <Route path="can-bo" element={<StaffPage />} />
+        <Route path="diem-giao-dich" element={<TxnPointPage />} />
       </Route>
     </Routes>
   );

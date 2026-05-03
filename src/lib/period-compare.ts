@@ -512,11 +512,17 @@ export function vintageNQH(rows: LoanRecord[]): VintageBucket[] {
  * Tính HHI trên thang 0–10000 (cao = tập trung). Mỗi đối tượng trong
  * trường `field` đóng góp `(share)^2 * 10000`.
  */
-export function hhi(rows: LoanRecord[], field: keyof LoanRecord): number {
+export function hhi(
+  rows: LoanRecord[],
+  field: keyof LoanRecord | ((r: LoanRecord) => string)
+): number {
+  const getKey = typeof field === 'function'
+    ? field
+    : (r: LoanRecord) => String(r[field] ?? '—') || '—';
   let total = 0;
   const map = new Map<string, number>();
   for (const r of rows) {
-    const k = String(r[field] ?? '—') || '—';
+    const k = getKey(r) || '—';
     map.set(k, (map.get(k) ?? 0) + r.tongDuNo);
     total += r.tongDuNo;
   }
@@ -564,9 +570,12 @@ interface GroupSlice {
  */
 export function topMovers(
   joined: JoinedLoan[],
-  field: keyof LoanRecord,
+  field: keyof LoanRecord | ((r: LoanRecord) => string),
   metric: MoverMetric
 ): MoverRow[] {
+  const getKey = typeof field === 'function'
+    ? field
+    : (r: LoanRecord) => String(r[field] ?? '—') || '—';
   const groups = new Map<string, GroupSlice>();
   const ensure = (k: string): GroupSlice => {
     let g = groups.get(k);
@@ -588,7 +597,7 @@ export function topMovers(
     // Group key — ưu tiên kỳ sau, fallback kỳ trước (cho khế ước đã đóng)
     const ref = j.curr ?? j.prev;
     if (!ref) continue;
-    const k = String(ref[field] ?? '—') || '—';
+    const k = getKey(ref) || '—';
     const g = ensure(k);
     if (j.prev) {
       g.prevTongDuNo += j.prev.tongDuNo;

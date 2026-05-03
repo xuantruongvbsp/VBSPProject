@@ -15,7 +15,10 @@ export type FilterField =
   | 'hinhThucVay'
   // Chỉ dùng cho drill-down (ví dụ từ biểu đồ "Phân bố tổng dư nợ" theo khách hàng).
   // Không xuất hiện trong FilterBar thủ công — người dùng không thể tự thêm.
-  | 'maKH';
+  | 'maKH'
+  // Chỉ dùng nội bộ bởi bộ chọn "Cán bộ" (lọc theo Mã thôn phụ trách).
+  // Không xuất hiện trong danh sách FIELDS thủ công của FilterBar.
+  | 'maThon';
 
 export interface ActiveFilter {
   id: string;
@@ -26,8 +29,12 @@ export interface ActiveFilter {
    * - 'manual': người dùng tự thêm trên FilterBar
    * - 'drilldown': sinh ra từ thao tác click drill-down trên biểu đồ
    *   (sẽ tự động bị xóa khi rời khỏi trang Tra cứu chi tiết)
+   * - 'staff'   : sinh ra bởi bộ chọn "Cán bộ" trên FilterBar (lọc theo
+   *               danh sách Mã thôn cán bộ phụ trách). Không hiện thành
+   *               chip; quản lý thông qua dropdown duy nhất.
+   * - 'txnpoint': sinh ra bởi bộ chọn "Điểm giao dịch" — tương tự staff.
    */
-  source?: 'manual' | 'drilldown';
+  source?: 'manual' | 'drilldown' | 'staff' | 'txnpoint';
 }
 
 export interface RangeFilters {
@@ -290,4 +297,5 @@ export const FIELD_LABEL: Record<FilterField, string> = {
   tenTo: 'Tổ TK&VV',
   hinhThucVay: 'Hình thức vay',
   maKH: 'Mã KH',
+  maThon: 'Mã thôn',
 };

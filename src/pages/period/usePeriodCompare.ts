@@ -21,6 +21,7 @@ import {
   type ParBreakdown,
   type LifecycleCounts,
 } from '@/lib/period-compare';
+import { isOpenLoan } from '@/lib/metrics';
 import type { LoanRecord } from '@/lib/types';
 
 export interface PeriodCompareSlice {
@@ -131,8 +132,11 @@ export function usePeriodCompare(): PeriodCompareSlice {
 
   return useMemo(() => {
     if (!prev || !curr) return EMPTY_RESULT;
-    const prevRows = applyFilters(prev.rows, filters, ranges, search);
-    const currRows = applyFilters(curr.rows, filters, ranges, search);
+    // Loại khế ước có `tinhTrangMonVay` = Close hoặc rỗng khỏi toàn bộ
+    // pipeline so sánh hai kỳ — các khế ước này không có ý nghĩa nghiệp
+    // vụ (đã tất toán hoặc thiếu trạng thái) và làm sai số đếm vòng đời.
+    const prevRows = applyFilters(prev.rows, filters, ranges, search).filter(isOpenLoan);
+    const currRows = applyFilters(curr.rows, filters, ranges, search).filter(isOpenLoan);
     const loanJoin = joinByLoan(prevRows, currRows);
     const customerJoin = joinByCustomer(prevRows, currRows, prev.ngaySoLieu);
     const kpiDelta = compareKpi(prevRows, currRows);

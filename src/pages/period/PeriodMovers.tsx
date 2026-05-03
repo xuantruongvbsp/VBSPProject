@@ -7,11 +7,13 @@ import { InfoPopover } from '@/components/ui/InfoPopover';
 import { ExportMenu } from '@/components/export/ExportMenu';
 import { usePeriodFilterStore } from '@/store/usePeriodFilterStore';
 import { usePeriodStore } from '@/store/usePeriodStore';
+import { useStaffStore } from '@/store/useStaffStore';
+import { useTxnPointStore } from '@/store/useTxnPointStore';
 import { usePeriodCompare } from './usePeriodCompare';
 import { topMovers, type MoverMetric, type MoverRow } from '@/lib/period-compare';
 import { fmtCompact, fmtDate, fmtNumber, fmtPercent } from '@/lib/format';
 import { cn } from '@/lib/utils';
-import type { LoanRecord } from '@/lib/types';
+import type { LoanRecord, StaffRecord, TxnPointRecord } from '@/lib/types';
 import type { FilterField } from '@/store/useDataStore';
 
 /**
@@ -23,18 +25,102 @@ import type { FilterField } from '@/store/useDataStore';
  */
 
 interface Dimension {
-  id: keyof LoanRecord;
-  filterField: FilterField;
+  /** Định danh duy nhất — có thể không phải keyof LoanRecord (vd: 'maNV', 'maDGD'). */
+  id: string;
   label: string;
+  /** Hàm trích xuất key từ một khế ước. */
+  extractor: (r: LoanRecord) => string;
+  /**
+   * Cách drill-down sang trang Khế ước:
+   *  - 'filter': dùng setPendingDrill với (filterField, value=key) — cho dim PGD/Xã/...
+   *  - 'staff': key là staff.id; áp filter qua useStaffStore.selectStaff
+   *  - 'txnpoint': key là point.id; áp filter qua useTxnPointStore.selectPoint
+   *  - 'none': không drill (key tổng hợp như "(Chưa gán)" / "(nhiều)")
+   */
+  drillKind: 'filter' | 'staff' | 'txnpoint' | 'none';
+  /** Chỉ dùng khi drillKind='filter'. */
+  filterField?: FilterField;
 }
 
-const DIMENSIONS: Dimension[] = [
-  { id: 'tenPGD', filterField: 'tenPGD', label: 'PGD' },
-  { id: 'tenXa', filterField: 'tenXa', label: 'Xã' },
-  { id: 'tenDVUT', filterField: 'tenDVUT', label: 'ĐVUT' },
-  { id: 'tenChuongTrinh', filterField: 'tenChuongTrinh', label: 'Chương trình' },
-  { id: 'tenTo', filterField: 'tenTo', label: 'Tổ TK&VV' },
+const BASE_DIMENSIONS: Dimension[] = [
+  {
+    id: 'tenPGD',
+    label: 'PGD',
+    extractor: (r) => String(r.tenPGD ?? '—') || '—',
+    drillKind: 'filter',
+    filterField: 'tenPGD',
+  },
+  {
+    id: 'tenXa',
+    label: 'Xã',
+    extractor: (r) => String(r.tenXa ?? '—') || '—',
+    drillKind: 'filter',
+    filterField: 'tenXa',
+  },
+  {
+    id: 'tenDVUT',
+    label: 'ĐVUT',
+    extractor: (r) => String(r.tenDVUT ?? '—') || '—',
+    drillKind: 'filter',
+    filterField: 'tenDVUT',
+  },
+  {
+    id: 'tenChuongTrinh',
+    label: 'Chương trình',
+    extractor: (r) => String(r.tenChuongTrinh ?? '—') || '—',
+    drillKind: 'filter',
+    filterField: 'tenChuongTrinh',
+  },
+  {
+    id: 'tenTo',
+    label: 'Tổ TK&VV',
+    extractor: (r) => String(r.tenTo ?? '—') || '—',
+    drillKind: 'filter',
+    filterField: 'tenTo',
+  },
 ];
+
+/**
+ * Xây map maThon → key cho dim Cán bộ và ĐGD. Nếu một thôn trùng nhiều
+ * cán bộ/ĐGD, key là "(nhiều)". Nếu chưa gán, "(Chưa gán)".
+ */
+function buildStaffKeyMap(staff: StaffRecord[], points: TxnPointRecord[]) {
+  // maThon → list staff.id
+  const thonToStaff = new Map<string, string[]>();
+  const dgdToStaff = new Map<string, string[]>();
+  for (const s of staff) {
+    for (const maDGD of s.maDGDs) {
+      const list = dgdToStaff.get(maDGD);
+      if (list) list.push(s.id);
+      else dgdToStaff.set(maDGD, [s.id]);
+    }
+  }
+  for (const p of points) {
+    const owners = dgdToStaff.get(p.maDGD) ?? [];
+    if (owners.length === 0) continue;
+    for (const t of p.maThons) {
+      const list = thonToStaff.get(t);
+      if (list) {
+        for (const o of owners) if (!list.includes(o)) list.push(o);
+      } else {
+        thonToStaff.set(t, [...owners]);
+      }
+    }
+  }
+  return thonToStaff;
+}
+
+function buildPointKeyMap(points: TxnPointRecord[]) {
+  const thonToPoint = new Map<string, string[]>();
+  for (const p of points) {
+    for (const t of p.maThons) {
+      const list = thonToPoint.get(t);
+      if (list) list.push(p.id);
+      else thonToPoint.set(t, [p.id]);
+    }
+  }
+  return thonToPoint;
+}
 
 const METRICS: { id: MoverMetric; label: string; help: string }[] = [
   { id: 'tongDuNo', label: 'Tổng dư nợ', help: 'Δ tuyệt đối dư nợ kỳ sau − kỳ trước' },
@@ -46,11 +132,59 @@ export function PeriodMoversPage() {
   const navigate = useNavigate();
   const setPendingDrill = usePeriodStore((s) => s.setPendingDrill);
   const { hasData, loanJoin, currRows, kpiDelta, prevDate, currDate } = usePeriodCompare();
-  const [dim, setDim] = useState<Dimension>(DIMENSIONS[0]);
+
+  const staff = useStaffStore((s) => s.staff);
+  const selectStaff = useStaffStore((s) => s.selectStaff);
+  const points = useTxnPointStore((s) => s.points);
+  const selectPoint = useTxnPointStore((s) => s.selectPoint);
+
+  // Build dimensions động — Cán bộ/ĐGD chỉ hiện khi danh mục có dữ liệu.
+  const dimensions = useMemo<Dimension[]>(() => {
+    const out = [...BASE_DIMENSIONS];
+    if (points.length > 0) {
+      const thonToPoint = buildPointKeyMap(points);
+      const pointById = new Map(points.map((p) => [p.id, p]));
+      out.push({
+        id: 'maDGD',
+        label: 'Điểm giao dịch',
+        extractor: (r) => {
+          const list = thonToPoint.get(r.maThon);
+          if (!list || list.length === 0) return '(Chưa gán ĐGD)';
+          if (list.length > 1) return '(Nhiều ĐGD)';
+          const p = pointById.get(list[0]);
+          return p ? `${p.maDGD} — ${p.tenDGD}` : '(Chưa gán ĐGD)';
+        },
+        drillKind: 'txnpoint',
+      });
+    }
+    if (staff.length > 0 && points.length > 0) {
+      const thonToStaff = buildStaffKeyMap(staff, points);
+      const staffById = new Map(staff.map((s) => [s.id, s]));
+      out.push({
+        id: 'maNV',
+        label: 'Cán bộ',
+        extractor: (r) => {
+          const list = thonToStaff.get(r.maThon);
+          if (!list || list.length === 0) return '(Chưa gán cán bộ)';
+          if (list.length > 1) return '(Nhiều cán bộ)';
+          const s = staffById.get(list[0]);
+          return s ? `${s.maNV} — ${s.tenNV}` : '(Chưa gán cán bộ)';
+        },
+        drillKind: 'staff',
+      });
+    }
+    return out;
+  }, [staff, points]);
+
+  const [dimId, setDimId] = useState<string>(BASE_DIMENSIONS[0].id);
+  const dim = useMemo(
+    () => dimensions.find((d) => d.id === dimId) ?? dimensions[0],
+    [dimensions, dimId]
+  );
   const [metric, setMetric] = useState<MoverMetric>('tongDuNo');
 
   const movers = useMemo(
-    () => topMovers(loanJoin.joined, dim.id, metric),
+    () => topMovers(loanJoin.joined, dim.extractor, metric),
     [loanJoin, dim, metric]
   );
 
@@ -90,11 +224,39 @@ export function PeriodMoversPage() {
   if (!hasData) return <div className="p-6 text-sm text-slate-500">Chưa có dữ liệu so sánh.</div>;
 
   const handleDrill = (groupKey: string) => {
-    setPendingDrill({
-      to: '/period/khe-uoc',
-      filters: [{ field: dim.filterField, value: groupKey }],
-    });
-    navigate('/period/khe-uoc');
+    if (dim.drillKind === 'filter' && dim.filterField) {
+      setPendingDrill({
+        to: '/period/khe-uoc',
+        filters: [{ field: dim.filterField, value: groupKey }],
+      });
+      navigate('/period/khe-uoc');
+      return;
+    }
+
+    if (dim.drillKind === 'staff') {
+      // groupKey dạng "NV001 — Tên" hoặc "(Chưa gán cán bộ)" / "(Nhiều cán bộ)"
+      const m = /^([^—]+) —/.exec(groupKey);
+      if (!m) return;
+      const target = staff.find((s) => s.maNV === m[1].trim());
+      if (target) {
+        selectStaff(target.id);
+        setPendingDrill({ to: '/period/khe-uoc' });
+        navigate('/period/khe-uoc');
+      }
+      return;
+    }
+
+    if (dim.drillKind === 'txnpoint') {
+      const m = /^([^—]+) —/.exec(groupKey);
+      if (!m) return;
+      const target = points.find((p) => p.maDGD === m[1].trim());
+      if (target) {
+        selectPoint(target.id);
+        setPendingDrill({ to: '/period/khe-uoc' });
+        navigate('/period/khe-uoc');
+      }
+      return;
+    }
   };
 
   return (
@@ -132,11 +294,11 @@ export function PeriodMoversPage() {
               Phân theo
             </div>
             <div className="inline-flex flex-wrap gap-1 rounded-md border border-slate-200 bg-slate-50 p-0.5">
-              {DIMENSIONS.map((d) => (
+              {dimensions.map((d) => (
                 <button
-                  key={d.id as string}
+                  key={d.id}
                   type="button"
-                  onClick={() => setDim(d)}
+                  onClick={() => setDimId(d.id)}
                   className={cn(
                     'rounded px-2.5 py-1 text-[11px] font-medium transition-colors',
                     dim.id === d.id

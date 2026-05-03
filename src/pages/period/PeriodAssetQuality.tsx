@@ -4,6 +4,8 @@ import { FilterBar } from '@/components/filters/FilterBar';
 import { InfoPopover } from '@/components/ui/InfoPopover';
 import { ExportMenu } from '@/components/export/ExportMenu';
 import { usePeriodFilterStore } from '@/store/usePeriodFilterStore';
+import { useStaffStore } from '@/store/useStaffStore';
+import { useTxnPointStore } from '@/store/useTxnPointStore';
 import { usePeriodCompare } from './usePeriodCompare';
 import { DeltaCard } from '@/components/period/DeltaCard';
 import { vintageNQH, hhi, loansMaturingNext90 } from '@/lib/period-compare';
@@ -11,12 +13,21 @@ import { fmtCompact, fmtCurrency, fmtDate, fmtNumber, fmtPercent } from '@/lib/f
 import { cn } from '@/lib/utils';
 import type { LoanRecord } from '@/lib/types';
 
-type HHIDimension = 'tenPGD' | 'tenChuongTrinh' | 'tenDVUT' | 'tenXa';
-const HHI_DIMENSIONS: { id: HHIDimension; label: string }[] = [
-  { id: 'tenPGD', label: 'PGD' },
-  { id: 'tenChuongTrinh', label: 'Chương trình' },
-  { id: 'tenDVUT', label: 'ĐVUT' },
-  { id: 'tenXa', label: 'Xã' },
+type HHIDimensionId = 'tenPGD' | 'tenChuongTrinh' | 'tenDVUT' | 'tenXa' | 'maNV' | 'maDGD';
+interface HHIDimension {
+  id: HHIDimensionId;
+  label: string;
+  extractor: (r: LoanRecord) => string;
+}
+const BASE_HHI_DIMENSIONS: HHIDimension[] = [
+  { id: 'tenPGD', label: 'PGD', extractor: (r) => String(r.tenPGD ?? '—') || '—' },
+  {
+    id: 'tenChuongTrinh',
+    label: 'Chương trình',
+    extractor: (r) => String(r.tenChuongTrinh ?? '—') || '—',
+  },
+  { id: 'tenDVUT', label: 'ĐVUT', extractor: (r) => String(r.tenDVUT ?? '—') || '—' },
+  { id: 'tenXa', label: 'Xã', extractor: (r) => String(r.tenXa ?? '—') || '—' },
 ];
 
 export function PeriodAssetQualityPage() {
@@ -32,12 +43,82 @@ export function PeriodAssetQualityPage() {
     qualityCurr,
     kpiDelta,
   } = usePeriodCompare();
-  const [hhiDim, setHhiDim] = useState<HHIDimension>('tenPGD');
+  const staff = useStaffStore((s) => s.staff);
+  const points = useTxnPointStore((s) => s.points);
+
+  // Dimensions động — Cán bộ/ĐGD chỉ thêm khi danh mục đã có dữ liệu.
+  const hhiDimensions = useMemo<HHIDimension[]>(() => {
+    const out = [...BASE_HHI_DIMENSIONS];
+    if (points.length > 0) {
+      const thonToPoint = new Map<string, string[]>();
+      for (const p of points) {
+        for (const t of p.maThons) {
+          const list = thonToPoint.get(t);
+          if (list) list.push(p.id);
+          else thonToPoint.set(t, [p.id]);
+        }
+      }
+      const pointById = new Map(points.map((p) => [p.id, p]));
+      out.push({
+        id: 'maDGD',
+        label: 'ĐGD',
+        extractor: (r) => {
+          const list = thonToPoint.get(r.maThon);
+          if (!list || list.length === 0) return '(Chưa gán ĐGD)';
+          if (list.length > 1) return '(Nhiều ĐGD)';
+          const p = pointById.get(list[0]);
+          return p ? `${p.maDGD} — ${p.tenDGD}` : '(Chưa gán ĐGD)';
+        },
+      });
+    }
+    if (staff.length > 0 && points.length > 0) {
+      const dgdToStaff = new Map<string, string[]>();
+      for (const s of staff) {
+        for (const maDGD of s.maDGDs) {
+          const list = dgdToStaff.get(maDGD);
+          if (list) list.push(s.id);
+          else dgdToStaff.set(maDGD, [s.id]);
+        }
+      }
+      const thonToStaff = new Map<string, string[]>();
+      for (const p of points) {
+        const owners = dgdToStaff.get(p.maDGD) ?? [];
+        if (owners.length === 0) continue;
+        for (const t of p.maThons) {
+          const list = thonToStaff.get(t);
+          if (list) {
+            for (const o of owners) if (!list.includes(o)) list.push(o);
+          } else {
+            thonToStaff.set(t, [...owners]);
+          }
+        }
+      }
+      const staffById = new Map(staff.map((s) => [s.id, s]));
+      out.push({
+        id: 'maNV',
+        label: 'Cán bộ',
+        extractor: (r) => {
+          const list = thonToStaff.get(r.maThon);
+          if (!list || list.length === 0) return '(Chưa gán cán bộ)';
+          if (list.length > 1) return '(Nhiều cán bộ)';
+          const s = staffById.get(list[0]);
+          return s ? `${s.maNV} — ${s.tenNV}` : '(Chưa gán cán bộ)';
+        },
+      });
+    }
+    return out;
+  }, [staff, points]);
+
+  const [hhiDimId, setHhiDimId] = useState<HHIDimensionId>('tenPGD');
+  const hhiDim = useMemo(
+    () => hhiDimensions.find((d) => d.id === hhiDimId) ?? hhiDimensions[0],
+    [hhiDimensions, hhiDimId]
+  );
 
   const vintagePrev = useMemo(() => vintageNQH(prevRows), [prevRows]);
   const vintageCurr = useMemo(() => vintageNQH(currRows), [currRows]);
-  const hhiPrev = useMemo(() => hhi(prevRows, hhiDim), [prevRows, hhiDim]);
-  const hhiCurr = useMemo(() => hhi(currRows, hhiDim), [currRows, hhiDim]);
+  const hhiPrev = useMemo(() => hhi(prevRows, hhiDim.extractor), [prevRows, hhiDim]);
+  const hhiCurr = useMemo(() => hhi(currRows, hhiDim.extractor), [currRows, hhiDim]);
   const maturityCurr = useMemo(() => loansMaturingNext90(currRows, currDate), [currRows, currDate]);
 
   // Top-10 KH theo dư nợ — kỳ sau
@@ -155,15 +236,15 @@ export function PeriodAssetQualityPage() {
                 <CardTitle>Chỉ số tập trung HHI</CardTitle>
                 <InfoPopover metricKey="periodHHI" />
               </div>
-              <div className="inline-flex rounded-md border border-slate-200 bg-slate-50 p-0.5 text-[10px]">
-                {HHI_DIMENSIONS.map((d) => (
+              <div className="inline-flex flex-wrap rounded-md border border-slate-200 bg-slate-50 p-0.5 text-[10px]">
+                {hhiDimensions.map((d) => (
                   <button
                     key={d.id}
                     type="button"
-                    onClick={() => setHhiDim(d.id)}
+                    onClick={() => setHhiDimId(d.id)}
                     className={cn(
                       'rounded px-2 py-1 font-medium transition-colors',
-                      hhiDim === d.id
+                      hhiDim.id === d.id
                         ? 'bg-white text-slate-900 shadow-sm'
                         : 'text-slate-600 hover:text-slate-800'
                     )}

@@ -106,3 +106,27 @@ export interface ImportResult {
   ngaySoLieu: Date | null;
   totalRows: number;
 }
+
+/**
+ * Cán bộ tín dụng phụ trách. Mỗi cán bộ phụ trách nhiều **Điểm giao dịch**
+ * (ĐGD). Danh sách Mã thôn của cán bộ được suy ra từ tổng các Mã thôn
+ * thuộc các ĐGD họ phụ trách (nguồn: useTxnPointStore).
+ */
+export interface StaffRecord {
+  id: string;
+  maNV: string;
+  tenNV: string;
+  /** Danh sách Mã ĐGD (mã, không phải id) cán bộ phụ trách. */
+  maDGDs: string[];
+}
+
+/**
+ * Điểm giao dịch (ĐGD) — cấp dưới của Xã, một ĐGD bao gồm nhiều Mã thôn.
+ * Dùng để lọc các báo cáo theo địa bàn ĐGD phụ trách.
+ */
+export interface TxnPointRecord {
+  id: string;
+  maDGD: string;
+  tenDGD: string;
+  maThons: string[];
+}
