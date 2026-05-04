@@ -25,6 +25,7 @@ import {
   parseStaffJson,
 } from '@/store/useStaffStore';
 import { useTxnPointStore } from '@/store/useTxnPointStore';
+import { useIsOwner } from '@/store/useAuthStore';
 import { fmtCompact } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
@@ -49,6 +50,7 @@ export function StaffPage() {
   const importStaff = useStaffStore((s) => s.importStaff);
 
   const points = useTxnPointStore((s) => s.points);
+  const isOwner = useIsOwner();
 
   // Bản đồ Mã ĐGD → record (đối chiếu nhanh từ maDGDs của cán bộ).
   const pointByMa = useMemo(() => {
@@ -236,36 +238,38 @@ export function StaffPage() {
             .
           </p>
         </div>
-        <div className="flex gap-2">
-          <input
-            ref={importFileRef}
-            type="file"
-            accept="application/json,.json"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void handleImportFile(f);
-            }}
-          />
-          <Button variant="outline" size="sm" onClick={() => importFileRef.current?.click()}>
-            <Upload className="h-3.5 w-3.5" /> Import JSON
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            disabled={staff.length === 0}
-            title={staff.length === 0 ? 'Chưa có cán bộ để xuất' : 'Tải xuống tệp JSON'}
-          >
-            <Download className="h-3.5 w-3.5" /> Export JSON
-          </Button>
-          <Button size="sm" onClick={startAdd} disabled={points.length === 0}>
-            <Plus className="h-3.5 w-3.5" /> Thêm cán bộ
-          </Button>
-        </div>
+        {isOwner && (
+          <div className="flex gap-2">
+            <input
+              ref={importFileRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void handleImportFile(f);
+              }}
+            />
+            <Button variant="outline" size="sm" onClick={() => importFileRef.current?.click()}>
+              <Upload className="h-3.5 w-3.5" /> Import JSON
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              disabled={staff.length === 0}
+              title={staff.length === 0 ? 'Chưa có cán bộ để xuất' : 'Tải xuống tệp JSON'}
+            >
+              <Download className="h-3.5 w-3.5" /> Export JSON
+            </Button>
+            <Button size="sm" onClick={startAdd} disabled={points.length === 0}>
+              <Plus className="h-3.5 w-3.5" /> Thêm cán bộ
+            </Button>
+          </div>
+        )}
       </div>
 
-      {points.length === 0 && (
+      {points.length === 0 && isOwner && (
         <Card className="border-amber-200 bg-amber-50 dark:border-amber-900/60 dark:bg-amber-950/30">
           <CardContent className="flex items-center gap-3 py-3 text-sm text-amber-900 dark:text-amber-200">
             <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -291,9 +295,9 @@ export function StaffPage() {
         assignedPointCount={assignedPointCount}
       />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className={cn('grid grid-cols-1 gap-4', isOwner && 'lg:grid-cols-3')}>
         {/* Cột danh sách cán bộ */}
-        <Card className="lg:col-span-2">
+        <Card className={cn(isOwner && 'lg:col-span-2')}>
           <CardHeader className="flex-row items-center justify-between">
             <CardTitle>Danh sách ({staff.length})</CardTitle>
             <div className="relative">
@@ -310,7 +314,9 @@ export function StaffPage() {
             {filtered.length === 0 ? (
               <div className="px-5 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
                 {staff.length === 0
-                  ? 'Chưa có cán bộ. Bấm "Thêm cán bộ" để bắt đầu.'
+                  ? isOwner
+                    ? 'Chưa có cán bộ. Bấm "Thêm cán bộ" để bắt đầu.'
+                    : 'Chưa có cán bộ. Vui lòng liên hệ quản trị viên.'
                   : 'Không tìm thấy cán bộ phù hợp.'}
               </div>
             ) : (
@@ -322,7 +328,9 @@ export function StaffPage() {
                       <th className="px-4 py-2.5 font-semibold">Tên NV</th>
                       <th className="px-4 py-2.5 font-semibold">ĐGD phụ trách</th>
                       <th className="px-4 py-2.5 text-right font-semibold">Thôn / Khế ước</th>
-                      <th className="px-4 py-2.5 text-right font-semibold">Thao tác</th>
+                      {isOwner && (
+                        <th className="px-4 py-2.5 text-right font-semibold">Thao tác</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -409,24 +417,26 @@ export function StaffPage() {
                               </div>
                             )}
                           </td>
-                          <td className="px-4 py-2 text-right">
-                            <div className="inline-flex gap-1">
-                              <button
-                                onClick={() => startEdit(s)}
-                                className="rounded p-1.5 text-slate-500 hover:bg-brand-50 hover:text-brand-700 dark:hover:bg-brand-900/30 dark:hover:text-brand-300"
-                                title="Sửa"
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(s)}
-                                className="rounded p-1.5 text-slate-500 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-900/30 dark:hover:text-rose-400"
-                                title="Xóa"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          </td>
+                          {isOwner && (
+                            <td className="px-4 py-2 text-right">
+                              <div className="inline-flex gap-1">
+                                <button
+                                  onClick={() => startEdit(s)}
+                                  className="rounded p-1.5 text-slate-500 hover:bg-brand-50 hover:text-brand-700 dark:hover:bg-brand-900/30 dark:hover:text-brand-300"
+                                  title="Sửa"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(s)}
+                                  className="rounded p-1.5 text-slate-500 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-900/30 dark:hover:text-rose-400"
+                                  title="Xóa"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       );
                     })}
@@ -437,29 +447,31 @@ export function StaffPage() {
           </CardContent>
         </Card>
 
-        {/* Cột form thêm/sửa */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{editing ? 'Sửa cán bộ' : draft ? 'Thêm cán bộ mới' : 'Chi tiết'}</CardTitle>
-            {!draft && (
-              <CardDescription>Chọn một cán bộ trong danh sách để sửa, hoặc bấm "Thêm cán bộ".</CardDescription>
-            )}
-          </CardHeader>
-          <CardContent>
-            {!draft ? (
-              <div className="text-sm text-slate-500 dark:text-slate-400">Chưa chọn cán bộ.</div>
-            ) : (
-              <StaffForm
-                draft={draft}
-                setDraft={setDraft}
-                points={points}
-                onSave={saveDraft}
-                onCancel={cancelEdit}
-                isEditing={!!editing}
-              />
-            )}
-          </CardContent>
-        </Card>
+        {/* Cột form thêm/sửa — chỉ hiện cho chủ sở hữu */}
+        {isOwner && (
+          <Card>
+            <CardHeader>
+              <CardTitle>{editing ? 'Sửa cán bộ' : draft ? 'Thêm cán bộ mới' : 'Chi tiết'}</CardTitle>
+              {!draft && (
+                <CardDescription>Chọn một cán bộ trong danh sách để sửa, hoặc bấm "Thêm cán bộ".</CardDescription>
+              )}
+            </CardHeader>
+            <CardContent>
+              {!draft ? (
+                <div className="text-sm text-slate-500 dark:text-slate-400">Chưa chọn cán bộ.</div>
+              ) : (
+                <StaffForm
+                  draft={draft}
+                  setDraft={setDraft}
+                  points={points}
+                  onSave={saveDraft}
+                  onCancel={cancelEdit}
+                  isEditing={!!editing}
+                />
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

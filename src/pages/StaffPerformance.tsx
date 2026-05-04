@@ -305,6 +305,13 @@ export function StaffPerformancePage() {
     computed.ambiguous.tongDuNo;
   const coveredTongDuNo = computed.rows.reduce((s, r) => s + r.tongDuNo, 0);
   const coveragePct = totalTongDuNo > 0 ? coveredTongDuNo / totalTongDuNo : 0;
+  // Bình quân theo đầu cán bộ (mẫu = tổng số cán bộ trong danh mục, không
+  // phải số cán bộ có dữ liệu — tránh "ẩn" cán bộ bị bỏ trống khỏi mức bình
+  // quân, làm méo so sánh giữa các phòng/đơn vị).
+  const totalCoveredKh = computed.rows.reduce((s, r) => s + r.soKhachHang, 0);
+  const khBQperStaff = staff.length > 0 ? totalCoveredKh / staff.length : 0;
+  const duNoBQperStaff =
+    staff.length > 0 ? coveredTongDuNo / staff.length : 0;
 
   return (
     <div className="space-y-4 p-6">
@@ -341,16 +348,16 @@ export function StaffPerformancePage() {
           tone="ok"
         />
         <SummaryChip
-          label="Dư nợ chưa phủ"
-          value={fmtCompact(computed.unassigned.tongDuNo)}
-          subValue={`${fmtNumber(computed.unassigned.soKheUoc)} KƯ`}
-          tone={computed.unassigned.tongDuNo > 0 ? 'warn' : 'ok'}
+          label="Số khách hàng BQ/cán bộ"
+          value={fmtNumber(Math.round(khBQperStaff))}
+          subValue={`${fmtNumber(totalCoveredKh)} KH / ${fmtNumber(staff.length)} CB`}
+          tone="neutral"
         />
         <SummaryChip
-          label="Dư nợ trùng cán bộ"
-          value={fmtCompact(computed.ambiguous.tongDuNo)}
-          subValue={`${fmtNumber(computed.ambiguous.soKheUoc)} KƯ`}
-          tone={computed.ambiguous.tongDuNo > 0 ? 'warn' : 'ok'}
+          label="Dư nợ BQ/cán bộ"
+          value={fmtCompact(duNoBQperStaff)}
+          subValue={`${fmtCompact(coveredTongDuNo)} / ${fmtNumber(staff.length)} CB`}
+          tone="neutral"
         />
       </div>
 

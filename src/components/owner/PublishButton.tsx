@@ -6,7 +6,13 @@ import { useState } from 'react';
 import { Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { useDataStore } from '@/store/useDataStore';
 import { usePeriodStore } from '@/store/usePeriodStore';
-import { publishSnapshot, publishPeriod } from '@/lib/publish';
+import { useStaffStore } from '@/store/useStaffStore';
+import { useTxnPointStore } from '@/store/useTxnPointStore';
+import {
+  publishSnapshot,
+  publishPeriod,
+  publishCatalog,
+} from '@/lib/publish';
 
 interface Props {
   kind: 'snapshot' | 'period';
@@ -55,6 +61,12 @@ export function PublishButton({ kind }: Props) {
           { onProgress }
         );
       }
+      // Đồng thời xuất bản danh mục Cán bộ + ĐGD để người xem ở laptop khác
+      // có cùng dữ liệu cho hai bộ chọn. Catalog rất nhỏ (vài KB) nên đính kèm
+      // mỗi lần publish là rẻ và đảm bảo viewer luôn đồng bộ với owner.
+      const staff = useStaffStore.getState().staff;
+      const points = useTxnPointStore.getState().points;
+      await publishCatalog(staff, points);
       setState({ phase: 'done' });
       setTimeout(() => setState({ phase: 'idle' }), 2500);
     } catch (e) {

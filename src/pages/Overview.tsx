@@ -207,6 +207,21 @@ export function OverviewPage() {
   const byDVUT = useMemo(() => groupBy(filtered, 'tenDVUT'), [filtered]);
   const byXa = useMemo(() => groupBy(filtered, 'tenXa'), [filtered]);
 
+  // Tách Tổng dư nợ theo Nguồn vốn TW/DP. Báo cáo 31 mã hóa Nguồn vốn theo
+  // VBSP: '1' = Trung ương, '2' = Địa phương, '3' = Địa phương xã (vẫn
+  // thuộc DP). Giá trị khác (rỗng / lạ) không được cộng vào bucket nào —
+  // tránh ngộ nhận khi file có hàng dữ liệu thiếu trường này.
+  const duNoByNguonVon = useMemo(() => {
+    let tw = 0;
+    let dp = 0;
+    for (const r of filtered) {
+      const v = (r.nguonVon ?? '').trim();
+      if (v === '1') tw += r.tongDuNo;
+      else if (v === '2' || v === '3') dp += r.tongDuNo;
+    }
+    return { tw, dp };
+  }, [filtered]);
+
   // Dư nợ theo CBTD — chỉ tính khi danh mục Cán bộ + ĐGD đã có dữ liệu.
   const cbtdExtractor = useMemo(
     () => makeStaffKeyExtractor(staff, points),
@@ -345,13 +360,9 @@ export function OverviewPage() {
           caption="Số khách hàng còn dư nợ"
           infoKey="khachHang"
         />
-        <KpiCard
-          label="Tổng giải ngân lũy kế"
-          value={kpi.tongGiaiNgan}
-          tone="success"
-          icon={<TrendingUp className="h-4 w-4" />}
-          formatter={fmtCompact}
-          infoKey="giaiNganLuyKe"
+        <NguonVonCard
+          tw={duNoByNguonVon.tw}
+          dp={duNoByNguonVon.dp}
         />
         <KpiCard
           label="Mức vay bình quân"
@@ -438,44 +449,34 @@ export function OverviewPage() {
         </Card>
       </div>
 
-      {/* Row 1.5: Dư nợ theo CBTD — chỉ hiển thị khi đã có Cán bộ + ĐGD */}
-      {byCBTD.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Dư nợ theo CBTD</CardTitle>
-              <div className="flex items-center gap-1">
-                <ChartSwitcher
-                  options={STACKED_OPTS}
-                  value={stackedCBTDType}
-                  onChange={setStackedCBTDType}
-                />
-                <InfoPopover
-                  explanation={{
-                    title: 'Dư nợ theo Cán bộ tín dụng',
-                    definition:
-                      'Cơ cấu dư nợ (Trong hạn / Quá hạn / Khoanh) của từng cán bộ tín dụng. Phạm vi mỗi cán bộ là hợp các Mã thôn của các Điểm giao dịch họ phụ trách (cấu hình ở danh mục Cán bộ + ĐGD).',
-                    formula:
-                      'Khế ước được phân về cán bộ duy nhất quản lý Mã thôn của khế ước đó. Khế ước thuộc thôn không có cán bộ duy nhất được gom vào nhóm "(Chưa gán cán bộ)" hoặc "(Nhiều cán bộ phụ trách)".',
-                    note: 'Bấm vào một cột cán bộ để mở Tra cứu chi tiết đã lọc theo cán bộ đó.',
-                  }}
-                />
-              </div>
+      {/* Row 1.5: Dư nợ theo Xã — full width */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Dư nợ theo Xã</CardTitle>
+            <div className="flex items-center gap-1">
+              <ChartSwitcher options={BAR_GROUP_OPTS} value={barXaType} onChange={setBarXaType} />
+              <InfoPopover metricKey="chartXa" />
             </div>
-          </CardHeader>
-          <CardContent id="chart-cbtd">
-            <StackedStatus
-              data={byCBTD}
-              limit={10}
-              onClick={drillToCBTD}
-              chartType={stackedCBTDType}
-            />
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </CardHeader>
+        <CardContent id="chart-xa">
+          <BarByGroup
+            data={byXa}
+            limit={10}
+            onClick={(v) => drillTo('tenXa', v)}
+            chartType={barXaType}
+          />
+        </CardContent>
+      </Card>
 
-      {/* Row 2: Histogram + Dư nợ theo Xã */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      {/* Row 2: Histogram + Dư nợ theo CBTD (CBTD conditional) */}
+      <div
+        className={cn(
+          'grid grid-cols-1 gap-4',
+          byCBTD.length > 0 && 'lg:grid-cols-2'
+        )}
+      >
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -500,25 +501,40 @@ export function OverviewPage() {
             />
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Dư nợ theo Xã</CardTitle>
-              <div className="flex items-center gap-1">
-                <ChartSwitcher options={BAR_GROUP_OPTS} value={barXaType} onChange={setBarXaType} />
-                <InfoPopover metricKey="chartXa" />
+        {byCBTD.length > 0 && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Dư nợ theo CBTD</CardTitle>
+                <div className="flex items-center gap-1">
+                  <ChartSwitcher
+                    options={STACKED_OPTS}
+                    value={stackedCBTDType}
+                    onChange={setStackedCBTDType}
+                  />
+                  <InfoPopover
+                    explanation={{
+                      title: 'Dư nợ theo Cán bộ tín dụng',
+                      definition:
+                        'Cơ cấu dư nợ (Trong hạn / Quá hạn / Khoanh) của từng cán bộ tín dụng. Phạm vi mỗi cán bộ là hợp các Mã thôn của các Điểm giao dịch họ phụ trách (cấu hình ở danh mục Cán bộ + ĐGD).',
+                      formula:
+                        'Khế ước được phân về cán bộ duy nhất quản lý Mã thôn của khế ước đó. Khế ước thuộc thôn không có cán bộ duy nhất được gom vào nhóm "(Chưa gán cán bộ)" hoặc "(Nhiều cán bộ phụ trách)".',
+                      note: 'Bấm vào một cột cán bộ để mở Tra cứu chi tiết đã lọc theo cán bộ đó.',
+                    }}
+                  />
+                </div>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent id="chart-xa">
-            <BarByGroup
-              data={byXa}
-              limit={10}
-              onClick={(v) => drillTo('tenXa', v)}
-              chartType={barXaType}
-            />
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent id="chart-cbtd">
+              <StackedStatus
+                data={byCBTD}
+                limit={10}
+                onClick={drillToCBTD}
+                chartType={stackedCBTDType}
+              />
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Row 3: Time series + Donut */}
@@ -803,6 +819,69 @@ export function OverviewPage() {
       </Card>
 
       <LoanDetailDrawer record={detail} onClose={() => setDetail(null)} />
+    </div>
+  );
+}
+
+/**
+ * Card "Tổng dư nợ TW/DP" — biến thể 2 cột của KpiCard cho chỉ tiêu Tổng
+ * dư nợ, tách theo Nguồn vốn (TW = '1' / DP = '2','3'). Tone primary
+ * (brand blue) để đồng bộ thị giác với chỗ "Tổng dư nợ" KpiCard nguyên bản.
+ * InfoPopover dùng chung khoá `tongDuNo`.
+ */
+function NguonVonCard({
+  tw,
+  dp,
+  caption,
+}: {
+  tw: number;
+  dp: number;
+  caption?: string;
+}) {
+  const total = tw + dp;
+  return (
+    <div className="relative overflow-hidden rounded-xl bg-brand-50 p-4 shadow-sm ring-1 ring-brand-200 dark:bg-brand-500/10 dark:ring-brand-500/25">
+      <span className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full bg-black/5 dark:bg-white/5" />
+      <div className="absolute right-2 top-2 z-10">
+        <InfoPopover metricKey="tongDuNo" />
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-xs font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-300">
+          Tổng dư nợ TW/DP
+        </div>
+        <div className="rounded-full bg-brand-100 p-1.5 text-brand-800 dark:bg-brand-500/20 dark:text-brand-200">
+          <Banknote className="h-4 w-4" />
+        </div>
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-3">
+        <div className="min-w-0">
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-brand-700/80 dark:text-brand-300/80">
+            TW
+          </div>
+          <div className="truncate text-lg font-bold tracking-tight text-brand-900 dark:text-brand-200">
+            {fmtCompact(tw)}
+          </div>
+          <div className="text-[10px] text-brand-700/70 dark:text-brand-300/70">
+            {total > 0 ? fmtPercent((tw / total) * 100, 1) : '—'}
+          </div>
+        </div>
+        <div className="min-w-0 border-l border-brand-200 pl-3 dark:border-brand-500/25">
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-brand-700/80 dark:text-brand-300/80">
+            DP
+          </div>
+          <div className="truncate text-lg font-bold tracking-tight text-brand-900 dark:text-brand-200">
+            {fmtCompact(dp)}
+          </div>
+          <div className="text-[10px] text-brand-700/70 dark:text-brand-300/70">
+            {total > 0 ? fmtPercent((dp / total) * 100, 1) : '—'}
+          </div>
+        </div>
+      </div>
+      {caption && (
+        <div className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+          {caption}
+        </div>
+      )}
     </div>
   );
 }

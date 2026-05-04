@@ -31,6 +31,10 @@ const ROUTES: Record<string, RouteSpec> = {
     plain: 'published-period.json',
     gz: 'published-period.json.gz',
   },
+  '/__publish/catalog': {
+    plain: 'published-catalog.json',
+    gz: 'published-catalog.json.gz',
+  },
 };
 
 // Body đã được trình duyệt nén → giới hạn 50 MB là dư cho ~30k khế ước × 2 kỳ.

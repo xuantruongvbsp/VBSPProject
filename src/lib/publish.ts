@@ -6,7 +6,7 @@
 // Nguyên tắc: KHÔNG bao giờ ghi tên tệp gốc, đường dẫn, hay bất kỳ
 // trường nào nhận diện nguồn Excel vào dữ liệu đã xuất bản.
 
-import type { LoanRecord } from './types';
+import type { LoanRecord, StaffRecord, TxnPointRecord } from './types';
 import type {
   ComparePair,
   PeriodSlotKey,
@@ -20,8 +20,11 @@ const SNAPSHOT_URL_GZ = '/published.json.gz';
 const SNAPSHOT_URL_PLAIN = '/published.json';
 const PERIOD_URL_GZ = '/published-period.json.gz';
 const PERIOD_URL_PLAIN = '/published-period.json';
+const CATALOG_URL_GZ = '/published-catalog.json.gz';
+const CATALOG_URL_PLAIN = '/published-catalog.json';
 const PUBLISH_API_SNAPSHOT = '/__publish/snapshot';
 const PUBLISH_API_PERIOD = '/__publish/period';
+const PUBLISH_API_CATALOG = '/__publish/catalog';
 
 // ---------------------------------------------------------------------------
 // Tuần tự hóa: chuyển Date → ISO string + đánh dấu để khôi phục lại sau.
@@ -461,4 +464,80 @@ export async function unpublishSnapshot(): Promise<void> {
 }
 export async function unpublishPeriod(): Promise<void> {
   await fetch(PUBLISH_API_PERIOD, { method: 'DELETE' });
+}
+
+// ---------------------------------------------------------------------------
+// Danh mục Cán bộ + Điểm giao dịch (catalog)
+//
+// Hai catalog này lưu cục bộ trong localStorage của chủ sở hữu (Zustand
+// `persist`). Trước đây không nằm trong payload xuất bản → người xem trên
+// laptop khác không thấy bộ chọn "Cán bộ" / "Điểm giao dịch". Nay xuất bản
+// cùng dữ liệu chính, người xem hydrate vào store ở chế độ chỉ đọc.
+//
+// Payload nhỏ (vài KB) — vẫn dùng gzip để đồng nhất với hai endpoint kia
+// (server kiểm tra magic bytes 1f 8b).
+// ---------------------------------------------------------------------------
+
+export interface CatalogPublishPayload {
+  v: 1;
+  staff: StaffRecord[];
+  txnPoints: TxnPointRecord[];
+}
+
+export interface DeserializedCatalog {
+  staff: StaffRecord[];
+  txnPoints: TxnPointRecord[];
+}
+
+export function serializeCatalog(
+  staff: StaffRecord[],
+  txnPoints: TxnPointRecord[]
+): string {
+  const payload: CatalogPublishPayload = { v: 1, staff, txnPoints };
+  return JSON.stringify(payload);
+}
+
+export function deserializeCatalog(text: string): DeserializedCatalog {
+  const obj = JSON.parse(text) as Partial<CatalogPublishPayload>;
+  return {
+    staff: Array.isArray(obj.staff) ? (obj.staff as StaffRecord[]) : [],
+    txnPoints: Array.isArray(obj.txnPoints)
+      ? (obj.txnPoints as TxnPointRecord[])
+      : [],
+  };
+}
+
+export async function publishCatalog(
+  staff: StaffRecord[],
+  txnPoints: TxnPointRecord[]
+): Promise<void> {
+  try {
+    const blob = new Blob([serializeCatalog(staff, txnPoints)], {
+      type: 'application/json',
+    });
+    await uploadBlob(PUBLISH_API_CATALOG, blob);
+  } catch (err) {
+    throw new Error(
+      `Xuất bản danh mục thất bại: ${
+        err instanceof Error ? err.message : String(err)
+      }`
+    );
+  }
+}
+
+export async function fetchPublishedCatalog(): Promise<DeserializedCatalog | null> {
+  try {
+    const text =
+      (await fetchAndMaybeUngzip(CATALOG_URL_GZ)) ??
+      (await fetchAndMaybeUngzip(CATALOG_URL_PLAIN));
+    if (text === null) return null;
+    return deserializeCatalog(text);
+  } catch (e) {
+    if (e instanceof SyntaxError) return null;
+    throw e;
+  }
+}
+
+export async function unpublishCatalog(): Promise<void> {
+  await fetch(PUBLISH_API_CATALOG, { method: 'DELETE' });
 }

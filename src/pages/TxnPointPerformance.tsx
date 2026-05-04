@@ -254,6 +254,14 @@ export function TxnPointPerformancePage() {
     computed.ambiguous.tongDuNo;
   const coveredTongDuNo = computed.rows.reduce((s, r) => s + r.tongDuNo, 0);
   const coveragePct = totalTongDuNo > 0 ? coveredTongDuNo / totalTongDuNo : 0;
+  const totalCoveredKh = computed.rows.reduce((s, r) => s + r.soKhachHang, 0);
+  // Mức vay BQ trong phạm vi ĐGD = tổng dư nợ phủ / tổng KH phủ (mức vay
+  // bình quân theo khách hàng, tính trên toàn bộ scope đã được gán ĐGD).
+  const mucVayBQ = totalCoveredKh > 0 ? coveredTongDuNo / totalCoveredKh : 0;
+  // Dư nợ bình quân mỗi ĐGD — mẫu = tổng số ĐGD trong danh mục, để các ĐGD
+  // chưa có dữ liệu vẫn nằm trong mức bình quân.
+  const duNoBQperPoint =
+    points.length > 0 ? coveredTongDuNo / points.length : 0;
 
   return (
     <div className="space-y-4 p-6">
@@ -290,16 +298,16 @@ export function TxnPointPerformancePage() {
           tone="ok"
         />
         <SummaryChip
-          label="Dư nợ chưa phủ"
-          value={fmtCompact(computed.unassigned.tongDuNo)}
-          subValue={`${fmtNumber(computed.unassigned.soKheUoc)} KƯ`}
-          tone={computed.unassigned.tongDuNo > 0 ? 'warn' : 'ok'}
+          label="Mức vay BQ/ĐGD"
+          value={fmtCompact(mucVayBQ)}
+          subValue={`${fmtCompact(coveredTongDuNo)} / ${fmtNumber(totalCoveredKh)} KH`}
+          tone="neutral"
         />
         <SummaryChip
-          label="Dư nợ trùng ĐGD"
-          value={fmtCompact(computed.ambiguous.tongDuNo)}
-          subValue={`${fmtNumber(computed.ambiguous.soKheUoc)} KƯ`}
-          tone={computed.ambiguous.tongDuNo > 0 ? 'warn' : 'ok'}
+          label="Dư nợ BQ/ĐGD"
+          value={fmtCompact(duNoBQperPoint)}
+          subValue={`${fmtCompact(coveredTongDuNo)} / ${fmtNumber(points.length)} ĐGD`}
+          tone="neutral"
         />
       </div>
 

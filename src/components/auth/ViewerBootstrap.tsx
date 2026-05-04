@@ -9,7 +9,13 @@ import { useEffect, useRef } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useDataStore } from '@/store/useDataStore';
 import { usePeriodStore } from '@/store/usePeriodStore';
-import { fetchPublishedSnapshot, fetchPublishedPeriod } from '@/lib/publish';
+import { useStaffStore } from '@/store/useStaffStore';
+import { useTxnPointStore } from '@/store/useTxnPointStore';
+import {
+  fetchPublishedSnapshot,
+  fetchPublishedPeriod,
+  fetchPublishedCatalog,
+} from '@/lib/publish';
 
 export function ViewerBootstrap() {
   const role = useAuthStore((s) => s.role);
@@ -47,6 +53,18 @@ export function ViewerBootstrap() {
         })
         .catch((e) => console.warn('[viewer] không tải được period', e));
     }
+
+    // Đồng bộ danh mục Cán bộ + Điểm giao dịch từ owner. Luôn replace để
+    // tránh dữ liệu cũ tồn dư trong localStorage của viewer xung đột với
+    // bản owner. Bộ chọn cán bộ/ĐGD trên FilterBar phụ thuộc trực tiếp
+    // vào hai store này.
+    fetchPublishedCatalog()
+      .then((d) => {
+        if (!d) return;
+        useStaffStore.getState().importStaff(d.staff, 'replace');
+        useTxnPointStore.getState().importPoints(d.txnPoints, 'replace');
+      })
+      .catch((e) => console.warn('[viewer] không tải được catalog', e));
   }, [
     role,
     snapshotRows.length,

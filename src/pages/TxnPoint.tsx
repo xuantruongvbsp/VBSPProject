@@ -23,6 +23,7 @@ import {
   exportTxnPointJson,
   parseTxnPointJson,
 } from '@/store/useTxnPointStore';
+import { useIsOwner } from '@/store/useAuthStore';
 import { fmtCompact } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { TxnPointRecord } from '@/lib/types';
@@ -58,6 +59,7 @@ export function TxnPointPage() {
   const updatePoint = useTxnPointStore((s) => s.updatePoint);
   const removePoint = useTxnPointStore((s) => s.removePoint);
   const importPoints = useTxnPointStore((s) => s.importPoints);
+  const isOwner = useIsOwner();
 
   const thonStats = useMemo<ThonStat[]>(() => {
     const map = new Map<string, ThonStat>();
@@ -254,33 +256,35 @@ export function TxnPointPage() {
             các báo cáo sẽ chỉ hiển thị khế ước thuộc các thôn đó.
           </p>
         </div>
-        <div className="flex gap-2">
-          <input
-            ref={importFileRef}
-            type="file"
-            accept="application/json,.json"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void handleImportFile(f);
-            }}
-          />
-          <Button variant="outline" size="sm" onClick={() => importFileRef.current?.click()}>
-            <Upload className="h-3.5 w-3.5" /> Import JSON
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            disabled={points.length === 0}
-            title={points.length === 0 ? 'Chưa có ĐGD để xuất' : 'Tải xuống tệp JSON'}
-          >
-            <Download className="h-3.5 w-3.5" /> Export JSON
-          </Button>
-          <Button size="sm" onClick={startAdd}>
-            <Plus className="h-3.5 w-3.5" /> Thêm ĐGD
-          </Button>
-        </div>
+        {isOwner && (
+          <div className="flex gap-2">
+            <input
+              ref={importFileRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void handleImportFile(f);
+              }}
+            />
+            <Button variant="outline" size="sm" onClick={() => importFileRef.current?.click()}>
+              <Upload className="h-3.5 w-3.5" /> Import JSON
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              disabled={points.length === 0}
+              title={points.length === 0 ? 'Chưa có ĐGD để xuất' : 'Tải xuống tệp JSON'}
+            >
+              <Download className="h-3.5 w-3.5" /> Export JSON
+            </Button>
+            <Button size="sm" onClick={startAdd}>
+              <Plus className="h-3.5 w-3.5" /> Thêm ĐGD
+            </Button>
+          </div>
+        )}
       </div>
 
       <CoveragePanel
@@ -292,8 +296,8 @@ export function TxnPointPage() {
         hasReport={rows.length > 0}
       />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+      <div className={cn('grid grid-cols-1 gap-4', isOwner && 'lg:grid-cols-3')}>
+        <Card className={cn(isOwner && 'lg:col-span-2')}>
           <CardHeader className="flex-row items-center justify-between">
             <CardTitle>Danh sách ({points.length})</CardTitle>
             <div className="relative">
@@ -310,7 +314,9 @@ export function TxnPointPage() {
             {filtered.length === 0 ? (
               <div className="px-5 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
                 {points.length === 0
-                  ? 'Chưa có Điểm giao dịch. Bấm "Thêm ĐGD" để bắt đầu.'
+                  ? isOwner
+                    ? 'Chưa có Điểm giao dịch. Bấm "Thêm ĐGD" để bắt đầu.'
+                    : 'Chưa có Điểm giao dịch. Vui lòng liên hệ quản trị viên.'
                   : 'Không tìm thấy ĐGD phù hợp.'}
               </div>
             ) : (
@@ -321,7 +327,9 @@ export function TxnPointPage() {
                       <th className="px-4 py-2.5 font-semibold">Mã ĐGD</th>
                       <th className="px-4 py-2.5 font-semibold">Tên ĐGD</th>
                       <th className="px-4 py-2.5 font-semibold">Mã thôn thuộc ĐGD</th>
-                      <th className="px-4 py-2.5 text-right font-semibold">Thao tác</th>
+                      {isOwner && (
+                        <th className="px-4 py-2.5 text-right font-semibold">Thao tác</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -360,24 +368,26 @@ export function TxnPointPage() {
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-2 text-right">
-                          <div className="inline-flex gap-1">
-                            <button
-                              onClick={() => startEdit(p)}
-                              className="rounded p-1.5 text-slate-500 hover:bg-brand-50 hover:text-brand-700 dark:hover:bg-brand-900/30 dark:hover:text-brand-300"
-                              title="Sửa"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(p)}
-                              className="rounded p-1.5 text-slate-500 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-900/30 dark:hover:text-rose-400"
-                              title="Xóa"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </td>
+                        {isOwner && (
+                          <td className="px-4 py-2 text-right">
+                            <div className="inline-flex gap-1">
+                              <button
+                                onClick={() => startEdit(p)}
+                                className="rounded p-1.5 text-slate-500 hover:bg-brand-50 hover:text-brand-700 dark:hover:bg-brand-900/30 dark:hover:text-brand-300"
+                                title="Sửa"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(p)}
+                                className="rounded p-1.5 text-slate-500 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-900/30 dark:hover:text-rose-400"
+                                title="Xóa"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -387,30 +397,32 @@ export function TxnPointPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{editing ? 'Sửa ĐGD' : draft ? 'Thêm ĐGD mới' : 'Chi tiết'}</CardTitle>
-            {!draft && (
-              <CardDescription>Chọn một ĐGD trong danh sách để sửa, hoặc bấm "Thêm ĐGD".</CardDescription>
-            )}
-          </CardHeader>
-          <CardContent>
-            {!draft ? (
-              <div className="text-sm text-slate-500 dark:text-slate-400">
-                Chưa chọn ĐGD.
-              </div>
-            ) : (
-              <TxnPointForm
-                draft={draft}
-                setDraft={setDraft}
-                thonOptions={thonOptions}
-                onSave={saveDraft}
-                onCancel={cancelEdit}
-                isEditing={!!editing}
-              />
-            )}
-          </CardContent>
-        </Card>
+        {isOwner && (
+          <Card>
+            <CardHeader>
+              <CardTitle>{editing ? 'Sửa ĐGD' : draft ? 'Thêm ĐGD mới' : 'Chi tiết'}</CardTitle>
+              {!draft && (
+                <CardDescription>Chọn một ĐGD trong danh sách để sửa, hoặc bấm "Thêm ĐGD".</CardDescription>
+              )}
+            </CardHeader>
+            <CardContent>
+              {!draft ? (
+                <div className="text-sm text-slate-500 dark:text-slate-400">
+                  Chưa chọn ĐGD.
+                </div>
+              ) : (
+                <TxnPointForm
+                  draft={draft}
+                  setDraft={setDraft}
+                  thonOptions={thonOptions}
+                  onSave={saveDraft}
+                  onCancel={cancelEdit}
+                  isEditing={!!editing}
+                />
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

@@ -10,9 +10,13 @@ CLAUDE.md
 plans/
 _inspect/
 
-# PII — published datasets generated from Báo cáo 31
-public/published.json
-public/published-period.json
+# PII — published datasets generated from Báo cáo 31 (cả plain + gzip,
+# bao gồm catalog Cán bộ + Điểm giao dịch)
+public/published*.json
+public/published*.json.gz
+
+# Scratch / preview artifacts
+.tmp/
 
 # Secrets
 .env

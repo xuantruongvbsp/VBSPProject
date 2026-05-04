@@ -186,17 +186,22 @@ export function NplPage() {
   }, [exporting, qhLoansOnly, ngaySoLieu, filtered.length]);
 
   // Khế ước "chuyển NQH trong tháng": Ngày ĐH theo GDXA rơi vào tháng của
-  // ngày chốt số liệu, và Tình trạng món vay = OPEN.
+  // ngày chốt số liệu VÀ đã đến/qua ngày chốt — tức ngayDHGDXA <= ngaySoLieu.
+  // Nếu chỉ check năm+tháng (như bản cũ) thì khế ước có ngayDHGDXA = 07/05
+  // sẽ bị tính dù ngaySoLieu mới là 04/05 → chưa thực sự quá hạn. So sánh
+  // theo ngày trong tháng (cùng năm+tháng) là đủ và rõ ràng nhất.
   const chuyenNQHThang = useMemo(() => {
     if (!ngaySoLieu) return [];
     const y = ngaySoLieu.getFullYear();
     const m = ngaySoLieu.getMonth();
+    const dCutoff = ngaySoLieu.getDate();
     return filtered
       .filter((r) => {
         if (!isOpenLoan(r)) return false;
         const d = r.ngayDHGDXA;
         if (!d) return false;
-        return d.getFullYear() === y && d.getMonth() === m;
+        if (d.getFullYear() !== y || d.getMonth() !== m) return false;
+        return d.getDate() <= dCutoff;
       })
       .sort((a, b) => {
         const da = a.ngayDHGDXA?.getTime() ?? 0;

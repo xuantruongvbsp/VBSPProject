@@ -26,6 +26,7 @@ import {
 } from '@/store/useDataStore';
 import { useStaffStore } from '@/store/useStaffStore';
 import { useTxnPointStore } from '@/store/useTxnPointStore';
+import { useIsOwner } from '@/store/useAuthStore';
 import { Link } from 'react-router-dom';
 import { distinctValues } from '@/lib/metrics';
 import { cn } from '@/lib/utils';
@@ -422,6 +423,7 @@ function StaffSelector({
   const selectedStaffId = useStaffStore((s) => s.selectedStaffId);
   const selectStaff = useStaffStore((s) => s.selectStaff);
   const points = useTxnPointStore((s) => s.points);
+  const isOwner = useIsOwner();
 
   const selected = useMemo(
     () => staff.find((s) => s.id === selectedStaffId) ?? null,
@@ -472,6 +474,9 @@ function StaffSelector({
   }, [filters]);
 
   if (staff.length === 0) {
+    // Người xem không có quyền tạo cán bộ — không hiển thị link gì cả khi
+    // catalog rỗng (xảy ra khi chủ sở hữu chưa publish catalog).
+    if (!isOwner) return null;
     return (
       <Link
         to="/snapshot/can-bo"
@@ -552,6 +557,7 @@ function TxnPointSelector({
   // toàn bộ ĐGD trong danh mục.
   const staff = useStaffStore((s) => s.staff);
   const selectedStaffId = useStaffStore((s) => s.selectedStaffId);
+  const isOwner = useIsOwner();
 
   const visiblePoints = useMemo(() => {
     if (!selectedStaffId) return points;
@@ -603,6 +609,7 @@ function TxnPointSelector({
   }, [filters]);
 
   if (points.length === 0) {
+    if (!isOwner) return null;
     return (
       <Link
         to="/snapshot/diem-giao-dich"
