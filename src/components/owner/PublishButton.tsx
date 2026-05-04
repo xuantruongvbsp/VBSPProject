@@ -14,7 +14,7 @@ interface Props {
 
 type State =
   | { phase: 'idle' }
-  | { phase: 'busy' }
+  | { phase: 'busy'; step: 'serializing' | 'uploading' }
   | { phase: 'done' }
   | { phase: 'error'; msg: string };
 
@@ -32,12 +32,14 @@ export function PublishButton({ kind }: Props) {
 
   const handleClick = async () => {
     if (state.phase === 'busy') return;
-    setState({ phase: 'busy' });
+    setState({ phase: 'busy', step: 'serializing' });
+    const onProgress = (step: 'serializing' | 'uploading') =>
+      setState({ phase: 'busy', step });
     try {
       if (kind === 'snapshot') {
-        await publishSnapshot(snapshotRows, snapshotDate);
+        await publishSnapshot(snapshotRows, snapshotDate, { onProgress });
       } else if (periodPrev && periodCurr) {
-        await publishPeriod(periodPrev, periodCurr);
+        await publishPeriod(periodPrev, periodCurr, { onProgress });
       }
       setState({ phase: 'done' });
       setTimeout(() => setState({ phase: 'idle' }), 2500);
@@ -50,7 +52,10 @@ export function PublishButton({ kind }: Props) {
   };
 
   const label = (() => {
-    if (state.phase === 'busy') return 'Đang xuất bản…';
+    if (state.phase === 'busy')
+      return state.step === 'serializing'
+        ? 'Đang chuẩn bị dữ liệu…'
+        : 'Đang tải lên…';
     if (state.phase === 'done') return 'Đã xuất bản';
     return 'Xuất bản cho người xem';
   })();

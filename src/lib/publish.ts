@@ -9,8 +9,13 @@
 import type { LoanRecord } from './types';
 import type { PeriodSnapshot } from '@/store/usePeriodStore';
 
-const SNAPSHOT_URL = '/published.json';
-const PERIOD_URL = '/published-period.json';
+// File xuất bản được nén gzip để giảm kích thước on-wire ~10× (49 MB → ~5 MB).
+// Tệp `.json` cũ vẫn được fetch fallback để tương thích ngược trong giai đoạn
+// chuyển tiếp — sẽ bỏ sau khi mọi triển khai đã re-publish.
+const SNAPSHOT_URL_GZ = '/published.json.gz';
+const SNAPSHOT_URL_PLAIN = '/published.json';
+const PERIOD_URL_GZ = '/published-period.json.gz';
+const PERIOD_URL_PLAIN = '/published-period.json';
 const PUBLISH_API_SNAPSHOT = '/__publish/snapshot';
 const PUBLISH_API_PERIOD = '/__publish/period';
 
@@ -28,11 +33,61 @@ const DATE_FIELDS: ReadonlyArray<keyof LoanRecord> = [
   'ngaySoLieu',
 ];
 
+/**
+ * Báo cáo 31 có 174 cột — `LoanRecord.raw` giữ nguyên cả 174 để hiển thị
+ * chi tiết khế ước. Tuy nhiên người xem chỉ mở `LoanDetailDrawer`, và
+ * drawer chỉ đọc một tập nhỏ ~49 khóa. Nếu serialize toàn bộ raw, payload
+ * "So sánh hai kỳ" (2 × ~30k dòng) phình lên ~200 MB và làm Chrome OOM.
+ *
+ * Danh sách dưới đây phải khớp với các trường được khai trong
+ * `src/components/detail/LoanDetailDrawer.tsx` (`sections`). Nếu drawer
+ * thêm trường mới → cập nhật cả ở đây.
+ */
+const RAW_KEYS_FOR_VIEWER: ReadonlyArray<string> = [
+  // Đơn vị quản lý
+  'Mã CN', 'Mã PGD', 'Tên PGD', 'Mã xã', 'Tên xã', 'Tên thôn',
+  // Khách hàng
+  'Mã KH', 'Tên KH', 'Ngày sinh', 'Giới tính', 'Phân loại', 'Loại KH',
+  'Tên DT', 'Số CMND', 'Nơi cấp CMND', 'Địa chỉ', 'Số điện thoại',
+  // Tổ TK&VV và Đơn vị ủy thác
+  'Mã tổ', 'Tên tổ', 'Loại tổ', 'Mã ĐVUT', 'Tên ĐVUT',
+  // Khế ước
+  'Số khế ước', 'Ngày vay', 'Ngày ĐH theo hợp đồng', 'Ngày ĐH theo Gia hạn',
+  'Thời hạn vay', 'Lãi suất', 'Hình thức vay', 'Tình trạng món vay',
+  // Số dư & Giải ngân
+  'Mức vay', 'Tổng giải ngân', 'Dư nợ trong hạn', 'Dư nợ quá hạn',
+  'Dư nợ khoanh', 'Tổng dư nợ', 'Gốc đã trả', 'Giải ngân trong tháng',
+  // Lãi & Thu nợ
+  'Tổng thu lãi TH', 'Lãi tồn TH', 'Tổng thu lãi QH', 'Lãi tồn QH',
+  'Lãi DT chưa đến hạn', 'Thu lãi TH tháng', 'Thu nợ TH tháng',
+  // Chương trình tín dụng
+  'Mã chương trình', 'Tên chương trình', 'Tên Quyết định', 'Nguồn vốn',
+  'Tên ĐTTH',
+];
+
+function pickRawForViewer(raw: Record<string, unknown> | undefined): Record<string, unknown> {
+  if (!raw) return {};
+  const out: Record<string, unknown> = {};
+  for (const k of RAW_KEYS_FOR_VIEWER) {
+    const v = raw[k];
+    if (v !== undefined && v !== null && v !== '') out[k] = v;
+  }
+  return out;
+}
+
 function rowToJson(row: LoanRecord): Record<string, unknown> {
-  const out: Record<string, unknown> = { ...row };
+  const { raw, ...rest } = row;
+  const out: Record<string, unknown> = { ...rest, raw: pickRawForViewer(raw) };
   for (const f of DATE_FIELDS) {
-    const v = row[f] as Date | null;
-    out[f] = v ? v.toISOString() : null;
+    const v = row[f];
+    // Cứng tay: chỉ chấp nhận Date hợp lệ, mọi thứ khác → null. Tránh
+    // JSON.stringify gặp số ngày Excel hay 'Invalid Date' rồi sản xuất
+    // chuỗi không thể parse lại.
+    if (v instanceof Date && !Number.isNaN(v.getTime())) {
+      out[f] = v.toISOString();
+    } else {
+      out[f] = null;
+    }
   }
   return out;
 }
@@ -81,15 +136,29 @@ export function deserializeSnapshot(text: string): DeserializedSnapshot {
   };
 }
 
-/** Tải dữ liệu đã xuất bản. Trả về null khi chưa có (HTTP 404). */
+/**
+ * Tải `url` rồi (nếu là `.gz`) giải nén bằng DecompressionStream của trình
+ * duyệt. Trả về text JSON, hoặc null khi tệp chưa được xuất bản (HTTP 404).
+ */
+async function fetchAndMaybeUngzip(url: string): Promise<string | null> {
+  const res = await fetch(`${url}?t=${Date.now()}`, { cache: 'no-store' });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (url.endsWith('.gz')) {
+    if (!res.body) throw new Error('Phản hồi không có body để giải nén');
+    const stream = res.body.pipeThrough(new DecompressionStream('gzip'));
+    return await new Response(stream).text();
+  }
+  return await res.text();
+}
+
+/** Tải dữ liệu đã xuất bản. Ưu tiên `.gz`, fallback `.json` cho dữ liệu cũ. */
 export async function fetchPublishedSnapshot(): Promise<DeserializedSnapshot | null> {
   try {
-    const res = await fetch(`${SNAPSHOT_URL}?t=${Date.now()}`, {
-      cache: 'no-store',
-    });
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
+    const text =
+      (await fetchAndMaybeUngzip(SNAPSHOT_URL_GZ)) ??
+      (await fetchAndMaybeUngzip(SNAPSHOT_URL_PLAIN));
+    if (text === null) return null;
     return deserializeSnapshot(text);
   } catch (e) {
     if (e instanceof SyntaxError) return null;
@@ -112,13 +181,6 @@ export interface PeriodPublishPayload {
   curr: PeriodSnapshotJson;
 }
 
-function snapshotToJson(s: PeriodSnapshot): PeriodSnapshotJson {
-  return {
-    ngaySoLieu: s.ngaySoLieu ? s.ngaySoLieu.toISOString() : null,
-    rows: s.rows.map(rowToJson),
-  };
-}
-
 function jsonToSnapshot(j: PeriodSnapshotJson): PeriodSnapshot {
   return {
     rows: j.rows.map(jsonToRow),
@@ -133,10 +195,18 @@ export function serializePeriod(
   prev: PeriodSnapshot,
   curr: PeriodSnapshot
 ): string {
+  // Lưu ý: hàm này chỉ dùng cho test/back-compat. Đường gửi thực tế
+  // (`publishPeriod`) sử dụng bản streaming bên dưới để tránh OOM.
   const payload: PeriodPublishPayload = {
     v: 1,
-    prev: snapshotToJson(prev),
-    curr: snapshotToJson(curr),
+    prev: {
+      ngaySoLieu: prev.ngaySoLieu ? prev.ngaySoLieu.toISOString() : null,
+      rows: prev.rows.map(rowToJson),
+    },
+    curr: {
+      ngaySoLieu: curr.ngaySoLieu ? curr.ngaySoLieu.toISOString() : null,
+      rows: curr.rows.map(rowToJson),
+    },
   };
   return JSON.stringify(payload);
 }
@@ -156,12 +226,10 @@ export function deserializePeriod(text: string): DeserializedPeriod {
 
 export async function fetchPublishedPeriod(): Promise<DeserializedPeriod | null> {
   try {
-    const res = await fetch(`${PERIOD_URL}?t=${Date.now()}`, {
-      cache: 'no-store',
-    });
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
+    const text =
+      (await fetchAndMaybeUngzip(PERIOD_URL_GZ)) ??
+      (await fetchAndMaybeUngzip(PERIOD_URL_PLAIN));
+    if (text === null) return null;
     return deserializePeriod(text);
   } catch (e) {
     if (e instanceof SyntaxError) return null;
@@ -171,39 +239,145 @@ export async function fetchPublishedPeriod(): Promise<DeserializedPeriod | null>
 
 // ---------------------------------------------------------------------------
 // Gửi tệp xuất bản đến vite-plugin-publish.
-// Gọi POST tới endpoint của trình cắm; trình cắm ghi tệp tĩnh trong public/
-// (hoặc dist/ khi chạy preview).
+//
+// Lý do KHÔNG dùng Web Worker: structured-clone toàn bộ rows (30k × 174
+// trường, kèm `raw`) sang worker đã ngốn vài trăm MB và làm Chrome kill tab
+// vì OOM TRƯỚC khi worker kịp stringify. Gửi theo từng "chunk" trên luồng
+// chính + yield giữa các chunk giữ UI luôn phản hồi và không nhân bản dữ
+// liệu — chỉ tạo các đoạn JSON nhỏ rồi gom thành Blob (Blob lưu nội dung
+// dưới dạng nhị phân, ngay khi dồn xong các string chunks có thể được GC).
 // ---------------------------------------------------------------------------
 
-async function postPayload(url: string, body: string): Promise<void> {
+export interface PublishOptions {
+  /** Báo tiến trình hiện tại (đang stringify hay đang upload). */
+  onProgress?: (phase: 'serializing' | 'uploading') => void;
+}
+
+/** Số dòng mỗi chunk khi stringify — chọn đủ lớn để overhead nhỏ, đủ nhỏ
+ *  để mỗi vòng yield giữ UI mượt (~50 ms/chunk trên dữ liệu thực). */
+const ROWS_PER_CHUNK = 500;
+
+/** Chờ tick kế tiếp để main thread xử lý input/UI. */
+function yieldToEventLoop(): Promise<void> {
+  return new Promise((r) => setTimeout(r, 0));
+}
+
+/**
+ * Stringify từng phần `rows` rồi đẩy vào danh sách Blob. KHÔNG dồn về một
+ * chuỗi khổng lồ — Blob giữ nội dung dưới dạng nhị phân, mỗi chunk string
+ * có thể được GC sau khi nuốt vào Blob.
+ */
+async function pushRowsAsJson(
+  rows: LoanRecord[],
+  parts: BlobPart[]
+): Promise<void> {
+  for (let i = 0; i < rows.length; i++) {
+    if (i > 0) parts.push(',');
+    parts.push(JSON.stringify(rowToJson(rows[i])));
+    if ((i + 1) % ROWS_PER_CHUNK === 0) {
+      await yieldToEventLoop();
+    }
+  }
+}
+
+async function buildSnapshotBlob(
+  rows: LoanRecord[],
+  ngaySoLieu: Date | null
+): Promise<Blob> {
+  const parts: BlobPart[] = [];
+  parts.push('{"v":1,"ngaySoLieu":');
+  parts.push(JSON.stringify(ngaySoLieu ? ngaySoLieu.toISOString() : null));
+  parts.push(',"rows":[');
+  await pushRowsAsJson(rows, parts);
+  parts.push(']}');
+  return new Blob(parts, { type: 'application/json' });
+}
+
+async function buildPeriodBlob(
+  prev: PeriodSnapshot,
+  curr: PeriodSnapshot
+): Promise<Blob> {
+  const parts: BlobPart[] = [];
+  parts.push('{"v":1,"prev":{"ngaySoLieu":');
+  parts.push(JSON.stringify(prev.ngaySoLieu ? prev.ngaySoLieu.toISOString() : null));
+  parts.push(',"rows":[');
+  await pushRowsAsJson(prev.rows, parts);
+  parts.push(']},"curr":{"ngaySoLieu":');
+  parts.push(JSON.stringify(curr.ngaySoLieu ? curr.ngaySoLieu.toISOString() : null));
+  parts.push(',"rows":[');
+  await pushRowsAsJson(curr.rows, parts);
+  parts.push(']}}');
+  return new Blob(parts, { type: 'application/json' });
+}
+
+/**
+ * Nén blob bằng CompressionStream('gzip') của trình duyệt — lossless, native,
+ * không phụ thuộc thư viện. Tỉ lệ nén thực tế trên payload Báo cáo 31: ~10×
+ * (49 MB → ~5 MB), giảm tải mạng và bộ nhớ Node khi server.writeFileSync.
+ */
+async function gzipBlob(blob: Blob): Promise<Blob> {
+  const stream = blob.stream().pipeThrough(new CompressionStream('gzip'));
+  return await new Response(stream).blob();
+}
+
+async function uploadBlob(url: string, blob: Blob): Promise<void> {
+  const gz = await gzipBlob(blob);
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body,
+    // Báo server biết body đã gzip → ghi nguyên bytes vào file `.json.gz`,
+    // không bị nhầm là JSON cần parse.
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      'Content-Encoding': 'gzip',
+    },
+    body: gz,
   });
   if (!res.ok) {
-    const msg = await res.text().catch(() => '');
-    throw new Error(`Xuất bản thất bại: HTTP ${res.status} ${msg}`);
+    let detail = '';
+    try {
+      detail = await res.text();
+    } catch {
+      /* bỏ qua */
+    }
+    throw new Error(`HTTP ${res.status} ${detail || res.statusText}`);
   }
 }
 
 export async function publishSnapshot(
   rows: LoanRecord[],
-  ngaySoLieu: Date | null
+  ngaySoLieu: Date | null,
+  opts?: PublishOptions
 ): Promise<void> {
-  const body = serializeSnapshot(rows, ngaySoLieu);
-  await postPayload(PUBLISH_API_SNAPSHOT, body);
+  try {
+    opts?.onProgress?.('serializing');
+    const blob = await buildSnapshotBlob(rows, ngaySoLieu);
+    opts?.onProgress?.('uploading');
+    await uploadBlob(PUBLISH_API_SNAPSHOT, blob);
+  } catch (err) {
+    throw new Error(
+      `Xuất bản thất bại: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
 }
 
 export async function publishPeriod(
   prev: PeriodSnapshot,
-  curr: PeriodSnapshot
+  curr: PeriodSnapshot,
+  opts?: PublishOptions
 ): Promise<void> {
-  const body = serializePeriod(prev, curr);
-  await postPayload(PUBLISH_API_PERIOD, body);
+  try {
+    opts?.onProgress?.('serializing');
+    const blob = await buildPeriodBlob(prev, curr);
+    opts?.onProgress?.('uploading');
+    await uploadBlob(PUBLISH_API_PERIOD, blob);
+  } catch (err) {
+    throw new Error(
+      `Xuất bản thất bại: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
 }
 
-/** Xóa tệp xuất bản (gửi DELETE — trình cắm xóa file tĩnh). */
+/** Xóa tệp xuất bản (gửi DELETE — trình cắm xóa cả `.json` lẫn `.json.gz`). */
 export async function unpublishSnapshot(): Promise<void> {
   await fetch(PUBLISH_API_SNAPSHOT, { method: 'DELETE' });
 }
