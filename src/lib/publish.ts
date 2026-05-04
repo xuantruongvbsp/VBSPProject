@@ -7,7 +7,11 @@
 // trường nào nhận diện nguồn Excel vào dữ liệu đã xuất bản.
 
 import type { LoanRecord } from './types';
-import type { PeriodSnapshot } from '@/store/usePeriodStore';
+import type {
+  ComparePair,
+  PeriodSlotKey,
+  PeriodSnapshot,
+} from '@/store/usePeriodStore';
 
 // File xuất bản được nén gzip để giảm kích thước on-wire ~10× (49 MB → ~5 MB).
 // Tệp `.json` cũ vẫn được fetch fallback để tương thích ngược trong giai đoạn
@@ -175,11 +179,31 @@ interface PeriodSnapshotJson {
   rows: Record<string, unknown>[];
 }
 
-export interface PeriodPublishPayload {
+/** Payload v1 (cũ): chỉ có prev + curr — chỉ giữ lại để đọc tệp legacy. */
+export interface PeriodPublishPayloadV1 {
   v: 1;
   prev: PeriodSnapshotJson;
   curr: PeriodSnapshotJson;
 }
+
+/**
+ * Payload v2: 3 slot dữ liệu (lastYear, lastMonth, now) + cặp đang so sánh
+ * (`comparePair`). Mỗi slot là tùy chọn — chủ sở hữu có thể chỉ nạp 2/3 tệp.
+ * Người xem hydrate y nguyên 3 slot, giữ được toggle "Cuối năm trước".
+ */
+export interface PeriodPublishPayloadV2 {
+  v: 2;
+  slots: {
+    lastYear?: PeriodSnapshotJson | null;
+    lastMonth?: PeriodSnapshotJson | null;
+    now?: PeriodSnapshotJson | null;
+  };
+  comparePair: ComparePair;
+}
+
+export type PeriodPublishPayload =
+  | PeriodPublishPayloadV1
+  | PeriodPublishPayloadV2;
 
 function jsonToSnapshot(j: PeriodSnapshotJson): PeriodSnapshot {
   return {
@@ -191,37 +215,61 @@ function jsonToSnapshot(j: PeriodSnapshotJson): PeriodSnapshot {
   };
 }
 
+function snapshotToJsonInline(s: PeriodSnapshot): PeriodSnapshotJson {
+  return {
+    ngaySoLieu: s.ngaySoLieu ? s.ngaySoLieu.toISOString() : null,
+    rows: s.rows.map(rowToJson),
+  };
+}
+
+export interface PeriodPublishSlots {
+  lastYear: PeriodSnapshot | null;
+  lastMonth: PeriodSnapshot | null;
+  now: PeriodSnapshot | null;
+}
+
 export function serializePeriod(
-  prev: PeriodSnapshot,
-  curr: PeriodSnapshot
+  slots: PeriodPublishSlots,
+  comparePair: ComparePair
 ): string {
   // Lưu ý: hàm này chỉ dùng cho test/back-compat. Đường gửi thực tế
   // (`publishPeriod`) sử dụng bản streaming bên dưới để tránh OOM.
-  const payload: PeriodPublishPayload = {
-    v: 1,
-    prev: {
-      ngaySoLieu: prev.ngaySoLieu ? prev.ngaySoLieu.toISOString() : null,
-      rows: prev.rows.map(rowToJson),
+  const payload: PeriodPublishPayloadV2 = {
+    v: 2,
+    slots: {
+      lastYear: slots.lastYear ? snapshotToJsonInline(slots.lastYear) : null,
+      lastMonth: slots.lastMonth ? snapshotToJsonInline(slots.lastMonth) : null,
+      now: slots.now ? snapshotToJsonInline(slots.now) : null,
     },
-    curr: {
-      ngaySoLieu: curr.ngaySoLieu ? curr.ngaySoLieu.toISOString() : null,
-      rows: curr.rows.map(rowToJson),
-    },
+    comparePair,
   };
   return JSON.stringify(payload);
 }
 
 export interface DeserializedPeriod {
-  prev: PeriodSnapshot;
-  curr: PeriodSnapshot;
+  slots: PeriodPublishSlots;
+  comparePair: ComparePair;
 }
 
 export function deserializePeriod(text: string): DeserializedPeriod {
   const obj = JSON.parse(text) as PeriodPublishPayload;
-  return {
-    prev: jsonToSnapshot(obj.prev),
-    curr: jsonToSnapshot(obj.curr),
+  if (obj.v === 2) {
+    const slots: PeriodPublishSlots = {
+      lastYear: obj.slots.lastYear ? jsonToSnapshot(obj.slots.lastYear) : null,
+      lastMonth: obj.slots.lastMonth
+        ? jsonToSnapshot(obj.slots.lastMonth)
+        : null,
+      now: obj.slots.now ? jsonToSnapshot(obj.slots.now) : null,
+    };
+    return { slots, comparePair: obj.comparePair };
+  }
+  // v1 legacy: chỉ có prev/curr → đổ vào lastMonth/now (giữ nguyên hành vi cũ).
+  const slots: PeriodPublishSlots = {
+    lastYear: null,
+    lastMonth: jsonToSnapshot(obj.prev),
+    now: jsonToSnapshot(obj.curr),
   };
+  return { slots, comparePair: { a: 'lastMonth', b: 'now' } };
 }
 
 export async function fetchPublishedPeriod(): Promise<DeserializedPeriod | null> {
@@ -293,20 +341,38 @@ async function buildSnapshotBlob(
   return new Blob(parts, { type: 'application/json' });
 }
 
+/** Đẩy một slot (có thể null) thành đoạn JSON `"<key>":<obj|null>`. */
+async function pushSlotAsJson(
+  key: PeriodSlotKey,
+  snap: PeriodSnapshot | null,
+  parts: BlobPart[],
+  isFirst: boolean
+): Promise<void> {
+  if (!isFirst) parts.push(',');
+  parts.push(`"${key}":`);
+  if (!snap) {
+    parts.push('null');
+    return;
+  }
+  parts.push('{"ngaySoLieu":');
+  parts.push(JSON.stringify(snap.ngaySoLieu ? snap.ngaySoLieu.toISOString() : null));
+  parts.push(',"rows":[');
+  await pushRowsAsJson(snap.rows, parts);
+  parts.push(']}');
+}
+
 async function buildPeriodBlob(
-  prev: PeriodSnapshot,
-  curr: PeriodSnapshot
+  slots: PeriodPublishSlots,
+  comparePair: ComparePair
 ): Promise<Blob> {
   const parts: BlobPart[] = [];
-  parts.push('{"v":1,"prev":{"ngaySoLieu":');
-  parts.push(JSON.stringify(prev.ngaySoLieu ? prev.ngaySoLieu.toISOString() : null));
-  parts.push(',"rows":[');
-  await pushRowsAsJson(prev.rows, parts);
-  parts.push(']},"curr":{"ngaySoLieu":');
-  parts.push(JSON.stringify(curr.ngaySoLieu ? curr.ngaySoLieu.toISOString() : null));
-  parts.push(',"rows":[');
-  await pushRowsAsJson(curr.rows, parts);
-  parts.push(']}}');
+  parts.push('{"v":2,"comparePair":');
+  parts.push(JSON.stringify(comparePair));
+  parts.push(',"slots":{');
+  await pushSlotAsJson('lastYear', slots.lastYear, parts, true);
+  await pushSlotAsJson('lastMonth', slots.lastMonth, parts, false);
+  await pushSlotAsJson('now', slots.now, parts, false);
+  parts.push('}}');
   return new Blob(parts, { type: 'application/json' });
 }
 
@@ -361,13 +427,13 @@ export async function publishSnapshot(
 }
 
 export async function publishPeriod(
-  prev: PeriodSnapshot,
-  curr: PeriodSnapshot,
+  slots: PeriodPublishSlots,
+  comparePair: ComparePair,
   opts?: PublishOptions
 ): Promise<void> {
   try {
     opts?.onProgress?.('serializing');
-    const blob = await buildPeriodBlob(prev, curr);
+    const blob = await buildPeriodBlob(slots, comparePair);
     opts?.onProgress?.('uploading');
     await uploadBlob(PUBLISH_API_PERIOD, blob);
   } catch (err) {

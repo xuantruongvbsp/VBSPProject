@@ -15,9 +15,11 @@ export function ViewerBootstrap() {
   const role = useAuthStore((s) => s.role);
   const snapshotRows = useDataStore((s) => s.rows);
   const setSnapshot = useDataStore((s) => s.setData);
-  const periodPrev = usePeriodStore((s) => s.prev);
-  const periodCurr = usePeriodStore((s) => s.curr);
-  const setPeriodBoth = usePeriodStore((s) => s.setBoth);
+  const periodLoaded = usePeriodStore(
+    (s) => !!(s.lastYear || s.lastMonth || s.now)
+  );
+  const setPeriodSlots = usePeriodStore((s) => s.setSlots);
+  const setPeriodComparePair = usePeriodStore((s) => s.setComparePair);
   const ranOnce = useRef(false);
 
   useEffect(() => {
@@ -32,14 +34,27 @@ export function ViewerBootstrap() {
         })
         .catch((e) => console.warn('[viewer] không tải được snapshot', e));
     }
-    if (!periodPrev || !periodCurr) {
+    if (!periodLoaded) {
       fetchPublishedPeriod()
         .then((d) => {
-          if (d) setPeriodBoth(d.prev, d.curr);
+          if (!d) return;
+          // Đổ cả 3 slot rồi đặt lại comparePair theo đúng cặp chủ sở hữu
+          // đang xem trước khi xuất bản — thứ tự này quan trọng vì
+          // `setSlots` sẽ "reconcile" pair về một cặp hợp lệ nếu pair cũ
+          // trỏ vào slot trống.
+          setPeriodSlots(d.slots);
+          setPeriodComparePair(d.comparePair);
         })
         .catch((e) => console.warn('[viewer] không tải được period', e));
     }
-  }, [role, snapshotRows.length, periodPrev, periodCurr, setSnapshot, setPeriodBoth]);
+  }, [
+    role,
+    snapshotRows.length,
+    periodLoaded,
+    setSnapshot,
+    setPeriodSlots,
+    setPeriodComparePair,
+  ]);
 
   return null;
 }

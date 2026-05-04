@@ -22,13 +22,19 @@ export function PublishButton({ kind }: Props) {
   const [state, setState] = useState<State>({ phase: 'idle' });
   const snapshotRows = useDataStore((s) => s.rows);
   const snapshotDate = useDataStore((s) => s.ngaySoLieu);
-  const periodPrev = usePeriodStore((s) => s.prev);
-  const periodCurr = usePeriodStore((s) => s.curr);
+  const periodLastYear = usePeriodStore((s) => s.lastYear);
+  const periodLastMonth = usePeriodStore((s) => s.lastMonth);
+  const periodNow = usePeriodStore((s) => s.now);
+  const periodPair = usePeriodStore((s) => s.comparePair);
 
+  // Cho phép xuất bản period khi có ≥ 2 slot — viewer sẽ hydrate đủ những
+  // slot có dữ liệu và giữ nguyên toggle "Cuối năm trước/Cuối tháng/Hiện tại".
+  const periodLoadedCount =
+    (periodLastYear ? 1 : 0) +
+    (periodLastMonth ? 1 : 0) +
+    (periodNow ? 1 : 0);
   const canPublish =
-    kind === 'snapshot'
-      ? snapshotRows.length > 0
-      : !!(periodPrev && periodCurr);
+    kind === 'snapshot' ? snapshotRows.length > 0 : periodLoadedCount >= 2;
 
   const handleClick = async () => {
     if (state.phase === 'busy') return;
@@ -38,8 +44,16 @@ export function PublishButton({ kind }: Props) {
     try {
       if (kind === 'snapshot') {
         await publishSnapshot(snapshotRows, snapshotDate, { onProgress });
-      } else if (periodPrev && periodCurr) {
-        await publishPeriod(periodPrev, periodCurr, { onProgress });
+      } else if (periodLoadedCount >= 2) {
+        await publishPeriod(
+          {
+            lastYear: periodLastYear,
+            lastMonth: periodLastMonth,
+            now: periodNow,
+          },
+          periodPair,
+          { onProgress }
+        );
       }
       setState({ phase: 'done' });
       setTimeout(() => setState({ phase: 'idle' }), 2500);
