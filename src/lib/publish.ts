@@ -141,19 +141,31 @@ export function deserializeSnapshot(text: string): DeserializedSnapshot {
 }
 
 /**
- * Tải `url` rồi (nếu là `.gz`) giải nén bằng DecompressionStream của trình
- * duyệt. Trả về text JSON, hoặc null khi tệp chưa được xuất bản (HTTP 404).
+ * Tải `url` rồi giải nén nếu cần. Khó là: Vite (và nhiều static server)
+ * tự đặt `Content-Encoding: gzip` cho file `.gz` → trình duyệt đã giải nén
+ * sẵn body khi `fetch` trả về. Nếu mình lại chạy `DecompressionStream`
+ * lần nữa thì lỗi "incorrect header check" và viewer hiển thị "không có
+ * dữ liệu". Ngược lại, có server chỉ trả thẳng bytes gzip mà không đặt
+ * header → cần tự giải nén.
+ *
+ * Giải pháp: đọc ArrayBuffer rồi nhìn 2 byte đầu — gzip magic là `1f 8b`.
+ * Còn `1f 8b` ⇒ vẫn là gzip thô, tự giải. Khác ⇒ trình duyệt đã giải
+ * sẵn, decode UTF-8 trực tiếp. Không phụ thuộc header `Content-Encoding`
+ * (trình duyệt thường strip header này sau khi auto-decompress).
  */
 async function fetchAndMaybeUngzip(url: string): Promise<string | null> {
   const res = await fetch(`${url}?t=${Date.now()}`, { cache: 'no-store' });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  if (url.endsWith('.gz')) {
-    if (!res.body) throw new Error('Phản hồi không có body để giải nén');
-    const stream = res.body.pipeThrough(new DecompressionStream('gzip'));
+  const buf = await res.arrayBuffer();
+  const head = new Uint8Array(buf, 0, Math.min(2, buf.byteLength));
+  if (head.length >= 2 && head[0] === 0x1f && head[1] === 0x8b) {
+    const stream = new Blob([buf])
+      .stream()
+      .pipeThrough(new DecompressionStream('gzip'));
     return await new Response(stream).text();
   }
-  return await res.text();
+  return new TextDecoder('utf-8').decode(buf);
 }
 
 /** Tải dữ liệu đã xuất bản. Ưu tiên `.gz`, fallback `.json` cho dữ liệu cũ. */
