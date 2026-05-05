@@ -17,7 +17,13 @@ interface Col {
   label: string;
   width: number;
   align?: 'left' | 'right';
-  render?: (r: LoanRecord) => string;
+  render?: (r: LoanRecord, ctx: ColRenderCtx) => string;
+}
+
+interface ColRenderCtx {
+  /** Map maKH → max(soDuTienGui105) — dùng cho cột "Số dư tiền gửi 105" để hiện
+   *  giá trị mức cao nhất của khách (do field này lặp trên nhiều dòng khế ước). */
+  maxDepositByKH: Map<string, number>;
 }
 
 const COLS: Col[] = [
@@ -32,6 +38,14 @@ const COLS: Col[] = [
   { key: 'mucVay', label: 'Mức vay', width: 130, align: 'right', render: (r) => fmtCurrency(r.mucVay) },
   { key: 'tongDuNo', label: 'Tổng dư nợ', width: 140, align: 'right', render: (r) => fmtCurrency(r.tongDuNo) },
   { key: 'duNoQuaHan', label: 'Dư nợ QH', width: 130, align: 'right', render: (r) => fmtCurrency(r.duNoQuaHan) },
+  {
+    key: 'soDuTienGui105',
+    label: 'Số dư TG 105',
+    width: 140,
+    align: 'right',
+    // Hiển thị max theo maKH (field lặp trên nhiều dòng cùng 1 KH).
+    render: (r, ctx) => fmtCurrency(ctx.maxDepositByKH.get(r.maKH) ?? r.soDuTienGui105),
+  },
   { key: 'laiSuat', label: 'Lãi suất', width: 90, align: 'right', render: (r) => fmtPercent(r.laiSuat, 3) },
   { key: 'ngayVay', label: 'Ngày vay', width: 100, render: (r) => fmtDate(r.ngayVay) },
   { key: 'ngayDHGDXA', label: 'Ngày ĐH theo GDXA', width: 140, render: (r) => fmtDate(r.ngayDHGDXA) },
@@ -40,8 +54,8 @@ const COLS: Col[] = [
 export function ExplorerPage() {
   const { rows, filters, ranges, search } = useDataStore();
   const [sort, setSort] = useState<{ key: keyof LoanRecord; dir: 'asc' | 'desc' }>({
-    key: 'tongDuNo',
-    dir: 'desc',
+    key: 'tenXa',
+    dir: 'asc',
   });
   const [detail, setDetail] = useState<LoanRecord | null>(null);
 
@@ -52,11 +66,29 @@ export function ExplorerPage() {
 
   const kpi = useMemo(() => computeKpi(filtered), [filtered]);
 
+  // Map maKH → max(soDuTienGui105). Field này lặp giá trị giống nhau trên các
+  // dòng khế ước cùng KH, nhưng vẫn lấy max để đề phòng dữ liệu lệch.
+  const maxDepositByKH = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of filtered) {
+      const v = r.soDuTienGui105 || 0;
+      const cur = m.get(r.maKH);
+      if (cur === undefined || v > cur) m.set(r.maKH, v);
+    }
+    return m;
+  }, [filtered]);
+
   const sorted = useMemo(() => {
     const copy = [...filtered];
+    // Khi sort theo soDuTienGui105 → so sánh max-per-KH để dòng cùng KH luôn cạnh nhau.
+    const sortKey = sort.key;
     copy.sort((a, b) => {
-      const av = a[sort.key];
-      const bv = b[sort.key];
+      const av = sortKey === 'soDuTienGui105'
+        ? (maxDepositByKH.get(a.maKH) ?? 0)
+        : a[sortKey];
+      const bv = sortKey === 'soDuTienGui105'
+        ? (maxDepositByKH.get(b.maKH) ?? 0)
+        : b[sortKey];
       if (typeof av === 'number' && typeof bv === 'number') {
         return sort.dir === 'asc' ? av - bv : bv - av;
       }
@@ -65,7 +97,7 @@ export function ExplorerPage() {
       return sort.dir === 'asc' ? as.localeCompare(bs, 'vi') : bs.localeCompare(as, 'vi');
     });
     return copy;
-  }, [filtered, sort]);
+  }, [filtered, sort, maxDepositByKH]);
 
   const parentRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer({
@@ -166,7 +198,7 @@ export function ExplorerPage() {
                           c.align === 'right' && 'justify-end font-medium text-slate-900 dark:text-slate-100'
                         )}
                       >
-                        {c.render ? c.render(r) : String(r[c.key] ?? '')}
+                        {c.render ? c.render(r, { maxDepositByKH }) : String(r[c.key] ?? '')}
                       </div>
                     ))}
                   </div>

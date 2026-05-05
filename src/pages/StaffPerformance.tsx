@@ -362,17 +362,17 @@ export function StaffPerformancePage() {
       </div>
 
       <Card>
-        <CardHeader className="flex-row items-center justify-between py-2">
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-brand-700 dark:text-brand-300" />
+        <CardHeader className="flex-row items-center justify-between py-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <BarChart3 className="h-5 w-5 text-brand-700 dark:text-brand-300" />
             Top cán bộ theo từng chỉ tiêu
           </CardTitle>
           <div className="flex items-center gap-3">
-            <span className="text-[11px] font-normal normal-case text-slate-500 dark:text-slate-400">
+            <span className="text-xs font-normal normal-case text-slate-500 dark:text-slate-400">
               Top 10 · bấm để mở Tra cứu chi tiết
             </span>
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              <span className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 3 chỉ tiêu tuyệt đối
               </span>
               <ChartSwitcher
@@ -384,7 +384,7 @@ export function StaffPerformancePage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
             <RankingChart
               title="Số khế ước (KƯ)"
               rows={computed.rows}
@@ -662,38 +662,38 @@ function RankingChart({
         : 'bg-brand-500 dark:bg-brand-500/80';
 
   return (
-    <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-700">
-      <div className="mb-2 flex items-baseline justify-between gap-2">
-        <div className="text-xs font-semibold text-slate-700 dark:text-slate-200">{title}</div>
-        <div className="text-[10px] uppercase tracking-wide text-slate-400 dark:text-slate-500">
+    <div className="rounded-lg border border-slate-200 p-4 dark:border-slate-700">
+      <div className="mb-3 flex items-baseline justify-between gap-2">
+        <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">{title}</div>
+        <div className="text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500">
           Top {items.length}
         </div>
       </div>
       {items.length === 0 ? (
-        <div className="py-6 text-center text-[11px] italic text-slate-400">Không có dữ liệu.</div>
+        <div className="py-8 text-center text-xs italic text-slate-400">Không có dữ liệu.</div>
       ) : chartType === 'donut' ? (
         <DonutView items={items} total={total} fmt={fmt} onDrill={onDrill} palette={palette} />
       ) : chartType === 'treemap' ? (
         <TreemapView items={items} total={total} fmt={fmt} onDrill={onDrill} palette={palette} />
       ) : (
-        <div className="space-y-1.5">
+        <div className="space-y-2.5">
           {items.map((it) => (
             <button
               key={it.s.id}
               onClick={() => onDrill(it.s)}
-              className="group flex w-full items-center gap-2 text-left"
+              className="group flex w-full items-center gap-3 text-left"
               title={`${it.s.maNV} — ${it.s.tenNV}: ${fmt(it.v)} · bấm để xem chi tiết`}
             >
-              <div className="w-24 shrink-0 truncate text-[10px] text-slate-600 group-hover:text-brand-700 dark:text-slate-300 dark:group-hover:text-brand-300">
+              <div className="w-32 shrink-0 truncate text-xs text-slate-600 group-hover:text-brand-700 dark:text-slate-300 dark:group-hover:text-brand-300">
                 <span className="font-mono">{it.s.maNV}</span> · {it.s.tenNV}
               </div>
-              <div className="relative h-2 flex-1 rounded-full bg-slate-100 dark:bg-slate-800">
+              <div className="relative h-3 flex-1 rounded-full bg-slate-100 dark:bg-slate-800">
                 <div
                   className={cn('absolute inset-y-0 left-0 rounded-full', barColor)}
                   style={{ width: `${Math.max((it.v / max) * 100, 2)}%` }}
                 />
               </div>
-              <div className="w-20 shrink-0 text-right text-[10px] font-semibold text-slate-700 dark:text-slate-200">
+              <div className="w-24 shrink-0 text-right text-xs font-semibold text-slate-700 dark:text-slate-200">
                 {fmt(it.v)}
               </div>
             </button>
@@ -757,7 +757,7 @@ function DonutView({
         x={x}
         y={y}
         fill={props.fill ?? '#666'}
-        fontSize={9}
+        fontSize={11}
         fontWeight={700}
         textAnchor={x > cx ? 'start' : 'end'}
         dominantBaseline="central"
@@ -769,7 +769,7 @@ function DonutView({
 
   return (
     <div className="space-y-2">
-      <div style={{ height: 240 }} className="relative">
+      <div style={{ height: 300 }} className="relative">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -778,8 +778,8 @@ function DonutView({
               nameKey="name"
               cx="50%"
               cy="50%"
-              innerRadius={50}
-              outerRadius={75}
+              innerRadius={62}
+              outerRadius={94}
               paddingAngle={1}
               onClick={(e) => {
                 const target = (e as { staff?: StaffRecord }).staff;
@@ -806,14 +806,14 @@ function DonutView({
         </ResponsiveContainer>
         {/* Tổng ở giữa donut */}
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <div className="text-[9px] uppercase tracking-wide text-slate-400 dark:text-slate-500">
+          <div className="text-[10px] uppercase tracking-wide text-slate-400 dark:text-slate-500">
             Tổng top {items.length}
           </div>
-          <div className="text-xs font-bold text-slate-700 dark:text-slate-200">{fmt(total)}</div>
+          <div className="text-sm font-bold text-slate-700 dark:text-slate-200">{fmt(total)}</div>
         </div>
       </div>
       {/* Legend dọc bên dưới — Mã NV + giá trị + % */}
-      <ul className="space-y-1 text-[10px]">
+      <ul className="space-y-1.5 text-xs">
         {data.map((d) => {
           const pct = total > 0 ? (d.value / total) * 100 : 0;
           return (
@@ -949,7 +949,7 @@ function TreemapView({
 
   return (
     <div className="space-y-2">
-      <div style={{ height: 220 }}>
+      <div style={{ height: 280 }}>
         <ResponsiveContainer width="100%" height="100%">
           <Treemap
             data={data}
@@ -974,7 +974,7 @@ function TreemapView({
         </ResponsiveContainer>
       </div>
       {/* Legend đầy đủ dưới chart */}
-      <ul className="space-y-1 text-[10px]">
+      <ul className="space-y-1.5 text-xs">
         {data.map((d) => {
           const pct = total > 0 ? (d.size / total) * 100 : 0;
           return (

@@ -5,42 +5,83 @@ import { cn } from '@/lib/utils';
 import { InfoPopover } from '@/components/ui/InfoPopover';
 import type { MetricExplanation } from '@/lib/metric-explanations';
 
-export type Tone = 'default' | 'primary' | 'success' | 'warning' | 'danger';
+export type Tone =
+  | 'default'
+  | 'primary'
+  | 'success'
+  | 'warning'
+  | 'danger'
+  | 'forecast'
+  | 'frozen'
+  | 'teal'
+  | 'alert';
 export type Trend = 'up' | 'down' | 'flat';
 
-// Dark tone tokens giảm độ bão hoà (500/10 + ring 500/25) để KPI không
-// trông như một cảnh báo liên tục — 900/30 alpha cũ bị coi là "đã tô màu"
-// và đánh cắp attention khỏi con số.
+// Tone tokens — màu pastel nhẹ + shadow mềm để cards trông "sang" không gắt.
+// Hex map theo brief design thủ công:
+//   danger  : #FEF2F2 / #991B1B / #FCA5A5  (red-50 / red-900 / red-300)
+//   warning : #FFFBEB / #92400E / #FDE68A  (amber-50 / amber-800 / yellow-300)
+//   forecast: #FAF5FF / #6B21A8 / #E9D5FF  (purple-50 / purple-800 / purple-200)
+//   success : #F0FDF4 / #166534 / #BBF7D0  (green-50 / green-800 / green-200)
+// Dùng `shadow-md shadow-slate-200/60` thay cho `ring-*` để cảm giác hiện đại hơn.
 const toneMap: Record<Tone, { card: string; label: string; value: string; chip: string }> = {
   default: {
-    card: 'bg-white ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800',
+    card: 'bg-white shadow-md shadow-slate-200/60 dark:bg-slate-900 dark:shadow-slate-950/40',
     label: 'text-slate-600 dark:text-slate-300',
     value: 'text-slate-900 dark:text-slate-100',
     chip: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
   },
   primary: {
-    card: 'bg-brand-50 ring-1 ring-brand-200 dark:bg-brand-500/10 dark:ring-brand-500/25',
+    card: 'bg-brand-50 shadow-md shadow-slate-200/60 dark:bg-brand-500/10 dark:shadow-slate-950/40',
     label: 'text-brand-700 dark:text-brand-300',
     value: 'text-brand-900 dark:text-brand-200',
     chip: 'bg-brand-100 text-brand-800 dark:bg-brand-500/20 dark:text-brand-200',
   },
   success: {
-    card: 'bg-emerald-50 ring-1 ring-emerald-200 dark:bg-emerald-500/10 dark:ring-emerald-500/25',
-    label: 'text-emerald-700 dark:text-emerald-300',
-    value: 'text-emerald-900 dark:text-emerald-200',
-    chip: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-200',
+    card: 'bg-green-50 shadow-md shadow-slate-200/60 dark:bg-green-500/10 dark:shadow-slate-950/40',
+    label: 'text-green-800 dark:text-green-300',
+    value: 'text-green-800 dark:text-green-200',
+    chip: 'bg-green-200 text-green-900 dark:bg-green-500/20 dark:text-green-200',
   },
   warning: {
-    card: 'bg-amber-50 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:ring-amber-500/25',
-    label: 'text-amber-700 dark:text-amber-300',
-    value: 'text-amber-900 dark:text-amber-200',
-    chip: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200',
+    card: 'bg-amber-50 shadow-md shadow-slate-200/60 dark:bg-amber-500/10 dark:shadow-slate-950/40',
+    label: 'text-amber-800 dark:text-amber-300',
+    value: 'text-amber-800 dark:text-amber-200',
+    chip: 'bg-yellow-200 text-amber-900 dark:bg-amber-500/20 dark:text-amber-200',
   },
   danger: {
-    card: 'bg-rose-50 ring-1 ring-rose-200 dark:bg-rose-500/10 dark:ring-rose-500/25',
-    label: 'text-rose-700 dark:text-rose-300',
-    value: 'text-rose-900 dark:text-rose-200',
-    chip: 'bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-200',
+    card: 'bg-red-50 shadow-md shadow-slate-200/60 dark:bg-red-500/10 dark:shadow-slate-950/40',
+    label: 'text-red-900 dark:text-red-300',
+    value: 'text-red-900 dark:text-red-200',
+    chip: 'bg-red-200 text-red-900 dark:bg-red-500/20 dark:text-red-200',
+  },
+  forecast: {
+    card: 'bg-purple-50 shadow-md shadow-slate-200/60 dark:bg-purple-500/10 dark:shadow-slate-950/40',
+    label: 'text-purple-800 dark:text-purple-300',
+    value: 'text-purple-800 dark:text-purple-200',
+    chip: 'bg-purple-200 text-purple-900 dark:bg-purple-500/20 dark:text-purple-200',
+  },
+  // Trạng thái "đóng băng" — sky-50 / sky-700 / sky-200 cho cảm giác tĩnh,
+  // ổn định, đúng tinh thần nợ khoanh.
+  frozen: {
+    card: 'bg-sky-50 ring-1 ring-sky-200 shadow-md shadow-slate-200/60 dark:bg-sky-500/10 dark:ring-sky-500/30 dark:shadow-slate-950/40',
+    label: 'text-sky-700 dark:text-sky-300',
+    value: 'text-sky-800 dark:text-sky-200',
+    chip: 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-200',
+  },
+  // Đối tượng "con người" (khách hàng) — teal nhấn khác với màu tiền tệ.
+  teal: {
+    card: 'bg-teal-50 ring-1 ring-teal-200 shadow-md shadow-slate-200/60 dark:bg-teal-500/10 dark:ring-teal-500/30 dark:shadow-slate-950/40',
+    label: 'text-teal-700 dark:text-teal-300',
+    value: 'text-teal-700 dark:text-teal-200',
+    chip: 'bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-200',
+  },
+  // Cảnh báo "sắp đến hạn" — amber-600 ấm hơn warning chuẩn để gọi sự chú ý.
+  alert: {
+    card: 'bg-amber-50 ring-1 ring-amber-200 shadow-md shadow-slate-200/60 dark:bg-amber-500/10 dark:ring-amber-500/30 dark:shadow-slate-950/40',
+    label: 'text-amber-700 dark:text-amber-300',
+    value: 'text-amber-700 dark:text-amber-200',
+    chip: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200',
   },
 };
 

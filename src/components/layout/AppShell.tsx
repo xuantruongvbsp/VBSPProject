@@ -24,7 +24,7 @@ import { PublishButton } from '@/components/owner/PublishButton';
 
 const navItems = [
   { to: '/snapshot', label: 'Tổng quan', icon: LayoutDashboard, end: true },
-  { to: '/snapshot/no-xau', label: 'Báo cáo NPL', icon: AlertTriangle },
+  { to: '/snapshot/no-xau', label: 'Báo cáo nợ quá hạn', icon: AlertTriangle },
   { to: '/snapshot/no-khoanh', label: 'Báo cáo Dư nợ khoanh', icon: Snowflake },
   // Tạm ẩn — sẽ bật lại sau khi hoàn thiện. Route /snapshot/doanh-so vẫn hoạt động.
   // { to: '/snapshot/doanh-so', label: 'Báo cáo doanh số', icon: TrendingUp },

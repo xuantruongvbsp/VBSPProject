@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   Snowflake,
   Users,
-  Coins,
   Percent,
+  CalendarClock,
   AlignLeft,
   LayoutGrid,
   PieChart,
@@ -50,6 +50,7 @@ export function KhoanhPage() {
   const [chartDvutType, setChartDvutType] = useState<BarGroupChartType>('pie');
   const [chartXaType, setChartXaType] = useState<BarGroupChartType>('bar');
   const [chartProgramType, setChartProgramType] = useState<BarGroupChartType>('bar');
+  const [groupDimension, setGroupDimension] = useState<'dvut' | 'xa' | 'program'>('dvut');
   const [heatType, setHeatType] = useState<HeatmapChartType>('heatmap');
   const [exporting, setExporting] = useState(false);
 
@@ -81,19 +82,21 @@ export function KhoanhPage() {
     return s.size;
   }, [khoanhLoans]);
 
-  // Mức khoanh bình quân
-  const mucKhoanhBQ =
-    khoanhLoansCount > 0 ? kpi.duNoKhoanh / khoanhLoansCount : 0;
-
   // Tỷ lệ khoanh trên tổng dư nợ
   const tyLeKhoanh = kpi.tongDuNo > 0 ? (kpi.duNoKhoanh / kpi.tongDuNo) * 100 : 0;
 
-  // Tổng lãi DT chưa đến hạn (các khế ước khoanh thường vẫn có cấu phần lãi
-  // dự thu — theo dõi để ước lượng tổn thất tiềm ẩn).
-  const tongLaiDT = useMemo(
-    () => khoanhLoans.reduce((s, r) => s + (r.laiDTChuaDenHan || 0), 0),
-    [khoanhLoans]
-  );
+  // Số khế ước hết hạn khoanh trong năm chốt số liệu — đếm theo
+  // ngayHetHanKhoanh thuộc cùng năm với ngaySoLieu.
+  const expiringThisYearCount = useMemo(() => {
+    const y = ngaySoLieu?.getFullYear();
+    if (y == null) return 0;
+    let n = 0;
+    for (const r of khoanhLoans) {
+      const d = r.ngayHetHanKhoanh;
+      if (d != null && d.getFullYear() === y) n++;
+    }
+    return n;
+  }, [khoanhLoans, ngaySoLieu]);
 
   // KH có ≥ 2 khế ước khoanh — dấu hiệu rủi ro tập trung ở cấp khách hàng
   const khMultipleKhoanh = useMemo(() => {
@@ -186,9 +189,7 @@ export function KhoanhPage() {
             rows={khoanhLoans}
             kpi={kpi}
             chartSelectors={[
-              '#chart-khoanh-dvut',
-              '#chart-khoanh-xa',
-              '#chart-khoanh-program',
+              '#chart-khoanh-group',
               '#chart-khoanh-hotspot',
               '#chart-khoanh-top',
             ]}
@@ -214,11 +215,11 @@ export function KhoanhPage() {
       </Card>
 
       {/* KPI strip */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           label="Dư nợ khoanh"
           value={kpi.duNoKhoanh}
-          tone="warning"
+          tone="frozen"
           icon={<Snowflake className="h-4 w-4" />}
           formatter={fmtCompact}
           caption={`Tỷ lệ ${fmtPercent(tyLeKhoanh)} tổng dư nợ`}
@@ -227,14 +228,14 @@ export function KhoanhPage() {
         <KpiCard
           label="Số khế ước khoanh"
           value={khoanhLoansCount}
-          tone="warning"
+          tone="frozen"
           icon={<FileWarning className="h-4 w-4" />}
           caption={`${fmtPercent(filtered.length > 0 ? (khoanhLoansCount / filtered.length) * 100 : 0)} số khế ước`}
         />
         <KpiCard
           label="Khách hàng có nợ khoanh"
           value={khoanhKhCount}
-          tone="warning"
+          tone="teal"
           icon={<Users className="h-4 w-4" />}
           caption={
             khMultipleKhoanh > 0
@@ -243,128 +244,103 @@ export function KhoanhPage() {
           }
         />
         <KpiCard
-          label="Mức khoanh bình quân/khế ước"
-          value={mucKhoanhBQ}
-          tone="default"
-          icon={<Coins className="h-4 w-4" />}
-          formatter={fmtCompact}
-          caption="Dư nợ khoanh / số KƯ khoanh"
-        />
-        <KpiCard
-          label="Lãi DT chưa đến hạn (khoanh)"
-          value={tongLaiDT}
-          tone="default"
-          icon={<Coins className="h-4 w-4" />}
-          formatter={fmtCompact}
-          caption="Tổng lãi dự thu trên các KƯ khoanh"
-          infoKey="laiDtKhoanh"
-        />
-        <KpiCard
-          label="Tỷ lệ khoanh / Tổng NPL"
-          value={
-            kpi.duNoQuaHan + kpi.duNoKhoanh > 0
-              ? (kpi.duNoKhoanh / (kpi.duNoQuaHan + kpi.duNoKhoanh)) * 100
-              : 0
+          label="Số khế ước hết hạn khoanh trong năm"
+          value={expiringThisYearCount}
+          tone={expiringThisYearCount > 0 ? 'alert' : 'frozen'}
+          icon={<CalendarClock className="h-4 w-4" />}
+          caption={
+            ngaySoLieu
+              ? `Hết hạn khoanh trong năm ${ngaySoLieu.getFullYear()}`
+              : 'Theo Ngày hết hạn khoanh'
           }
-          tone="default"
-          icon={<Percent className="h-4 w-4" />}
-          formatter={(v) => fmtPercent(v)}
-          caption="Khoanh chiếm bao nhiêu % NPL"
         />
       </div>
 
-      {/* Row 1: theo ĐVUT + Xã */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Dư nợ khoanh theo Đơn vị ủy thác</CardTitle>
-              <div className="flex items-center gap-1">
-                <ChartSwitcher
-                  options={BAR_GROUP_OPTS}
-                  value={chartDvutType}
-                  onChange={setChartDvutType}
-                />
-                <InfoPopover metricKey="chartKhoanhDvut" />
+      {/* Dư nợ khoanh theo nhóm — chuyển đổi giữa ĐVUT / Xã / Chương trình */}
+      {(() => {
+        const dimMap = {
+          dvut: {
+            data: byDVUT_K,
+            field: 'tenDVUT' as FilterField,
+            chartType: chartDvutType,
+            setChartType: setChartDvutType,
+            infoKey: 'chartKhoanhDvut' as const,
+          },
+          xa: {
+            data: byXa_K,
+            field: 'tenXa' as FilterField,
+            chartType: chartXaType,
+            setChartType: setChartXaType,
+            infoKey: 'chartKhoanhXa' as const,
+          },
+          program: {
+            data: byProgram_K,
+            field: 'tenChuongTrinh' as FilterField,
+            chartType: chartProgramType,
+            setChartType: setChartProgramType,
+            infoKey: 'chartKhoanhProgram' as const,
+          },
+        };
+        const dim = dimMap[groupDimension];
+        const dimOptions: { id: 'dvut' | 'xa' | 'program'; label: string }[] = [
+          { id: 'dvut', label: 'Đơn vị ủy thác' },
+          { id: 'xa', label: 'Xã' },
+          { id: 'program', label: 'Chương trình tín dụng' },
+        ];
+        return (
+          <Card>
+            <CardHeader>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <CardTitle>Dư nợ khoanh theo</CardTitle>
+                  <div className="inline-flex rounded-md border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-600 dark:bg-slate-700">
+                    {dimOptions.map((opt) => {
+                      const active = opt.id === groupDimension;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setGroupDimension(opt.id)}
+                          className={cn(
+                            'h-7 rounded px-3 text-xs font-medium transition-colors',
+                            active
+                              ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-600 dark:text-slate-100'
+                              : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200',
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <ChartSwitcher
+                    options={BAR_GROUP_OPTS}
+                    value={dim.chartType}
+                    onChange={dim.setChartType}
+                  />
+                  <InfoPopover metricKey={dim.infoKey} />
+                </div>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent id="chart-khoanh-dvut">
-            {byDVUT_K.length === 0 ? (
-              <EmptyKhoanhNote />
-            ) : (
-              <BarByGroup
-                data={byDVUT_K}
-                metric="duNoKhoanh"
-                tooltipLabel="Dư nợ khoanh"
-                limit={10}
-                chartType={chartDvutType}
-                onClick={(v) => drillTo('tenDVUT', v)}
-              />
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Dư nợ khoanh theo Xã</CardTitle>
-              <div className="flex items-center gap-1">
-                <ChartSwitcher
-                  options={BAR_GROUP_OPTS}
-                  value={chartXaType}
-                  onChange={setChartXaType}
+            </CardHeader>
+            <CardContent id="chart-khoanh-group">
+              {dim.data.length === 0 ? (
+                <EmptyKhoanhNote />
+              ) : (
+                <BarByGroup
+                  data={dim.data}
+                  metric="duNoKhoanh"
+                  tooltipLabel="Dư nợ khoanh"
+                  limit={10}
+                  chartType={dim.chartType}
+                  onClick={(v) => drillTo(dim.field, v)}
                 />
-                <InfoPopover metricKey="chartKhoanhXa" />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent id="chart-khoanh-xa">
-            {byXa_K.length === 0 ? (
-              <EmptyKhoanhNote />
-            ) : (
-              <BarByGroup
-                data={byXa_K}
-                metric="duNoKhoanh"
-                tooltipLabel="Dư nợ khoanh"
-                limit={10}
-                chartType={chartXaType}
-                onClick={(v) => drillTo('tenXa', v)}
-              />
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Row 2: theo Chương trình tín dụng */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Dư nợ khoanh theo Chương trình tín dụng</CardTitle>
-            <div className="flex items-center gap-1">
-              <ChartSwitcher
-                options={BAR_GROUP_OPTS}
-                value={chartProgramType}
-                onChange={setChartProgramType}
-              />
-              <InfoPopover metricKey="chartKhoanhProgram" />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent id="chart-khoanh-program">
-          {byProgram_K.length === 0 ? (
-            <EmptyKhoanhNote />
-          ) : (
-            <BarByGroup
-              data={byProgram_K}
-              metric="duNoKhoanh"
-              tooltipLabel="Dư nợ khoanh"
-              limit={10}
-              chartType={chartProgramType}
-              onClick={(v) => drillTo('tenChuongTrinh', v)}
-            />
-          )}
-        </CardContent>
-      </Card>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Row 3: Hotspot — Tỷ lệ khoanh cao nhất theo Xã */}
       <Card>
@@ -372,7 +348,7 @@ export function KhoanhPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Percent className="h-4 w-4 text-amber-600" />
-              <CardTitle>Điểm nóng khoanh — Tỷ lệ dư nợ khoanh theo Xã (Top 15)</CardTitle>
+              <CardTitle>Tỷ lệ dư nợ khoanh theo Xã</CardTitle>
             </div>
             <InfoPopover metricKey="chartKhoanhHotspot" />
           </div>
@@ -518,20 +494,20 @@ export function KhoanhPage() {
                 : 'Không có khế ước khoanh trong phạm vi lọc.'}
             </div>
           ) : (
-            <div className="scrollbar-thin max-h-[520px] overflow-auto">
-              <table className="w-full text-xs">
+            <div className="scrollbar-thin max-h-[820px] overflow-auto">
+              <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800">
                   <tr className="text-left text-slate-500 dark:text-slate-400">
-                    <th className="px-3 py-2">#</th>
-                    <th className="px-3 py-2">Khách hàng</th>
-                    <th className="px-3 py-2">Xã · ĐVUT</th>
-                    <th className="px-3 py-2">Tổ TK&VV</th>
-                    <th className="px-3 py-2">Chương trình</th>
-                    <th className="px-3 py-2 text-right">Mức vay</th>
-                    <th className="px-3 py-2 text-right">Dư nợ khoanh</th>
-                    <th className="px-3 py-2 text-right">Dư nợ QH</th>
-                    <th className="px-3 py-2 text-right">Lãi DT chưa đến hạn</th>
-                    <th className="whitespace-nowrap px-3 py-2 text-right">Ngày hết hạn khoanh</th>
+                    <th className="px-4 py-3">#</th>
+                    <th className="px-4 py-3">Khách hàng</th>
+                    <th className="px-4 py-3">Xã · ĐVUT</th>
+                    <th className="px-4 py-3">Tổ TK&VV</th>
+                    <th className="px-4 py-3">Chương trình</th>
+                    <th className="px-4 py-3 text-right">Mức vay</th>
+                    <th className="px-4 py-3 text-right">Dư nợ khoanh</th>
+                    <th className="px-4 py-3 text-right">Dư nợ QH</th>
+                    <th className="px-4 py-3 text-right">Lãi DT chưa đến hạn</th>
+                    <th className="whitespace-nowrap px-4 py-3 text-right">Ngày hết hạn khoanh</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -541,40 +517,40 @@ export function KhoanhPage() {
                       onClick={() => setDetail(r)}
                       className="cursor-pointer border-t border-slate-100 hover:bg-amber-50 dark:border-slate-700 dark:hover:bg-amber-900/20"
                     >
-                      <td className="px-3 py-2 text-slate-500 dark:text-slate-400">{i + 1}</td>
-                      <td className="px-3 py-2">
+                      <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{i + 1}</td>
+                      <td className="px-4 py-3">
                         <div className="font-medium text-slate-800 dark:text-slate-100">
                           {r.tenKH}
                         </div>
-                        <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
                           {r.soKheUoc}
                         </div>
                       </td>
-                      <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
+                      <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
                         <div>{r.tenXa || '—'}</div>
-                        <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
                           {r.tenDVUT || '—'}
                         </div>
                       </td>
-                      <td className="max-w-[160px] truncate px-3 py-2 text-slate-600 dark:text-slate-300" title={r.tenTo}>
+                      <td className="max-w-[200px] truncate px-4 py-3 text-slate-600 dark:text-slate-300" title={r.tenTo}>
                         {r.tenTo || '—'}
                       </td>
-                      <td className="max-w-[200px] truncate px-3 py-2 text-slate-600 dark:text-slate-300">
+                      <td className="max-w-[260px] truncate px-4 py-3 text-slate-600 dark:text-slate-300">
                         {r.tenChuongTrinh}
                       </td>
-                      <td className="px-3 py-2 text-right text-slate-700 dark:text-slate-300">
+                      <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-300">
                         {fmtCurrency(r.mucVay)}
                       </td>
-                      <td className="px-3 py-2 text-right font-semibold text-amber-700 dark:text-amber-300">
+                      <td className="px-4 py-3 text-right font-semibold text-amber-700 dark:text-amber-300">
                         {fmtCurrency(r.duNoKhoanh)}
                       </td>
-                      <td className="px-3 py-2 text-right text-rose-700 dark:text-rose-300">
+                      <td className="px-4 py-3 text-right text-rose-700 dark:text-rose-300">
                         {fmtCurrency(r.duNoQuaHan)}
                       </td>
-                      <td className="px-3 py-2 text-right text-slate-700 dark:text-slate-300">
+                      <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-300">
                         {fmtCurrency(r.laiDTChuaDenHan)}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-2 text-right text-slate-700 dark:text-slate-300">
+                      <td className="whitespace-nowrap px-4 py-3 text-right text-slate-700 dark:text-slate-300">
                         {r.ngayHetHanKhoanh ? fmtDate(r.ngayHetHanKhoanh) : '—'}
                       </td>
                     </tr>

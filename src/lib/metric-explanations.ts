@@ -590,6 +590,29 @@ export const METRIC_EXPLANATIONS: Record<string, MetricExplanation> = {
       'Lọc các khế ước thoả mãn: month(ngayDHGDXA) = month(ngaySoLieu) & year(ngayDHGDXA) = year(ngaySoLieu) & tinhTrangMonVay = "OPEN". Sắp xếp tăng dần theo Ngày ĐH GDXA.',
     note: 'Nhấp vào một dòng để mở ngăn chi tiết toàn bộ thông tin khế ước.',
   },
+  soKheUocNPL: {
+    title: 'Số khế ước NPL',
+    definition:
+      'Đếm các khế ước có "Dư nợ quá hạn" > 0 sau khi áp dụng bộ lọc.',
+    formula: 'count(loans where duNoQuaHan > 0). Caption hiển thị tỷ lệ trên tổng số khế ước.',
+    note: 'Khế ước có cả phần trong hạn và quá hạn vẫn tính 1 khế ước NPL.',
+  },
+  khachHangCoNoXau: {
+    title: 'Khách hàng có nợ xấu',
+    definition:
+      'Đếm số khách hàng (theo Mã KH) có ít nhất 1 khế ước với "Dư nợ quá hạn" > 0.',
+    formula:
+      'unique(maKH where duNoQuaHan > 0). Caption hiển thị số KH có ≥ 2 khế ước NPL — chỉ báo nguy cơ tập trung rủi ro.',
+    note: 'Một KH có thể có nhiều khế ước NPL ở các chương trình khác nhau, vẫn tính 1 khách hàng.',
+  },
+  chuyenNQHThang: {
+    title: 'Đã Chuyển NQH trong tháng',
+    definition:
+      'Số khế ước có "Ngày ĐH theo GDXA" rơi vào tháng của ngày chốt số liệu, đang ở trạng thái OPEN — tức đến hạn cuối cùng và sẽ chuyển nợ quá hạn trong tháng.',
+    formula:
+      'count(loans where month(ngayDHGDXA) = month(ngaySoLieu) AND year(...) AND tinhTrangMonVay = "OPEN"). Caption hiển thị tổng dư nợ QH của nhóm này.',
+    note: 'Cảnh báo sớm các khế ước cần chú ý để xử lý trong tháng kế tiếp.',
+  },
 
   // ─── Báo cáo Dư nợ khoanh ─────────────────────────────────────────────────
 

@@ -313,15 +313,15 @@ export function TxnPointPerformancePage() {
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Tìm ĐGD theo Mã / Tên..."
-            className="h-8 w-72 rounded-md border border-slate-200 bg-white pl-7 pr-3 text-xs text-slate-700 outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+            className="h-9 w-80 rounded-md border border-slate-200 bg-white pl-8 pr-3 text-sm text-slate-700 outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
           />
         </div>
-        <span className="text-[11px] text-slate-500 dark:text-slate-400">
+        <span className="text-xs text-slate-500 dark:text-slate-400">
           {visibleRows.length} / {points.length} ĐGD
         </span>
       </div>
@@ -332,11 +332,11 @@ export function TxnPointPerformancePage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+            <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left uppercase tracking-wide text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
                 <tr>
                   <Th label="Điểm giao dịch" sortKey="tenDGD" activeKey={sortKey} dir={sortDir} onSort={toggleSort} />
-                  <th className="px-3 py-2 text-right font-semibold">Số thôn</th>
+                  <th className="px-4 py-3 text-right font-semibold">Số thôn</th>
                   <Th label="KƯ" sortKey="soKheUoc" activeKey={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
                   <Th label="KH" sortKey="soKhachHang" activeKey={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
                   <Th label="Tổng dư nợ" sortKey="tongDuNo" activeKey={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
@@ -386,28 +386,28 @@ function Row({ row, onDrill }: { row: PointSlice; onDrill: () => void }) {
       onClick={onDrill}
       title="Bấm để mở Tra cứu chi tiết đã lọc theo ĐGD này"
     >
-      <td className="px-3 py-2">
-        <div className="font-mono text-[11px] text-slate-500">{row.point.maDGD}</div>
+      <td className="px-4 py-3">
+        <div className="font-mono text-xs text-slate-500">{row.point.maDGD}</div>
         <div className="font-medium text-slate-800 dark:text-slate-100">{row.point.tenDGD}</div>
       </td>
-      <td className="px-3 py-2 text-right text-slate-700 dark:text-slate-200">{row.thonCount}</td>
-      <td className="px-3 py-2 text-right text-slate-700 dark:text-slate-200">{fmtNumber(row.soKheUoc)}</td>
-      <td className="px-3 py-2 text-right text-slate-700 dark:text-slate-200">{fmtNumber(row.soKhachHang)}</td>
-      <td className="px-3 py-2 text-right font-semibold text-slate-800 dark:text-slate-100">
+      <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-200">{row.thonCount}</td>
+      <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-200">{fmtNumber(row.soKheUoc)}</td>
+      <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-200">{fmtNumber(row.soKhachHang)}</td>
+      <td className="px-4 py-3 text-right font-semibold text-slate-800 dark:text-slate-100">
         {fmtCompact(row.tongDuNo)}
       </td>
-      <td className={cn('px-3 py-2 text-right font-medium', row.duNoQuaHan > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-slate-500')}>
+      <td className={cn('px-4 py-3 text-right font-medium', row.duNoQuaHan > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-slate-500')}>
         {fmtCompact(row.duNoQuaHan)}
       </td>
-      <td className={cn('px-3 py-2 text-right', row.tyLeNQH > 2 ? 'font-semibold text-rose-700 dark:text-rose-400' : 'text-slate-700 dark:text-slate-200')}>
+      <td className={cn('px-4 py-3 text-right', row.tyLeNQH > 2 ? 'font-semibold text-rose-700 dark:text-rose-400' : 'text-slate-700 dark:text-slate-200')}>
         {fmtPercent(row.tyLeNQH)}
       </td>
-      <td className="px-3 py-2 text-right text-slate-700 dark:text-slate-200">{fmtCompact(row.duNoKhoanh)}</td>
-      <td className={cn('px-3 py-2 text-right', row.tyLeKhoanh > 1 ? 'font-medium text-amber-700 dark:text-amber-400' : 'text-slate-700 dark:text-slate-200')}>
+      <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-200">{fmtCompact(row.duNoKhoanh)}</td>
+      <td className={cn('px-4 py-3 text-right', row.tyLeKhoanh > 1 ? 'font-medium text-amber-700 dark:text-amber-400' : 'text-slate-700 dark:text-slate-200')}>
         {fmtPercent(row.tyLeKhoanh)}
       </td>
-      <td className="px-3 py-2 text-right text-slate-700 dark:text-slate-200">{fmtCompact(row.mucVayBQ)}</td>
-      <td className="px-3 py-2 text-right text-slate-700 dark:text-slate-200">{fmtCompact(row.laiTonTH)}</td>
+      <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-200">{fmtCompact(row.mucVayBQ)}</td>
+      <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-200">{fmtCompact(row.laiTonTH)}</td>
     </tr>
   );
 }
@@ -420,18 +420,18 @@ function SummaryRow({
   data: Omit<PointSlice, 'point' | 'thonCount'>;
 }) {
   return (
-    <tr className="text-xs text-slate-500 dark:text-slate-400">
-      <td className="px-3 py-2 font-semibold italic">{label}</td>
-      <td className="px-3 py-2 text-right">—</td>
-      <td className="px-3 py-2 text-right">{fmtNumber(data.soKheUoc)}</td>
-      <td className="px-3 py-2 text-right">{fmtNumber(data.soKhachHang)}</td>
-      <td className="px-3 py-2 text-right">{fmtCompact(data.tongDuNo)}</td>
-      <td className="px-3 py-2 text-right">{fmtCompact(data.duNoQuaHan)}</td>
-      <td className="px-3 py-2 text-right">{fmtPercent(data.tyLeNQH)}</td>
-      <td className="px-3 py-2 text-right">{fmtCompact(data.duNoKhoanh)}</td>
-      <td className="px-3 py-2 text-right">{fmtPercent(data.tyLeKhoanh)}</td>
-      <td className="px-3 py-2 text-right">{fmtCompact(data.mucVayBQ)}</td>
-      <td className="px-3 py-2 text-right">{fmtCompact(data.laiTonTH)}</td>
+    <tr className="text-sm text-slate-500 dark:text-slate-400">
+      <td className="px-4 py-3 font-semibold italic">{label}</td>
+      <td className="px-4 py-3 text-right">—</td>
+      <td className="px-4 py-3 text-right">{fmtNumber(data.soKheUoc)}</td>
+      <td className="px-4 py-3 text-right">{fmtNumber(data.soKhachHang)}</td>
+      <td className="px-4 py-3 text-right">{fmtCompact(data.tongDuNo)}</td>
+      <td className="px-4 py-3 text-right">{fmtCompact(data.duNoQuaHan)}</td>
+      <td className="px-4 py-3 text-right">{fmtPercent(data.tyLeNQH)}</td>
+      <td className="px-4 py-3 text-right">{fmtCompact(data.duNoKhoanh)}</td>
+      <td className="px-4 py-3 text-right">{fmtPercent(data.tyLeKhoanh)}</td>
+      <td className="px-4 py-3 text-right">{fmtCompact(data.mucVayBQ)}</td>
+      <td className="px-4 py-3 text-right">{fmtCompact(data.laiTonTH)}</td>
     </tr>
   );
 }
@@ -456,16 +456,16 @@ function Th({
     <th
       onClick={() => onSort(sortKey)}
       className={cn(
-        'cursor-pointer select-none px-3 py-2 font-semibold hover:text-slate-700 dark:hover:text-slate-200',
+        'cursor-pointer select-none px-4 py-3 font-semibold hover:text-slate-700 dark:hover:text-slate-200',
         align === 'right' ? 'text-right' : 'text-left'
       )}
     >
       <span className={cn('inline-flex items-center gap-1', align === 'right' && 'flex-row-reverse')}>
         {label}
         {isActive ? (
-          dir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+          dir === 'asc' ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />
         ) : (
-          <ArrowDownUp className="h-3 w-3 opacity-40" />
+          <ArrowDownUp className="h-3.5 w-3.5 opacity-40" />
         )}
       </span>
     </th>
@@ -490,10 +490,10 @@ function SummaryChip({
         ? 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200'
         : 'border-slate-200 bg-slate-50 text-slate-800 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200';
   return (
-    <div className={cn('rounded-md border px-3 py-2', toneClass)}>
-      <div className="text-[10px] font-semibold uppercase tracking-wide opacity-70">{label}</div>
-      <div className="mt-0.5 text-lg font-bold leading-tight">{value}</div>
-      {subValue && <div className="text-[11px] opacity-70">{subValue}</div>}
+    <div className={cn('rounded-md border px-4 py-3', toneClass)}>
+      <div className="text-xs font-semibold uppercase tracking-wide opacity-70">{label}</div>
+      <div className="mt-1 text-xl font-bold leading-tight">{value}</div>
+      {subValue && <div className="mt-0.5 text-xs opacity-70">{subValue}</div>}
     </div>
   );
 }

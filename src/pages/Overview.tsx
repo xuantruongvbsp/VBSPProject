@@ -120,9 +120,9 @@ export function OverviewPage() {
   const [dormantExporting, setDormantExporting] = useState(false);
   const [stackedCBTDType, setStackedCBTDType] = useState<StackedChartType>('percent');
   const [barGroupType, setBarGroupType] = useState<BarGroupChartType>('bar');
-  // Combined "Dư nợ theo ĐVUT / Xã" card: cho phép user toggle chiều phân tích.
-  const [dimGroupBy, setDimGroupBy] = useState<'dvut' | 'xa'>('xa');
-  const [stackedDimType, setStackedDimType] = useState<StackedChartType>('percent');
+  // Combined "Dư nợ theo Xã / ĐVUT / Chương trình" card: toggle chiều phân tích.
+  const [dimGroupBy, setDimGroupBy] = useState<'xa' | 'dvut' | 'program'>('xa');
+  const [barDimType, setBarDimType] = useState<BarGroupChartType>('pie');
   // Combined "Số dư tiền gửi 105" card: ĐVUT vs Xã.
   const [depositGroupBy, setDepositGroupBy] = useState<'dvut' | 'xa'>('xa');
 
@@ -430,20 +430,31 @@ export function OverviewPage() {
         />
       </div>
 
-      {/* Row 1: ĐVUT/Xã (toggle) + Programs */}
+      {/* Row 1: Combined "Dư nợ theo Xã/ĐVUT/CT" + "Số dư tiền gửi 105 theo Xã/ĐVUT" — 2 cột cạnh nhau. */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {(() => {
+          const data =
+            dimGroupBy === 'xa' ? byXa : dimGroupBy === 'dvut' ? byDVUT : byProgram;
+          const drillField =
+            dimGroupBy === 'xa' ? 'tenXa' : dimGroupBy === 'dvut' ? 'tenDVUT' : 'tenChuongTrinh';
+          const dimLabel =
+            dimGroupBy === 'xa' ? 'Xã' : dimGroupBy === 'dvut' ? 'Đơn vị ủy thác' : 'Chương trình tín dụng';
+          const infoKey =
+            dimGroupBy === 'xa' ? 'chartXa' : dimGroupBy === 'dvut' ? 'chartDvut' : 'chartProgram';
+          const colorMode =
+            dimGroupBy === 'program' ? 'program' : dimGroupBy === 'dvut' ? 'dvut' : 'rainbow';
+          const limit = dimGroupBy === 'dvut' ? 6 : 10;
+          return (
         <Card>
           <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <CardTitle>
-                  Dư nợ theo {dimGroupBy === 'dvut' ? 'Đơn vị ủy thác' : 'Xã'}
-                </CardTitle>
-                {/* Dimension toggle */}
+                <CardTitle>Dư nợ theo {dimLabel}</CardTitle>
                 <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5 text-xs shadow-sm dark:border-slate-700 dark:bg-slate-800">
                   {([
                     ['xa', 'Xã'],
                     ['dvut', 'ĐVUT'],
+                    ['program', 'CT'],
                   ] as const).map(([val, label]) => (
                     <button
                       key={val}
@@ -461,88 +472,67 @@ export function OverviewPage() {
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                <ChartSwitcher options={STACKED_OPTS} value={stackedDimType} onChange={setStackedDimType} />
-                <InfoPopover metricKey={dimGroupBy === 'dvut' ? 'chartDvut' : 'chartXa'} />
+                <ChartSwitcher options={BAR_GROUP_OPTS} value={barDimType} onChange={setBarDimType} />
+                <InfoPopover metricKey={infoKey} />
               </div>
             </div>
           </CardHeader>
-          <CardContent id={dimGroupBy === 'dvut' ? 'chart-dvut' : 'chart-xa'}>
-            <StackedStatus
-              data={dimGroupBy === 'dvut' ? byDVUT : byXa}
-              limit={dimGroupBy === 'dvut' ? 6 : 10}
-              onClick={(v) => drillTo(dimGroupBy === 'dvut' ? 'tenDVUT' : 'tenXa', v)}
-              chartType={stackedDimType}
-              dvutColors={dimGroupBy === 'dvut'}
+          <CardContent id={`chart-${dimGroupBy}`}>
+            <BarByGroup
+              data={data}
+              limit={limit}
+              onClick={(v) => drillTo(drillField, v)}
+              chartType={barDimType}
+              colorMode={colorMode}
             />
           </CardContent>
         </Card>
+          );
+        })()}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Dư nợ theo Chương trình tín dụng</CardTitle>
-              <div className="flex items-center gap-1">
-                <ChartSwitcher options={BAR_GROUP_OPTS} value={barGroupType} onChange={setBarGroupType} />
-                <InfoPopover metricKey="chartProgram" />
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <CardTitle>
+                  Số dư tiền gửi 105 theo {depositGroupBy === 'dvut' ? 'Đơn vị ủy thác' : 'Xã'}
+                </CardTitle>
+                <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5 text-xs shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                  {([
+                    ['xa', 'Xã'],
+                    ['dvut', 'ĐVUT'],
+                  ] as const).map(([val, label]) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setDepositGroupBy(val)}
+                      className={`rounded px-2.5 py-1 font-medium transition-colors ${
+                        depositGroupBy === val
+                          ? 'bg-brand-600 text-white shadow-sm'
+                          : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
+              <InfoPopover metricKey={depositGroupBy === 'dvut' ? 'chartTienGui105Dvut' : 'chartTienGui105Xa'} />
             </div>
           </CardHeader>
-          <CardContent id="chart-program">
+          <CardContent id={depositGroupBy === 'dvut' ? 'chart-tien-gui-dvut' : 'chart-tien-gui-xa'}>
             <BarByGroup
-              data={byProgram}
-              limit={10}
-              onClick={(v) => drillTo('tenChuongTrinh', v)}
-              chartType={barGroupType}
-              colorMode="program"
+              data={depositGroupBy === 'dvut' ? byDVUTDeposit : byXaDeposit}
+              limit={depositGroupBy === 'dvut' ? 6 : 10}
+              metric="soDuTienGui105"
+              tooltipLabel="Số dư tiền gửi 105"
+              onClick={(v) => drillTo(depositGroupBy === 'dvut' ? 'tenDVUT' : 'tenXa', v)}
+              colorMode={depositGroupBy === 'dvut' ? 'rainbow' : 'sequential'}
+              baseHue="teal"
+              colorByKey={depositGroupBy === 'xa' ? xaColorMap : undefined}
             />
           </CardContent>
         </Card>
       </div>
-
-      {/* Row 1.6: Số dư tiền gửi 105 (toggle ĐVUT/Xã) — sequential gradient teal,
-          đậm = dòng tiền lớn nhất. */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <CardTitle>
-                Số dư tiền gửi 105 theo {depositGroupBy === 'dvut' ? 'Đơn vị ủy thác' : 'Xã'}
-              </CardTitle>
-              <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5 text-xs shadow-sm dark:border-slate-700 dark:bg-slate-800">
-                {([
-                  ['xa', 'Xã'],
-                  ['dvut', 'ĐVUT'],
-                ] as const).map(([val, label]) => (
-                  <button
-                    key={val}
-                    type="button"
-                    onClick={() => setDepositGroupBy(val)}
-                    className={`rounded px-2.5 py-1 font-medium transition-colors ${
-                      depositGroupBy === val
-                        ? 'bg-brand-600 text-white shadow-sm'
-                        : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <InfoPopover metricKey={depositGroupBy === 'dvut' ? 'chartTienGui105Dvut' : 'chartTienGui105Xa'} />
-          </div>
-        </CardHeader>
-        <CardContent id={depositGroupBy === 'dvut' ? 'chart-tien-gui-dvut' : 'chart-tien-gui-xa'}>
-          <BarByGroup
-            data={depositGroupBy === 'dvut' ? byDVUTDeposit : byXaDeposit}
-            limit={depositGroupBy === 'dvut' ? 6 : 10}
-            metric="soDuTienGui105"
-            tooltipLabel="Số dư tiền gửi 105"
-            onClick={(v) => drillTo(depositGroupBy === 'dvut' ? 'tenDVUT' : 'tenXa', v)}
-            colorMode={depositGroupBy === 'dvut' ? 'rainbow' : 'sequential'}
-            baseHue="teal"
-            colorByKey={depositGroupBy === 'xa' ? xaColorMap : undefined}
-          />
-        </CardContent>
-      </Card>
 
       {/* Row 2: Histogram + Dư nợ theo CBTD (CBTD conditional) */}
       <div
@@ -823,19 +813,19 @@ export function OverviewPage() {
               Không tìm thấy khách hàng nào khớp với “{dormantSearch.trim()}”.
             </div>
           ) : (
-            <div className="scrollbar-thin max-h-[480px] overflow-y-auto">
-              <table className="w-full text-xs">
+            <div className="scrollbar-thin max-h-[640px] overflow-y-auto">
+              <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800">
                   <tr className="text-left text-slate-500 dark:text-slate-400">
-                    <th className="px-3 py-2">#</th>
-                    <th className="px-3 py-2">Khách hàng</th>
-                    <th className="px-3 py-2">Xã · ĐVUT</th>
-                    <th className="px-3 py-2">Tổ TK&VV</th>
-                    <th className="px-3 py-2">Chương trình</th>
-                    <th className="px-3 py-2 text-right">Số khế ước</th>
-                    <th className="px-3 py-2 text-right">Tổng dư nợ</th>
-                    <th className="px-3 py-2 text-right">Hoạt động cuối</th>
-                    <th className="px-3 py-2 text-right">Số ngày</th>
+                    <th className="px-4 py-3">#</th>
+                    <th className="px-4 py-3">Khách hàng</th>
+                    <th className="px-4 py-3">Xã · ĐVUT</th>
+                    <th className="px-4 py-3">Tổ TK&VV</th>
+                    <th className="px-4 py-3">Chương trình</th>
+                    <th className="px-4 py-3 text-right">Số khế ước</th>
+                    <th className="px-4 py-3 text-right">Tổng dư nợ</th>
+                    <th className="px-4 py-3 text-right">Hoạt động cuối</th>
+                    <th className="px-4 py-3 text-right">Số ngày</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -847,32 +837,32 @@ export function OverviewPage() {
                         onClick={() => record && setDetail(record)}
                         className="cursor-pointer border-t border-slate-100 dark:border-slate-700 hover:bg-amber-50 dark:hover:bg-amber-900/20"
                       >
-                        <td className="px-3 py-2 text-slate-500 dark:text-slate-400">{i + 1}</td>
-                        <td className="px-3 py-2">
+                        <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">{i + 1}</td>
+                        <td className="px-4 py-2.5">
                           <div className="font-medium text-slate-800 dark:text-slate-100">{d.tenKH}</div>
-                          <div className="text-[10px] text-slate-500 dark:text-slate-400">{d.maKH}</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400">{d.maKH}</div>
                         </td>
-                        <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
+                        <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">
                           <div>{d.tenXa}</div>
-                          <div className="text-[10px] text-slate-500 dark:text-slate-400">{d.tenDVUT}</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400">{d.tenDVUT}</div>
                         </td>
-                        <td className="max-w-[180px] truncate px-3 py-2 text-slate-600 dark:text-slate-300" title={d.tenTo}>
+                        <td className="max-w-[200px] truncate px-4 py-2.5 text-slate-600 dark:text-slate-300" title={d.tenTo}>
                           {d.tenTo || '—'}
                         </td>
-                        <td className="max-w-[220px] truncate px-3 py-2 text-slate-600 dark:text-slate-300">
+                        <td className="max-w-[260px] truncate px-4 py-2.5 text-slate-600 dark:text-slate-300">
                           {d.tenChuongTrinh}
                         </td>
-                        <td className="px-3 py-2 text-right text-slate-700 dark:text-slate-300">
+                        <td className="px-4 py-2.5 text-right text-slate-700 dark:text-slate-300">
                           {fmtNumber(d.soKheUoc)}
                         </td>
-                        <td className="px-3 py-2 text-right font-semibold text-slate-900 dark:text-slate-100">
+                        <td className="px-4 py-2.5 text-right font-semibold text-slate-900 dark:text-slate-100">
                           {fmtCurrency(d.tongDuNo)}
                         </td>
-                        <td className="px-3 py-2 text-right text-slate-600 dark:text-slate-300">
+                        <td className="px-4 py-2.5 text-right text-slate-600 dark:text-slate-300">
                           {fmtDate(d.ngayHoatDongCuoi)}
                         </td>
-                        <td className="px-3 py-2 text-right">
-                          <span className="rounded-full bg-amber-100 dark:bg-slate-800 dark:ring-1 dark:ring-amber-500/30 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-300">
+                        <td className="px-4 py-2.5 text-right">
+                          <span className="rounded-full bg-amber-100 dark:bg-slate-800 dark:ring-1 dark:ring-amber-500/30 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:text-amber-300">
                             {fmtNumber(d.daysSince)} ngày
                           </span>
                         </td>
@@ -882,7 +872,7 @@ export function OverviewPage() {
                 </tbody>
               </table>
               {dormantVisible.length > 200 && (
-                <div className="border-t border-slate-100 dark:border-slate-700 px-3 py-2 text-center text-[10px] text-slate-500 dark:text-slate-400">
+                <div className="border-t border-slate-100 dark:border-slate-700 px-4 py-2.5 text-center text-xs text-slate-500 dark:text-slate-400">
                   Hiển thị 200 / {fmtNumber(dormantVisible.length)} khách hàng. Sử dụng bộ lọc
                   hoặc ô tìm kiếm phía trên để thu hẹp danh sách.
                 </div>
