@@ -8,6 +8,7 @@ import type {
   BucketLoanDetail,
   Nq11XaSummary,
   Nq11MatchXa,
+  Nq11NoxhXaSummary,
 } from '../lib/credit-plan-types';
 import { CHUONG_TRINH_LIST } from '../lib/credit-plan-types';
 import { mergeNq11IntoActuals } from '../data/credit-plan-parser';
@@ -67,7 +68,20 @@ interface CreditPlanState {
   ) => void;
   clearNq11: () => void;
 
-  // Computed: actuals after merging NQ11 split
+  // NQ11 NOXH (món vay Nhà ở xã hội — Nghị định 100, không được cho vay quay vòng)
+  nq11NoxhSummaries: Nq11NoxhXaSummary[];
+  nq11NoxhMonVayIds: string[];
+  nq11NoxhDate: string | null;
+  nq11NoxhTotalRows: number;
+  setNq11Noxh: (
+    summaries: Nq11NoxhXaSummary[],
+    monVayIds: string[],
+    date: string | null,
+    totalRows: number
+  ) => void;
+  clearNq11Noxh: () => void;
+
+  // Computed: actuals after merging NQ11 split (cả GQVL + NOXH)
   getMergedActuals: () => ActualSummary[];
 
   // Computed: plan vs actual
@@ -257,8 +271,24 @@ export const useCreditPlanStore = create<CreditPlanState>()(
       clearNq11: () =>
         set({ nq11Summaries: [], nq11MonVayIds: [], nq11Date: null, nq11TotalRows: 0 }),
 
+      nq11NoxhSummaries: [],
+      nq11NoxhMonVayIds: [],
+      nq11NoxhDate: null,
+      nq11NoxhTotalRows: 0,
+      setNq11Noxh: (summaries, monVayIds, date, totalRows) =>
+        set({
+          nq11NoxhSummaries: summaries,
+          nq11NoxhMonVayIds: monVayIds,
+          nq11NoxhDate: date,
+          nq11NoxhTotalRows: totalRows,
+        }),
+      clearNq11Noxh: () =>
+        set({ nq11NoxhSummaries: [], nq11NoxhMonVayIds: [], nq11NoxhDate: null, nq11NoxhTotalRows: 0 }),
+
       getMergedActuals: () => {
         const { actuals, nq11Summaries } = get();
+        // CT=03 → 03A/03B/03N (post-merge cần phân biệt nguồn 03A/03B).
+        // CT=12 → 12N được tách ngay tại parseActualFile (không cần post-merge).
         return mergeNq11IntoActuals(actuals, nq11Summaries);
       },
 
@@ -321,7 +351,7 @@ export const useCreditPlanStore = create<CreditPlanState>()(
     }),
     {
       name: 'vsppro-credit-plan',
-      version: 6,
+      version: 7,
       migrate: (persisted: unknown, version: number) => {
         let s = (persisted ?? {}) as Partial<CreditPlanState> & {
           decisions?: LegacyDecisionV1[];
@@ -360,6 +390,8 @@ export const useCreditPlanStore = create<CreditPlanState>()(
           const plans = migrateFromV5((s.plans ?? []) as PlanEntry[]);
           s = { ...s, plans } as typeof s;
         }
+        // v6 → v7: thêm slice nq11Noxh — không cần migrate dữ liệu cũ, chỉ
+        // cần default rỗng (xử lý ở init state).
         return s as CreditPlanState;
       },
       partialize: (s) => ({
@@ -374,6 +406,10 @@ export const useCreditPlanStore = create<CreditPlanState>()(
         nq11Date: s.nq11Date,
         nq11TotalRows: s.nq11TotalRows,
         nq11MatchByXa: s.nq11MatchByXa,
+        nq11NoxhSummaries: s.nq11NoxhSummaries,
+        nq11NoxhMonVayIds: s.nq11NoxhMonVayIds,
+        nq11NoxhDate: s.nq11NoxhDate,
+        nq11NoxhTotalRows: s.nq11NoxhTotalRows,
       }),
     }
   )

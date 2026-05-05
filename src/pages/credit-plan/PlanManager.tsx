@@ -3,6 +3,8 @@ import { Plus, Pencil, Trash2, Save, X, Check, ChevronDown, FileText, ClipboardL
 import { Link } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { ColumnFilter } from '@/components/ui/ColumnFilter';
+import { useGridFilter } from '@/lib/grid-filter';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
 import { useIsOwner } from '@/store/useAuthStore';
 import type { PlanEntry, Decision } from '@/lib/credit-plan-types';
@@ -281,12 +283,22 @@ export function PlanManager() {
     setShowForm(true);
   };
 
-  const filtered = plans.filter((p) => {
+  const preFiltered = plans.filter((p) => {
     if (filterXa && p.maXa !== filterXa) return false;
     if (filterNV && p.maNguonVon !== filterNV) return false;
     if (filterDecision && p.decisionId !== filterDecision) return false;
     return true;
   });
+
+  // Excel-style column filters
+  const grid = useGridFilter(preFiltered, {
+    soQD: (p) => decById.get(p.decisionId)?.soQD ?? '',
+    ngayQD: (p) => decById.get(p.decisionId)?.ngayQD ?? '',
+    xa: (p) => p.tenXa,
+    nguonVon: (p) => nguonVonLabel(p.maNguonVon),
+    chuongTrinh: (p) => p.tenChuongTrinh,
+  });
+  const filtered = grid.filtered;
 
   const totalPlan = plans.reduce((s, p) => s + p.soTien, 0);
   const selectedSet = new Set(programs.keys());
@@ -575,11 +587,11 @@ export function PlanManager() {
             <table className="w-full text-left text-sm">
               <thead className="sticky top-0 z-10">
                 <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                  <th className="px-4 py-3">Số QĐ</th>
-                  <th className="px-4 py-3">Ngày QĐ</th>
-                  <th className="px-4 py-3">Xã</th>
-                  <th className="px-4 py-3">Nguồn vốn</th>
-                  <th className="px-4 py-3">Chương trình</th>
+                  <th className="px-4 py-3"><span className="inline-flex items-center">Số QĐ<ColumnFilter label="Lọc theo Số QĐ" values={grid.distinctValues.soQD} selected={grid.filters.soQD} onApply={(s) => grid.setFilter('soQD', s)} /></span></th>
+                  <th className="px-4 py-3"><span className="inline-flex items-center">Ngày QĐ<ColumnFilter label="Lọc theo Ngày QĐ" values={grid.distinctValues.ngayQD} selected={grid.filters.ngayQD} onApply={(s) => grid.setFilter('ngayQD', s)} /></span></th>
+                  <th className="px-4 py-3"><span className="inline-flex items-center">Xã<ColumnFilter label="Lọc theo Xã" values={grid.distinctValues.xa} selected={grid.filters.xa} onApply={(s) => grid.setFilter('xa', s)} /></span></th>
+                  <th className="px-4 py-3"><span className="inline-flex items-center">Nguồn vốn<ColumnFilter label="Lọc theo Nguồn vốn" values={grid.distinctValues.nguonVon} selected={grid.filters.nguonVon} onApply={(s) => grid.setFilter('nguonVon', s)} /></span></th>
+                  <th className="px-4 py-3"><span className="inline-flex items-center">Chương trình<ColumnFilter label="Lọc theo Chương trình" values={grid.distinctValues.chuongTrinh} selected={grid.filters.chuongTrinh} onApply={(s) => grid.setFilter('chuongTrinh', s)} /></span></th>
                   <th className="px-4 py-3 text-right">Số tiền (tr.đ)</th>
                   <th className="px-4 py-3"></th>
                 </tr>

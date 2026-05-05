@@ -138,6 +138,31 @@ export interface Nq11ImportResult {
   totalRows: number;
 }
 
+/** Tóm tắt file Sao kê NOXH-NQ11 (BCQUERY format) — gộp theo (xã, NV).
+ *  Toàn bộ món trong file đều là NQ11. Không có split theo Cấp QLV như GQVL. */
+export interface Nq11NoxhXaSummary {
+  maXa: string;
+  tenXa: string;
+  /** Mã NV chuẩn hoá: '1' (TW), '2' (ĐP), '3' (ĐP xã) */
+  maNguonVon: string;
+  tongDuNo: number;
+  duNoTrongHan: number;
+  duNoQuaHan: number;
+  duNoKhoanh: number;
+  tongGiaiNgan: number;
+  soMonVay: number;
+  /** Danh sách Số khế ước thuộc nhóm này */
+  monVayIds: string[];
+}
+
+/** Kết quả parse file Sao kê NOXH-NQ11 */
+export interface Nq11NoxhImportResult {
+  summariesByXa: Nq11NoxhXaSummary[];
+  monVayIds: string[];
+  ngaySoLieu: string | null;
+  totalRows: number;
+}
+
 /** So sánh plan vs actual cho 1 nhóm */
 export interface PlanVsActual {
   maXa: string;
@@ -186,6 +211,7 @@ export const CHUONG_TRINH_LIST = [
   { ma: '07', ten: 'Cho vay hộ nghèo về nhà ở' },
   { ma: '09', ten: 'Cho vay hộ mới thoát nghèo theo QĐ 28' },
   { ma: '12', ten: 'Cho vay nhà ở xã hội theo Nghị định số 100' },
+  { ma: '12N', ten: 'Cho vay NOXH — NQ11' },
   { ma: '17', ten: 'Cho vay hộ đồng bào DTTS nghèo, đời sống khó khăn theo QĐ 755' },
   { ma: '19', ten: 'Cho vay hộ cận nghèo theo QĐ 15' },
   { ma: '26', ten: 'Cho vay người chấp hành xong án phạt tù' },

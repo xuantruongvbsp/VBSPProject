@@ -39,6 +39,10 @@ export function CreditPlanAutoSync() {
   const nq11Date = useCreditPlanStore((s) => s.nq11Date);
   const nq11TotalRows = useCreditPlanStore((s) => s.nq11TotalRows);
   const nq11MatchByXa = useCreditPlanStore((s) => s.nq11MatchByXa);
+  const nq11NoxhSummaries = useCreditPlanStore((s) => s.nq11NoxhSummaries);
+  const nq11NoxhMonVayIds = useCreditPlanStore((s) => s.nq11NoxhMonVayIds);
+  const nq11NoxhDate = useCreditPlanStore((s) => s.nq11NoxhDate);
+  const nq11NoxhTotalRows = useCreditPlanStore((s) => s.nq11NoxhTotalRows);
 
   const [status, setStatus] = useState<SyncStatus>('idle');
   const [lastAt, setLastAt] = useState<number | null>(null);
@@ -111,6 +115,10 @@ export function CreditPlanAutoSync() {
           nq11Date,
           nq11TotalRows,
           nq11MatchByXa,
+          nq11NoxhSummaries,
+          nq11NoxhMonVayIds,
+          nq11NoxhDate,
+          nq11NoxhTotalRows,
         });
         setLastAt(Date.now());
         setStatus('synced');
@@ -155,6 +163,10 @@ export function CreditPlanAutoSync() {
     nq11Date,
     nq11TotalRows,
     nq11MatchByXa,
+    nq11NoxhSummaries,
+    nq11NoxhMonVayIds,
+    nq11NoxhDate,
+    nq11NoxhTotalRows,
   ]);
 
   if (role !== 'owner') return null;

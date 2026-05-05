@@ -12,10 +12,12 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { BanIcon, FileText, FileDown, BarChart3, Inbox } from 'lucide-react';
+import { BanIcon, FileText, FileDown, BarChart3, Inbox, Home } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
+import { ColumnFilter } from '@/components/ui/ColumnFilter';
+import { useGridFilter } from '@/lib/grid-filter';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
 import { nguonVonLabel, nguonVonListLabel } from '@/lib/credit-plan-types';
 
@@ -48,6 +50,8 @@ export function PlanReports() {
   const nq11Summaries = useCreditPlanStore((s) => s.nq11Summaries);
   const nq11MatchByXa = useCreditPlanStore((s) => s.nq11MatchByXa);
   const nq11Date = useCreditPlanStore((s) => s.nq11Date);
+  const nq11NoxhSummaries = useCreditPlanStore((s) => s.nq11NoxhSummaries);
+  const nq11NoxhDate = useCreditPlanStore((s) => s.nq11NoxhDate);
   const actualDate = useCreditPlanStore((s) => s.actualDate);
   const [groupBy, setGroupBy] = useState<'xa' | 'chuongtrinh' | 'nguonvon'>('xa');
 
@@ -90,7 +94,64 @@ export function PlanReports() {
     );
   }, [nq11Recovery]);
 
+  // Báo cáo thu hồi NQ11 — Cho vay NOXH (CT=12N).
+  // Tổng dư nợ ban đầu: từ file NOXH-NQ11 (snapshot tại nq11NoxhDate, theo xã + NV).
+  // Còn lại: dư nợ hiện tại của bucket 12N trong actuals (sau khi parse Báo cáo 31
+  // có truyền nq11NoxhIds → CT=12 được tách thẳng sang 12N tại lúc parse).
+  // Đã thu hồi = Tổng - Còn lại.
+  const nq11NoxhRecovery = useMemo(() => {
+    if (nq11NoxhSummaries.length === 0) return [];
+    // Map bucket 12N theo (xã, NV) trong actuals hiện tại.
+    const noxhActualMap = new Map<string, { tongDuNo: number; soMonVay: number }>();
+    for (const a of actuals) {
+      if (a.maChuongTrinh !== '12N') continue;
+      noxhActualMap.set(`${a.maXa}|${a.maNguonVon}`, {
+        tongDuNo: a.tongDuNo,
+        soMonVay: a.soMonVay,
+      });
+    }
+    return nq11NoxhSummaries.map((s) => {
+      const k = `${s.maXa}|${s.maNguonVon}`;
+      const matched = noxhActualMap.get(k);
+      const hasMatch = !!matched;
+      const tongDuNo = s.tongDuNo;
+      const conLai = hasMatch ? matched!.tongDuNo : null;
+      const daThuHoi = hasMatch ? tongDuNo - matched!.tongDuNo : null;
+      return {
+        maXa: s.maXa,
+        tenXa: s.tenXa,
+        maNguonVon: s.maNguonVon,
+        tongDuNo,
+        daThuHoi,
+        conLai,
+        soMonNQ11: s.soMonVay,
+        soMonMatched: matched?.soMonVay ?? 0,
+        hasMatch,
+      };
+    });
+  }, [nq11NoxhSummaries, actuals]);
+
+  const nq11NoxhRecoveryTotals = useMemo(() => {
+    return nq11NoxhRecovery.reduce(
+      (acc, r) => ({
+        tongDuNo: acc.tongDuNo + r.tongDuNo,
+        daThuHoi: acc.daThuHoi + (r.daThuHoi ?? 0),
+        conLai: acc.conLai + (r.conLai ?? 0),
+        soMonNQ11: acc.soMonNQ11 + r.soMonNQ11,
+        soMonMatched: acc.soMonMatched + r.soMonMatched,
+      }),
+      { tongDuNo: 0, daThuHoi: 0, conLai: 0, soMonNQ11: 0, soMonMatched: 0 }
+    );
+  }, [nq11NoxhRecovery]);
+
   const comparison = useMemo(() => getPlanVsActual(), [getPlanVsActual, plans, actuals]);
+
+  // Excel-style column filters cho bảng "Chi tiết so sánh"
+  const compareGrid = useGridFilter(comparison, {
+    xa: (c) => c.tenXa,
+    nguonVon: (c) => nguonVonLabel(c.maNguonVon),
+    chuongTrinh: (c) => `${c.maChuongTrinh} — ${c.tenChuongTrinh}`,
+  });
 
   /** Xuất danh sách Mã món vay đóng góp vào 1 bucket ra file Excel. */
   const exportBucketLoans = (maXa: string, tenXa: string, maNguonVon: string, maChuongTrinh: string) => {
@@ -347,8 +408,98 @@ export function PlanReports() {
         </Card>
       )}
 
-      {/* Báo cáo theo Quyết định */}
-      {byDecision.length > 0 && (
+      {/* Báo cáo thu hồi NQ11 — Cho vay NOXH */}
+      {nq11NoxhSummaries.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Home className="h-4 w-4 text-rose-600" />
+              Báo cáo thu hồi NQ11 — Cho vay NOXH
+            </CardTitle>
+            <CardDescription>
+              Tổng dư nợ: từ file NOXH-NQ11 ({nq11NoxhDate ?? '—'}).
+              {' '}Còn lại: dư nợ hiện tại của bucket{' '}
+              <span className="font-mono">12N</span> trong Báo cáo 31
+              {actualDate ? ` (${actualDate})` : ''} — khớp theo (xã × Nguồn vốn).
+              {' '}Đã thu hồi = Tổng dư nợ − Còn lại.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            {nq11NoxhRecovery.every((r) => !r.hasMatch) && nq11NoxhRecovery.length > 0 && (
+              <div className="mx-4 mb-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+                Bucket 12N chưa xuất hiện trong Báo cáo 31 hiện tại. Hãy tải lại Báo cáo 31
+                sau khi đã upload file NOXH-NQ11 để parser tách CT=12 sang 12N.
+              </div>
+            )}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="sticky top-0 z-10">
+                  <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                    <th className="px-4 py-3">Xã</th>
+                    <th className="px-4 py-3">NV</th>
+                    <th className="px-4 py-3 text-right text-rose-600 dark:text-rose-400">Tổng dư nợ</th>
+                    <th className="px-4 py-3 text-right text-emerald-600 dark:text-emerald-400">Dư nợ đã thu hồi</th>
+                    <th className="px-4 py-3 text-right text-amber-600 dark:text-amber-400">Dư nợ còn lại</th>
+                    <th className="px-4 py-3 text-right">Món NQ11 / Còn lại</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {nq11NoxhRecovery.map((r, idx) => (
+                    <tr
+                      key={`${r.maXa}-${r.maNguonVon}`}
+                      className={`border-b border-slate-100 transition-colors hover:bg-slate-50 dark:border-slate-700/60 dark:hover:bg-slate-800/50 ${
+                        idx % 2 === 1 ? 'bg-slate-50/30 dark:bg-slate-800/20' : ''
+                      }`}
+                    >
+                      <td className="px-4 py-2 text-slate-900 dark:text-white">
+                        {r.tenXa} <span className="text-xs text-slate-400">({r.maXa})</span>
+                      </td>
+                      <td className="px-4 py-2 text-slate-600 dark:text-slate-300">
+                        {nguonVonLabel(r.maNguonVon)}
+                      </td>
+                      <td className="px-4 py-2 text-right font-mono tabular-nums text-rose-600 dark:text-rose-400">
+                        {fmtMoney(r.tongDuNo)}
+                      </td>
+                      <td className="px-4 py-2 text-right font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
+                        {r.hasMatch ? fmtMoney(r.daThuHoi!) : <span className="text-slate-300 dark:text-slate-600">—</span>}
+                      </td>
+                      <td className="px-4 py-2 text-right font-mono tabular-nums font-semibold text-amber-700 dark:text-amber-400">
+                        {r.hasMatch ? fmtMoney(r.conLai!) : <span className="text-slate-300 dark:text-slate-600">—</span>}
+                      </td>
+                      <td className="px-4 py-2 text-right font-mono tabular-nums text-xs text-slate-500 dark:text-slate-400">
+                        {r.soMonNQ11.toLocaleString('vi-VN')} / {r.soMonMatched.toLocaleString('vi-VN')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                {nq11NoxhRecovery.length > 0 && (
+                  <tfoot>
+                    <tr className="border-t-2 border-slate-300 bg-slate-50 font-semibold dark:border-slate-600 dark:bg-slate-800">
+                      <td colSpan={2} className="px-4 py-2.5 text-slate-700 dark:text-slate-200">Tổng cộng</td>
+                      <td className="px-4 py-2.5 text-right font-mono tabular-nums text-rose-600 dark:text-rose-400">
+                        {fmtMoney(nq11NoxhRecoveryTotals.tongDuNo)}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
+                        {fmtMoney(nq11NoxhRecoveryTotals.daThuHoi)}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-mono tabular-nums text-amber-700 dark:text-amber-400">
+                        {fmtMoney(nq11NoxhRecoveryTotals.conLai)}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-mono tabular-nums text-xs text-slate-500 dark:text-slate-400">
+                        {nq11NoxhRecoveryTotals.soMonNQ11.toLocaleString('vi-VN')} /{' '}
+                        {nq11NoxhRecoveryTotals.soMonMatched.toLocaleString('vi-VN')}
+                      </td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Báo cáo theo Quyết định — tạm ẩn theo yêu cầu */}
+      {false && byDecision.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -425,11 +576,11 @@ export function PlanReports() {
         </Card>
         <Card>
           <CardContent className="py-4">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Chênh lệch</div>
-            <div className={`mt-1 text-2xl font-bold tabular-nums ${totalActual - totalPlan >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-              {totalActual - totalPlan >= 0 ? '+' : ''}{fmtMoney(Math.round(totalActual - totalPlan))}
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Còn lại phải thực hiện</div>
+            <div className={`mt-1 text-2xl font-bold tabular-nums ${totalPlan - totalActual > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+              {fmtMoney(Math.round(totalPlan - totalActual))}
             </div>
-            <div className="text-xs text-slate-500 dark:text-slate-400">triệu đồng</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">= Tổng kế hoạch − Tổng thực tế</div>
           </CardContent>
         </Card>
         <Card>
@@ -564,9 +715,9 @@ export function PlanReports() {
             <table className="w-full text-left text-sm">
               <thead className="sticky top-0 z-10">
                 <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                  <th className="px-4 py-3">Xã</th>
-                  <th className="px-4 py-3">Nguồn vốn</th>
-                  <th className="px-4 py-3">Chương trình</th>
+                  <th className="px-4 py-3"><span className="inline-flex items-center">Xã<ColumnFilter label="Lọc theo Xã" values={compareGrid.distinctValues.xa} selected={compareGrid.filters.xa} onApply={(s) => compareGrid.setFilter('xa', s)} /></span></th>
+                  <th className="px-4 py-3"><span className="inline-flex items-center">Nguồn vốn<ColumnFilter label="Lọc theo Nguồn vốn" values={compareGrid.distinctValues.nguonVon} selected={compareGrid.filters.nguonVon} onApply={(s) => compareGrid.setFilter('nguonVon', s)} /></span></th>
+                  <th className="px-4 py-3"><span className="inline-flex items-center">Chương trình<ColumnFilter label="Lọc theo Chương trình" values={compareGrid.distinctValues.chuongTrinh} selected={compareGrid.filters.chuongTrinh} onApply={(s) => compareGrid.setFilter('chuongTrinh', s)} /></span></th>
                   <th className="px-4 py-3 text-right text-blue-600 dark:text-blue-400">KH (tr.đ)</th>
                   <th className="px-4 py-3 text-right text-emerald-600 dark:text-emerald-400">TT (tr.đ)</th>
                   <th className="px-4 py-3 text-right">Còn phải thực hiện</th>
@@ -575,7 +726,7 @@ export function PlanReports() {
                 </tr>
               </thead>
               <tbody>
-                {comparison.map((c, idx) => {
+                {compareGrid.filtered.map((c, idx) => {
                   const bucketKey = `${c.maXa}|${c.maNguonVon}|${c.maChuongTrinh}`;
                   const hasDetails = (loanDetailsByBucket[bucketKey]?.length ?? 0) > 0;
                   const remaining = c.planAmount - c.actualAmount;
@@ -616,22 +767,30 @@ export function PlanReports() {
                   );
                 })}
               </tbody>
-              {comparison.length > 0 && (
-                <tfoot>
-                  <tr className="border-t-2 border-slate-300 bg-slate-50 font-semibold dark:border-slate-600 dark:bg-slate-800">
-                    <td colSpan={3} className="px-4 py-2.5 text-slate-700 dark:text-slate-200">Tổng cộng</td>
-                    <td className="px-4 py-2.5 text-right font-mono tabular-nums text-blue-600 dark:text-blue-400">{fmtMoney(Math.round(totalPlan))}</td>
-                    <td className="px-4 py-2.5 text-right font-mono tabular-nums text-emerald-600 dark:text-emerald-400">{fmtMoney(Math.round(totalActual))}</td>
-                    <td className={`px-4 py-2.5 text-right font-mono tabular-nums ${totalPlan - totalActual > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                      {fmtMoney(Math.round(totalPlan - totalActual))}
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <PctBadge pct={overallPct} />
-                    </td>
-                    <td></td>
-                  </tr>
-                </tfoot>
-              )}
+              {compareGrid.filtered.length > 0 && (() => {
+                const fPlan = compareGrid.filtered.reduce((s, c) => s + c.planAmount, 0);
+                const fActual = compareGrid.filtered.reduce((s, c) => s + c.actualAmount, 0);
+                const fPct = fPlan > 0 ? (fActual / fPlan) * 100 : 0;
+                const isFiltered = compareGrid.isAnyFiltered;
+                return (
+                  <tfoot>
+                    <tr className="border-t-2 border-slate-300 bg-slate-50 font-semibold dark:border-slate-600 dark:bg-slate-800">
+                      <td colSpan={3} className="px-4 py-2.5 text-slate-700 dark:text-slate-200">
+                        {isFiltered ? `Tổng (lọc · ${compareGrid.filtered.length}/${comparison.length})` : 'Tổng cộng'}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-mono tabular-nums text-blue-600 dark:text-blue-400">{fmtMoney(Math.round(fPlan))}</td>
+                      <td className="px-4 py-2.5 text-right font-mono tabular-nums text-emerald-600 dark:text-emerald-400">{fmtMoney(Math.round(fActual))}</td>
+                      <td className={`px-4 py-2.5 text-right font-mono tabular-nums ${fPlan - fActual > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                        {fmtMoney(Math.round(fPlan - fActual))}
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <PctBadge pct={fPct} />
+                      </td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                );
+              })()}
             </table>
           </div>
         </CardContent>

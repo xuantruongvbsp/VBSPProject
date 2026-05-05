@@ -8,6 +8,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Cell,
 } from 'recharts';
 import { fmtNumber } from '@/lib/format';
 import { useChartColors } from '@/lib/useChartColors';
@@ -24,10 +25,26 @@ interface Props {
   unit?: HistogramUnit;
 }
 
+// Sequential palette blue → indigo → đen-đậm.
+// Bucket có giá trị thấp dùng shade nhạt, giá trị cao dùng shade đậm — người
+// xem đọc được "độ nặng" qua sắc thái mà không cần nhìn trục số.
+const HIST_GRADIENT_LIGHT = ['#E0E7FF', '#C7D2FE', '#818CF8', '#4F46E5', '#3730A3', '#1E1B4B'];
+// Dark mode đảo chiều: shade nhạt nhất ~indigo-300; shade đậm nhất ~indigo-100.
+const HIST_GRADIENT_DARK = ['#312e81', '#3730a3', '#4338ca', '#6366f1', '#a5b4fc', '#e0e7ff'];
+
 export function HistogramAmount({ data, onClick, chartType = 'bar', unit = 'loan' }: Props) {
   const cc = useChartColors();
-  // Chuỗi chính của histogram — dùng slot sky (index 1) cho light/dark đều sáng rõ.
-  const histColor = cc.palette[1];
+  const gradient = cc.isDark ? HIST_GRADIENT_DARK : HIST_GRADIENT_LIGHT;
+  // Mỗi bucket nhận 1 shade trong dải gradient theo thứ tự (giả định data
+  // đã sắp xếp tăng dần theo khoảng giá trị, đúng với output của
+  // `histogramTongDuNo`).
+  const colorFor = (i: number, total: number): string => {
+    if (total <= 1) return gradient[gradient.length - 1];
+    const idx = Math.round((i / (total - 1)) * (gradient.length - 1));
+    return gradient[idx];
+  };
+  // Vẫn giữ hist color base cho area chart (single tone gradient).
+  const histColor = gradient[gradient.length - 2];
   const handleBarClick = (d: any) => {
     const payload = d?.payload ?? d;
     if (payload && onClick) onClick(payload as HistogramBucket);
@@ -46,19 +63,27 @@ export function HistogramAmount({ data, onClick, chartType = 'bar', unit = 'loan
 
   if (chartType === 'hbar') {
     return (
-      <ResponsiveContainer width="100%" height={Math.max(260, data.length * 36 + 40)}>
-        <BarChart data={data} layout="vertical" margin={{ top: 12, right: 16, left: 8, bottom: 8 }}>
+      <ResponsiveContainer width="100%" height={Math.max(360, data.length * 52 + 60)}>
+        <BarChart
+          data={data}
+          layout="vertical"
+          margin={{ top: 12, right: 16, left: 8, bottom: 8 }}
+          barCategoryGap="30%"
+        >
           <CartesianGrid stroke={cc.grid} strokeDasharray="3 3" horizontal={false} />
           <XAxis type="number" fontSize={11} stroke={cc.axis} tickFormatter={fmtNumber as any} />
           <YAxis type="category" dataKey="bucket" width={80} fontSize={11} stroke={cc.axis} />
           <Tooltip {...tooltipProps} />
           <Bar
             dataKey="count"
-            fill={histColor}
             radius={[0, 6, 6, 0]}
             onClick={handleBarClick}
             cursor={cursor}
-          />
+          >
+            {data.map((d, i) => (
+              <Cell key={d.bucket} fill={colorFor(i, data.length)} />
+            ))}
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     );
@@ -66,7 +91,7 @@ export function HistogramAmount({ data, onClick, chartType = 'bar', unit = 'loan
 
   if (chartType === 'area') {
     return (
-      <ResponsiveContainer width="100%" height={260}>
+      <ResponsiveContainer width="100%" height={340}>
         <AreaChart
           data={data}
           margin={{ top: 12, right: 16, left: 0, bottom: 8 }}
@@ -97,19 +122,26 @@ export function HistogramAmount({ data, onClick, chartType = 'bar', unit = 'loan
 
   /* default: bar */
   return (
-    <ResponsiveContainer width="100%" height={260}>
-      <BarChart data={data} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
+    <ResponsiveContainer width="100%" height={360}>
+      <BarChart
+        data={data}
+        margin={{ top: 12, right: 16, left: 0, bottom: 8 }}
+        barCategoryGap="30%"
+      >
         <CartesianGrid stroke={cc.grid} strokeDasharray="3 3" />
         <XAxis dataKey="bucket" fontSize={11} stroke={cc.axis} />
         <YAxis fontSize={11} stroke={cc.axis} tickFormatter={fmtNumber as any} />
         <Tooltip {...tooltipProps} />
         <Bar
           dataKey="count"
-          fill={histColor}
           radius={[6, 6, 0, 0]}
           onClick={handleBarClick}
           cursor={cursor}
-        />
+        >
+          {data.map((d, i) => (
+            <Cell key={d.bucket} fill={colorFor(i, data.length)} />
+          ))}
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   );

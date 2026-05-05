@@ -85,6 +85,10 @@ export function ViewerBootstrap() {
           nq11Date: d.nq11Date,
           nq11TotalRows: d.nq11TotalRows,
           nq11MatchByXa: d.nq11MatchByXa,
+          nq11NoxhSummaries: d.nq11NoxhSummaries,
+          nq11NoxhMonVayIds: d.nq11NoxhMonVayIds,
+          nq11NoxhDate: d.nq11NoxhDate,
+          nq11NoxhTotalRows: d.nq11NoxhTotalRows,
           // loanDetailsByBucket không persist → owner side đã không publish
           // (viewer không cần drill-down chi tiết món vay).
           loanDetailsByBucket: {},

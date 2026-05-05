@@ -12,6 +12,8 @@ import {
   Cell,
   PieChart,
   Pie,
+  ComposedChart,
+  Line,
 } from 'recharts';
 import { fmtCompact, fmtCurrency, fmtPercent } from '@/lib/format';
 import { useChartColors } from '@/lib/useChartColors';
@@ -24,6 +26,21 @@ interface Props {
   limit?: number;
   onClick?: (key: string) => void;
   chartType?: StackedChartType;
+  /** Khi true: pie + treemap dùng bảng màu hội đoàn (Pink/Green/Blue/Brown) match
+   *  theo tên ĐVUT. Mặc định false (dùng palette categorical chung). */
+  dvutColors?: boolean;
+}
+
+/** Bảng màu nhận diện hội đoàn — đồng nhất với BarByGroup colorMode='dvut'. */
+const DVUT_COLOR_RULES: ReadonlyArray<{ match: RegExp; color: string }> = [
+  { match: /(phụ\s*nữ|hội\s*lhpn)/i,        color: '#D81B60' },
+  { match: /(nông\s*dân|hnd)/i,              color: '#2E7D32' },
+  { match: /(thanh\s*niên|đoàn\s*tn)/i,     color: '#1565C0' },
+  { match: /(cựu\s*chiến\s*binh|cccb)/i,    color: '#5D4037' },
+];
+function dvutColorOf(label: string, fallback: string): string {
+  for (const r of DVUT_COLOR_RULES) if (r.match.test(label)) return r.color;
+  return fallback;
 }
 
 const STATUS_KEYS = ['duNoTrongHan', 'duNoQuaHan', 'duNoKhoanh'] as const;
@@ -32,7 +49,7 @@ const STATUS_LABELS: Record<string, string> = {
   duNoQuaHan: 'Quá hạn',
   duNoKhoanh: 'Khoanh',
 };
-export function StackedStatus({ data, limit = 10, onClick, chartType = 'stacked' }: Props) {
+export function StackedStatus({ data, limit = 10, onClick, chartType = 'stacked', dvutColors = false }: Props) {
   const cc = useChartColors();
   const STATUS_COLORS = useMemo<Record<string, string>>(
     () => ({
@@ -43,7 +60,12 @@ export function StackedStatus({ data, limit = 10, onClick, chartType = 'stacked'
     }),
     [cc.semantic.duNoTrongHan, cc.semantic.duNoQuaHan, cc.palette],
   );
-  const DVUT_PALETTE = cc.palette;
+  // Palette dùng cho pie/donut (mỗi item = 1 màu).
+  // Dải Cyan → Indigo → Emerald → Amber: hài hoà nhưng vẫn dễ phân biệt.
+  // 4 màu đầu là khuyến nghị cho top-4 CBTD; các slot sau dùng analogous palette.
+  const DVUT_PALETTE = cc.isDark
+    ? ['#38bdf8', '#818cf8', '#34d399', '#fbbf24', '#c084fc', '#fb7185', '#2dd4bf', '#fb923c']
+    : ['#0EA5E9', '#6366F1', '#10B981', '#F59E0B', '#9333EA', '#BE185D', '#0F766E', '#C2410C'];
   const top = data.slice(0, limit);
   const handleBarClick = (d: any) => {
     const key = d?.key ?? d?.payload?.key;
@@ -61,16 +83,17 @@ export function StackedStatus({ data, limit = 10, onClick, chartType = 'stacked'
     );
     const slices = top.map((d, i) => {
       const v = (d.duNoTrongHan || 0) + (d.duNoQuaHan || 0) + (d.duNoKhoanh || 0);
+      const fallback = DVUT_PALETTE[i % DVUT_PALETTE.length];
       return {
         name: d.label,
         value: v,
         key: d.key,
-        fill: DVUT_PALETTE[i % DVUT_PALETTE.length],
+        fill: dvutColors ? dvutColorOf(d.label, fallback) : fallback,
         pct: total > 0 ? (v / total) * 100 : 0,
       };
     }).filter((s) => s.value > 0);
     return { slices, total };
-  }, [top, chartType, DVUT_PALETTE]);
+  }, [top, chartType, DVUT_PALETTE, dvutColors]);
 
   /* treemap flat data */
   const treemapData = useMemo(() => {
@@ -84,6 +107,26 @@ export function StackedStatus({ data, limit = 10, onClick, chartType = 'stacked'
       })),
     ).filter((d) => d.size > 0);
   }, [top, chartType, STATUS_COLORS]);
+
+  /* Stacked/Grouped data: cộng dồn QH+Khoanh + tỷ lệ % riêng từng loại
+     (so với tổng dư nợ của xã = TH+QH+Kh). Grouped mode vẽ 2 line riêng:
+     "Tỷ lệ Quá hạn" và "Tỷ lệ Khoanh". */
+  const topCombined = useMemo(
+    () =>
+      top.map((d) => {
+        const th = d.duNoTrongHan || 0;
+        const qh = d.duNoQuaHan || 0;
+        const kh = d.duNoKhoanh || 0;
+        const total = th + qh + kh;
+        return {
+          ...d,
+          quaHanKhoanh: qh + kh,
+          quaHanPct: total > 0 ? (qh / total) * 100 : 0,
+          khoanhPct: total > 0 ? (kh / total) * 100 : 0,
+        };
+      }),
+    [top],
+  );
 
   if (chartType === 'treemap') {
     return (
@@ -126,7 +169,7 @@ export function StackedStatus({ data, limit = 10, onClick, chartType = 'stacked'
                 cy="50%"
                 innerRadius={55}
                 outerRadius={100}
-                paddingAngle={2}
+                paddingAngle={4}
                 label={({ pct }: any) => fmtPercent(pct, 1)}
                 isAnimationActive={false}
                 onClick={(d: any) => {
@@ -171,17 +214,99 @@ export function StackedStatus({ data, limit = 10, onClick, chartType = 'stacked'
   }
 
   const isGrouped = chartType === 'grouped';
+  // Bar "Trong hạn" dùng xanh dương — màu tài chính, đại diện cho ổn định/tin cậy.
+  // 2 line: Tỷ lệ Quá hạn (đỏ cinnabar) + Tỷ lệ Khoanh (amber) — đúng semantic mapping.
+  const TH_COLOR = cc.isDark ? '#60a5fa' : '#1d4ed8';   // blue 700↔400
+  const QH_COLOR = cc.isDark ? '#fb7185' : '#dc2626';   // red 600↔rose 400
+  const KH_COLOR = cc.isDark ? '#fbbf24' : '#b45309';   // amber 700↔400
 
+  // Grouped → combo chart: Bar (Trong hạn) + Line (Quá hạn + Khoanh) trên trục Y phụ bên phải.
+  // Hai trục có scale độc lập → đường QH+Khoanh không bị "đè bẹp" dù giá trị nhỏ hơn nhiều lần.
+  if (isGrouped) {
+    const ch = Math.max(380, top.length * 50 + 120);
+    return (
+      <ResponsiveContainer width="100%" height={ch}>
+        <ComposedChart data={topCombined} margin={{ top: 16, right: 16, left: 8, bottom: 56 }} barCategoryGap="35%">
+          <CartesianGrid stroke={cc.grid} strokeDasharray="3 3" />
+          <XAxis
+            dataKey="label"
+            angle={-30}
+            textAnchor="end"
+            interval={0}
+            height={60}
+            fontSize={11}
+            stroke={cc.axis}
+          />
+          <YAxis
+            yAxisId="th"
+            tickFormatter={fmtCompact}
+            fontSize={11}
+            stroke={TH_COLOR}
+          />
+          <YAxis
+            yAxisId="pct"
+            orientation="right"
+            domain={[0, 0.2]}
+            ticks={[0, 0.05, 0.1, 0.15, 0.2]}
+            tickFormatter={(v: number) => `${v.toFixed(2)}%`}
+            fontSize={11}
+            stroke={cc.axis}
+          />
+          <Tooltip
+            contentStyle={{ fontSize: 12, borderRadius: 8, background: cc.tooltipBg, borderColor: cc.tooltipBorder, color: cc.text }}
+            formatter={(v: number, _name, item: any) => {
+              if (item?.dataKey === 'quaHanPct' || item?.dataKey === 'khoanhPct')
+                return `${v.toFixed(2)}%`;
+              return fmtCurrency(v);
+            }}
+          />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Bar
+            yAxisId="th"
+            dataKey="duNoTrongHan"
+            name="Trong hạn"
+            fill={TH_COLOR}
+            radius={[4, 4, 0, 0]}
+            onClick={handleBarClick}
+            cursor={cursor}
+          />
+          <Line
+            yAxisId="pct"
+            type="monotone"
+            dataKey="quaHanPct"
+            name="Tỷ lệ Quá hạn"
+            stroke={QH_COLOR}
+            strokeWidth={2.5}
+            dot={false}
+            activeDot={{ r: 6, fill: QH_COLOR, stroke: cc.isDark ? '#0f172a' : '#ffffff', strokeWidth: 2 }}
+          />
+          <Line
+            yAxisId="pct"
+            type="monotone"
+            dataKey="khoanhPct"
+            name="Tỷ lệ Khoanh"
+            stroke={KH_COLOR}
+            strokeWidth={2.5}
+            strokeDasharray="5 4"
+            dot={false}
+            activeDot={{ r: 6, fill: KH_COLOR, stroke: cc.isDark ? '#0f172a' : '#ffffff', strokeWidth: 2 }}
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
+    );
+  }
+
+  // Stacked: cả 2 đại lượng trên cùng 1 trục, cộng dồn (giữ cảm giác "tổng dư nợ").
   return (
     <ResponsiveContainer width="100%" height={h}>
-      <BarChart data={top} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+      <BarChart
+        data={topCombined}
+        layout="vertical"
+        margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
+        barCategoryGap="30%"
+      >
         <CartesianGrid stroke={cc.grid} strokeDasharray="3 3" horizontal={false} />
-        <XAxis
-          type="number"
-          tickFormatter={fmtCompact}
-          fontSize={11}
-          stroke={cc.axis}
-        />
+        <XAxis type="number" tickFormatter={fmtCompact} fontSize={11} stroke={cc.axis} />
         <YAxis type="category" dataKey="label" width={140} fontSize={11} stroke={cc.axis} />
         <Tooltip
           contentStyle={{ fontSize: 12, borderRadius: 8, background: cc.tooltipBg, borderColor: cc.tooltipBorder, color: cc.text }}
@@ -191,27 +316,18 @@ export function StackedStatus({ data, limit = 10, onClick, chartType = 'stacked'
         <Bar
           dataKey="duNoTrongHan"
           name="Trong hạn"
-          stackId={isGrouped ? undefined : 'a'}
+          stackId="a"
           fill={STATUS_COLORS.duNoTrongHan}
-          radius={isGrouped ? [4, 4, 4, 4] : [4, 0, 0, 4]}
+          radius={[4, 0, 0, 4]}
           onClick={handleBarClick}
           cursor={cursor}
         />
         <Bar
-          dataKey="duNoQuaHan"
-          name="Quá hạn"
-          stackId={isGrouped ? undefined : 'a'}
-          fill={STATUS_COLORS.duNoQuaHan}
-          radius={isGrouped ? [4, 4, 4, 4] : undefined}
-          onClick={handleBarClick}
-          cursor={cursor}
-        />
-        <Bar
-          dataKey="duNoKhoanh"
-          name="Khoanh"
-          stackId={isGrouped ? undefined : 'a'}
-          fill={STATUS_COLORS.duNoKhoanh}
-          radius={isGrouped ? [4, 4, 4, 4] : [0, 4, 4, 0]}
+          dataKey="quaHanKhoanh"
+          name="Quá hạn + Khoanh"
+          stackId="a"
+          fill={QH_COLOR}
+          radius={[0, 4, 4, 0]}
           onClick={handleBarClick}
           cursor={cursor}
         />

@@ -15,12 +15,15 @@ import {
   Repeat,
   Copy,
   Layers,
+  Home,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { ColumnFilter } from '@/components/ui/ColumnFilter';
+import { useGridFilter } from '@/lib/grid-filter';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
 import { useIsOwner } from '@/store/useAuthStore';
-import { parseActualFile, parseNq11File } from '@/data/credit-plan-parser';
+import { parseActualFile, parseNq11File, parseNq11NoxhFile } from '@/data/credit-plan-parser';
 import { nguonVonLabel } from '@/lib/credit-plan-types';
 
 function fmtMoney(n: number) {
@@ -80,6 +83,12 @@ export function ActualImport() {
     nq11TotalRows,
     setNq11,
     clearNq11,
+    nq11NoxhSummaries,
+    nq11NoxhMonVayIds,
+    nq11NoxhDate,
+    nq11NoxhTotalRows,
+    setNq11Noxh,
+    clearNq11Noxh,
     getMergedActuals,
     decisions,
   } = useCreditPlanStore();
@@ -91,6 +100,10 @@ export function ActualImport() {
   const [nq11Error, setNq11Error] = useState<string | null>(null);
   const [nq11DragOver, setNq11DragOver] = useState(false);
   const [nq11Expanded, setNq11Expanded] = useState<Record<string, boolean>>({});
+  const [noxhLoading, setNoxhLoading] = useState(false);
+  const [noxhError, setNoxhError] = useState<string | null>(null);
+  const [noxhDragOver, setNoxhDragOver] = useState(false);
+  const [noxhExpanded, setNoxhExpanded] = useState<Record<string, boolean>>({});
 
   const handleFile = useCallback(async (file: File) => {
     if (!file.name.match(/\.xlsx?$/i)) {
@@ -107,7 +120,14 @@ export function ActualImport() {
           .filter((d) => d.trangThai !== 'archived' && d.maNguonVonList.includes('3') && d.maNhaDauTu)
           .map((d) => d.maNhaDauTu as string)
       );
-      const result = await parseActualFile(file, idSet, ndtSet.size > 0 ? ndtSet : undefined);
+      // Set Số khế ước NOXH-NQ11 → parser sẽ tách dòng CT=12 sang 12N tại lúc parse.
+      const noxhSet = nq11NoxhMonVayIds.length > 0 ? new Set(nq11NoxhMonVayIds) : undefined;
+      const result = await parseActualFile(
+        file,
+        idSet,
+        ndtSet.size > 0 ? ndtSet : undefined,
+        noxhSet
+      );
       setActuals(
         result.summaries,
         result.ngaySoLieu,
@@ -128,7 +148,7 @@ export function ActualImport() {
     } finally {
       setLoading(false);
     }
-  }, [setActuals, nq11MonVayIds, decisions]);
+  }, [setActuals, nq11MonVayIds, nq11NoxhMonVayIds, decisions]);
 
   const handleNq11File = useCallback(async (file: File) => {
     if (!file.name.match(/\.xlsx?$/i)) {
@@ -185,6 +205,42 @@ export function ActualImport() {
     [handleNq11File]
   );
 
+  const handleNoxhFile = useCallback(async (file: File) => {
+    if (!file.name.match(/\.xlsx?$/i)) {
+      setNoxhError('Chỉ hỗ trợ file Excel (.xlsx, .xls)');
+      return;
+    }
+    setNoxhLoading(true);
+    setNoxhError(null);
+    try {
+      const result = await parseNq11NoxhFile(file);
+      setNq11Noxh(result.summariesByXa, result.monVayIds, result.ngaySoLieu, result.totalRows);
+    } catch (e) {
+      setNoxhError(e instanceof Error ? e.message : 'Lỗi đọc file');
+    } finally {
+      setNoxhLoading(false);
+    }
+  }, [setNq11Noxh]);
+
+  const onNoxhDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setNoxhDragOver(false);
+      const file = e.dataTransfer.files[0];
+      if (file) handleNoxhFile(file);
+    },
+    [handleNoxhFile]
+  );
+
+  const onNoxhFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) handleNoxhFile(file);
+      e.target.value = '';
+    },
+    [handleNoxhFile]
+  );
+
   // Actuals đã merge NQ11 để hiển thị bảng chi tiết
   const mergedActuals = getMergedActuals();
 
@@ -204,6 +260,15 @@ export function ActualImport() {
   const totalMon = mergedActuals.reduce((s, a) => s + a.soMonVay, 0);
   const nq11TotalDuNo = nq11Summaries.reduce((s, a) => s + a.tongDuNo, 0);
   const nq11TotalMon = nq11Summaries.reduce((s, a) => s + a.soMonVay, 0);
+  const noxhTotalDuNo = nq11NoxhSummaries.reduce((s, a) => s + a.tongDuNo, 0);
+  const noxhTotalMon = nq11NoxhSummaries.reduce((s, a) => s + a.soMonVay, 0);
+
+  // Excel-style column filters cho bảng "Chi tiết theo nhóm"
+  const detailGrid = useGridFilter(mergedActuals, {
+    xa: (a) => a.tenXa,
+    nguonVon: (a) => nguonVonLabel(a.maNguonVon),
+    chuongTrinh: (a) => `${a.maChuongTrinh} — ${a.tenChuongTrinh}`,
+  });
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -476,6 +541,199 @@ export function ActualImport() {
       </Card>
       )}
 
+      {/* NOXH-NQ11 — Sao kê khế ước NOXH theo CT/PNKT (BCQUERY format).
+          File NOXH.XLSX (Mã CT=12, mọi món đều NQ11). Số liệu sẽ được tách
+          ra khỏi bucket CT=12 trong báo cáo và hiện riêng dưới nhãn "12N". */}
+      {(isOwner || nq11NoxhSummaries.length > 0) && (
+      <Card>
+        <CardHeader className="flex flex-row items-start justify-between gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Home className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+              Cho vay NOXH — NQ11 (Nghị định 100, không được cho vay quay vòng)
+            </CardTitle>
+            <CardDescription className="mt-1">
+              File BCQUERY xuất từ hệ thống (VD: NOXH.XLSX) — danh sách khế ước NOXH bị đánh dấu NQ11.
+              Match bằng "Số khế ước". Khi parse Báo cáo 31, dòng CT=12 có Số khế ước thuộc
+              danh sách này sẽ được tách thẳng sang chương trình{' '}
+              <span className="font-mono">12N</span> ("Cho vay NOXH — NQ11"). Plan có thể
+              nhập riêng cho 12 và 12N.
+              <br />
+              <span className="text-amber-700 dark:text-amber-300">
+                Lưu ý: sau khi tải/xóa file này, cần tải lại Báo cáo 31 để các bucket 12 / 12N được tách đúng.
+              </span>
+            </CardDescription>
+          </div>
+          {nq11NoxhSummaries.length > 0 && isOwner && (
+            <Button variant="outline" size="sm" onClick={clearNq11Noxh}>
+              <Trash2 className="h-4 w-4" /> Xóa NOXH-NQ11
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {isOwner && (
+          <div
+            onDragOver={(e) => { e.preventDefault(); setNoxhDragOver(true); }}
+            onDragLeave={() => setNoxhDragOver(false)}
+            onDrop={onNoxhDrop}
+            className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-all ${
+              noxhDragOver
+                ? 'border-rose-500 bg-rose-50 dark:border-rose-400 dark:bg-rose-900/30'
+                : 'border-slate-300 bg-slate-50/50 hover:border-rose-300 hover:bg-rose-50/40 dark:border-slate-600 dark:bg-slate-800/40 dark:hover:border-rose-800 dark:hover:bg-rose-900/10'
+            }`}
+          >
+            {noxhLoading ? (
+              <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-rose-600 border-t-transparent" />
+                <span className="text-sm font-medium">Đang đọc file NOXH-NQ11...</span>
+              </div>
+            ) : (
+              <>
+                <div className={`mb-2 rounded-full p-2.5 transition-colors ${
+                  noxhDragOver ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-200' : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'
+                }`}>
+                  <Upload className="h-6 w-6" />
+                </div>
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                  Kéo thả file NOXH-NQ11 vào đây
+                </p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">hoặc</p>
+                <label className="mt-2 inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-rose-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-rose-700">
+                  <Upload className="h-3.5 w-3.5" />
+                  Chọn file NOXH-NQ11
+                  <input type="file" accept=".xlsx,.xls" className="hidden" onChange={onNoxhFileSelect} />
+                </label>
+              </>
+            )}
+          </div>
+          )}
+
+          {noxhError && isOwner && (
+            <div className="flex items-start gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-300">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>{noxhError}</div>
+            </div>
+          )}
+
+          {nq11NoxhSummaries.length > 0 && (
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div className="rounded-md border border-rose-200 bg-rose-50/60 px-3 py-2 dark:border-rose-900/50 dark:bg-rose-900/20">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-rose-700 dark:text-rose-300">Tổng dư nợ NOXH-NQ11</div>
+                <div className="text-lg font-bold tabular-nums text-rose-600 dark:text-rose-400">{fmtMoney(noxhTotalDuNo)}</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">triệu đồng</div>
+              </div>
+              <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Số khế ước</div>
+                <div className="text-lg font-bold tabular-nums text-slate-900 dark:text-white">
+                  {noxhTotalMon.toLocaleString('vi-VN')}
+                </div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">{nq11NoxhMonVayIds.length.toLocaleString('vi-VN')} Số khế ước</div>
+              </div>
+              <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Số nhóm (xã × NV)</div>
+                <div className="text-lg font-bold tabular-nums text-slate-900 dark:text-white">
+                  {nq11NoxhSummaries.length}
+                </div>
+              </div>
+              <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Ngày báo cáo</div>
+                <div className="text-lg font-bold tabular-nums text-slate-900 dark:text-white">{nq11NoxhDate ?? '—'}</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">{nq11NoxhTotalRows.toLocaleString('vi-VN')} dòng</div>
+              </div>
+            </div>
+          )}
+
+          {nq11NoxhSummaries.length > 0 && (
+            <div className="overflow-x-auto rounded-md border border-slate-200 dark:border-slate-700">
+              <table className="w-full text-left text-sm">
+                <thead className="sticky top-0 z-10">
+                  <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                    <th className="w-8 px-2 py-2"></th>
+                    <th className="px-3 py-2">Xã</th>
+                    <th className="px-3 py-2">Nguồn vốn</th>
+                    <th className="px-3 py-2 text-right">Khế ước</th>
+                    <th className="px-3 py-2 text-right">Dư nợ TH</th>
+                    <th className="px-3 py-2 text-right">Tổng dư nợ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {nq11NoxhSummaries.map((s, idx) => {
+                    const k = `${s.maXa}|${s.maNguonVon}`;
+                    const open = !!noxhExpanded[k];
+                    return (
+                      <Fragment key={k}>
+                        <tr className={`border-b border-slate-100 transition-colors hover:bg-slate-50 dark:border-slate-700/60 dark:hover:bg-slate-800/50 ${
+                          idx % 2 === 1 ? 'bg-slate-50/30 dark:bg-slate-800/20' : ''
+                        }`}>
+                          <td className="px-2 py-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setNoxhExpanded((prev) => ({ ...prev, [k]: !prev[k] }))
+                              }
+                              className="rounded p-0.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"
+                              aria-label={open ? 'Ẩn Số khế ước' : 'Xem Số khế ước'}
+                            >
+                              {open ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                            </button>
+                          </td>
+                          <td className="px-3 py-2 text-slate-900 dark:text-white">
+                            {s.tenXa} <span className="text-xs text-slate-400">({s.maXa})</span>
+                          </td>
+                          <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
+                            {nguonVonLabel(s.maNguonVon)}
+                          </td>
+                          <td className="px-3 py-2 text-right font-mono tabular-nums text-slate-600 dark:text-slate-300">
+                            {s.soMonVay.toLocaleString('vi-VN')}
+                          </td>
+                          <td className="px-3 py-2 text-right font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                            {fmtMoneyFull(s.duNoTrongHan)}
+                          </td>
+                          <td className="px-3 py-2 text-right font-mono tabular-nums font-semibold text-rose-600 dark:text-rose-400">
+                            {fmtMoneyFull(s.tongDuNo)}
+                          </td>
+                        </tr>
+                        {open && (
+                          <tr className="border-b border-slate-100 dark:border-slate-700/60">
+                            <td></td>
+                            <td colSpan={5} className="bg-slate-50 px-3 py-2 dark:bg-slate-800/60">
+                              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                Danh sách Số khế ước ({(s.monVayIds ?? []).length})
+                              </div>
+                              {(s.monVayIds ?? []).length === 0 ? (
+                                <div className="mt-1 text-[11px] italic text-slate-400 dark:text-slate-500">
+                                  Không có Số khế ước.
+                                </div>
+                              ) : (
+                                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                  {(s.monVayIds ?? []).map((id) => (
+                                    <code
+                                      key={id}
+                                      className="rounded bg-white px-2 py-0.5 font-mono text-[11px] text-slate-700 ring-1 ring-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-700"
+                                    >
+                                      {id}
+                                    </code>
+                                  ))}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      )}
+
       {/* Summary cards */}
       {actuals.length > 0 && (
         <>
@@ -659,9 +917,9 @@ export function ActualImport() {
                 <table className="w-full text-left text-sm">
                   <thead className="sticky top-0 z-10">
                     <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                      <th className="px-4 py-3">Xã</th>
-                      <th className="px-4 py-3">Nguồn vốn</th>
-                      <th className="px-4 py-3">Chương trình</th>
+                      <th className="px-4 py-3"><span className="inline-flex items-center">Xã<ColumnFilter label="Lọc theo Xã" values={detailGrid.distinctValues.xa} selected={detailGrid.filters.xa} onApply={(s) => detailGrid.setFilter('xa', s)} /></span></th>
+                      <th className="px-4 py-3"><span className="inline-flex items-center">Nguồn vốn<ColumnFilter label="Lọc theo Nguồn vốn" values={detailGrid.distinctValues.nguonVon} selected={detailGrid.filters.nguonVon} onApply={(s) => detailGrid.setFilter('nguonVon', s)} /></span></th>
+                      <th className="px-4 py-3"><span className="inline-flex items-center">Chương trình<ColumnFilter label="Lọc theo Chương trình" values={detailGrid.distinctValues.chuongTrinh} selected={detailGrid.filters.chuongTrinh} onApply={(s) => detailGrid.setFilter('chuongTrinh', s)} /></span></th>
                       <th className="px-4 py-3 text-right">Món vay</th>
                       <th className="px-4 py-3 text-right">Dư nợ TH</th>
                       <th className="px-4 py-3 text-right">Dư nợ QH</th>
@@ -670,7 +928,7 @@ export function ActualImport() {
                     </tr>
                   </thead>
                   <tbody>
-                    {mergedActuals.map((a, idx) => (
+                    {detailGrid.filtered.map((a, idx) => (
                       <tr
                         key={`${a.maXa}-${a.maNguonVon}-${a.maChuongTrinh}`}
                         className={`border-b border-slate-100 transition-colors hover:bg-slate-50 dark:border-slate-700/60 dark:hover:bg-slate-800/50 ${

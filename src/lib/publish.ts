@@ -18,6 +18,7 @@ import type {
   ActualSummary,
   Nq11XaSummary,
   Nq11MatchXa,
+  Nq11NoxhXaSummary,
 } from './credit-plan-types';
 
 // File xuất bản được nén gzip để giảm kích thước on-wire ~10× (49 MB → ~5 MB).
@@ -587,6 +588,10 @@ export interface CreditPlanPublishPayload {
   nq11Date: string | null;
   nq11TotalRows: number;
   nq11MatchByXa: Nq11MatchXa[];
+  nq11NoxhSummaries: Nq11NoxhXaSummary[];
+  nq11NoxhMonVayIds: string[];
+  nq11NoxhDate: string | null;
+  nq11NoxhTotalRows: number;
 }
 
 export type DeserializedCreditPlan = CreditPlanPublishPayload;
@@ -611,6 +616,10 @@ export function deserializeCreditPlan(text: string): DeserializedCreditPlan | nu
     nq11Date: obj.nq11Date ?? null,
     nq11TotalRows: typeof obj.nq11TotalRows === 'number' ? obj.nq11TotalRows : 0,
     nq11MatchByXa: Array.isArray(obj.nq11MatchByXa) ? obj.nq11MatchByXa : [],
+    nq11NoxhSummaries: Array.isArray(obj.nq11NoxhSummaries) ? obj.nq11NoxhSummaries : [],
+    nq11NoxhMonVayIds: Array.isArray(obj.nq11NoxhMonVayIds) ? obj.nq11NoxhMonVayIds : [],
+    nq11NoxhDate: obj.nq11NoxhDate ?? null,
+    nq11NoxhTotalRows: typeof obj.nq11NoxhTotalRows === 'number' ? obj.nq11NoxhTotalRows : 0,
   };
 }
 

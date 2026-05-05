@@ -20,6 +20,19 @@ import { cn } from '@/lib/utils';
 
 export type BarGroupChartType = 'bar' | 'treemap' | 'pie';
 
+/**
+ * Chế độ màu của các thanh:
+ * - `rainbow` (mặc định): mỗi thanh 1 màu trong palette categorical (8 hue).
+ *    Dùng khi mỗi danh mục là 1 thực thể độc lập, không có thứ hạng.
+ * - `monochrome`: tất cả thanh dùng 1 tông xám trung tính, riêng thanh
+ *    có giá trị LỚN NHẤT (hoặc `highlightKey`) dùng màu accent. Dùng khi
+ *    muốn nhấn mạnh đỉnh + giảm noise (theo khuyến nghị data-viz).
+ * - `sequential`: gradient cùng 1 hue — đậm nhất ở giá trị cao nhất, nhạt
+ *    dần về cuối. Dùng cho dữ liệu liên tục (số dư, mật độ).
+ */
+export type BarColorMode = 'rainbow' | 'monochrome' | 'sequential' | 'program' | 'dvut';
+export type BarBaseHue = 'blue' | 'teal' | 'green' | 'purple' | 'amber' | 'rose';
+
 interface Props {
   data: GroupAgg[];
   onClick?: (key: string) => void;
@@ -32,6 +45,87 @@ interface Props {
   chartType?: BarGroupChartType;
   /** Nhãn tooltip thay cho "Tổng dư nợ" mặc định — dùng khi metric khác tongDuNo */
   tooltipLabel?: string;
+  /** Chế độ màu — xem chú thích `BarColorMode`. Default `rainbow`. */
+  colorMode?: BarColorMode;
+  /** Hue gốc dùng cho `monochrome` / `sequential`. Default `blue`. */
+  baseHue?: BarBaseHue;
+  /** Map khóa → hex. Khi truyền vào, sẽ ghi đè mọi colorMode cho cell có key trong map.
+   *  Dùng để đồng nhất màu giữa nhiều chart (VD cùng "Định Quán" trên 2 chart). */
+  colorByKey?: Record<string, string>;
+}
+
+// Hex của các hue cho monochrome/sequential — Atlassian symmetry 700/400.
+const HUE_LIGHT: Record<BarBaseHue, string> = {
+  blue: '#1d4ed8',
+  teal: '#0f766e',
+  green: '#15803d',
+  purple: '#7e22ce',
+  amber: '#b45309',
+  rose: '#be123c',
+};
+const HUE_DARK: Record<BarBaseHue, string> = {
+  blue: '#60a5fa',
+  teal: '#2dd4bf',
+  green: '#4ade80',
+  purple: '#c084fc',
+  amber: '#fbbf24',
+  rose: '#fb7185',
+};
+
+/** Tính màu xám trung tính cho thanh "không nhấn" trong monochrome mode. */
+function neutralBar(dark: boolean): string {
+  return dark ? '#475569' : '#cbd5e1'; // slate-600 / slate-300
+}
+
+/**
+ * Mapping màu cố định cho các chương trình tín dụng NHCSXH — dùng khi
+ * colorMode='program'. Khớp theo từ khóa trong tên chương trình. Thứ tự
+ * regex quan trọng (nhà ở phải đứng trước "ưu đãi hộ nghèo" để loại trừ
+ * "hộ nghèo về nhà ở").
+ */
+const PROGRAM_COLOR_RULES: ReadonlyArray<{ match: RegExp; color: string }> = [
+  { match: /(việc\s*l[àa]m|gqvl)/i,                         color: '#1A56DB' }, // Royal Blue
+  { match: /(nước\s*sạch|vsmt|vệ\s*sinh\s*môi)/i,           color: '#0095A8' }, // Teal
+  { match: /(học\s*sinh|sinh\s*viên|hssv|stem)/i,           color: '#22C55E' }, // Emerald
+  { match: /nhà\s*ở/i,                                       color: '#D97706' }, // Amber
+  { match: /cận\s*nghèo/i,                                   color: '#9333EA' }, // Purple
+  { match: /(mới\s*thoát\s*nghèo|thoát\s*nghèo)/i,          color: '#C026D3' }, // Fuchsia
+  { match: /chấp\s*hành/i,                                   color: '#6366F1' }, // Indigo
+  { match: /(nước\s*ngoài|đtcs|đi\s*lao\s*động)/i,          color: '#BE185D' }, // Rose
+  { match: /(ưu\s*đãi.*hộ\s*nghèo|^cho\s*vay\s*hộ\s*nghèo$|hộ\s*nghèo)/i, color: '#A855F7' }, // Violet
+  { match: /khác/i,                                          color: '#94A3B8' }, // Slate Gray
+];
+
+function programColor(label: string, dark: boolean): string {
+  for (const r of PROGRAM_COLOR_RULES) {
+    if (r.match.test(label)) return r.color;
+  }
+  return dark ? '#64748b' : '#94a3b8'; // fallback slate
+}
+
+/** Mapping màu cố định cho Đơn vị ủy thác — dùng khi colorMode='dvut'.
+ *  Mỗi hội đoàn có màu nhận diện truyền thống. */
+const DVUT_COLOR_RULES: ReadonlyArray<{ match: RegExp; color: string }> = [
+  { match: /(phụ\s*nữ|hội\s*lhpn)/i,           color: '#D81B60' }, // Pink (truyền thống Hội PN)
+  { match: /(nông\s*dân|hnd)/i,                 color: '#2E7D32' }, // Green (nông nghiệp)
+  { match: /(thanh\s*niên|đoàn\s*tn)/i,        color: '#1565C0' }, // Blue (áo xanh tình nguyện)
+  { match: /(cựu\s*chiến\s*binh|cccb)/i,       color: '#5D4037' }, // Brown (lính, đất)
+];
+
+function dvutColor(label: string, dark: boolean): string {
+  for (const r of DVUT_COLOR_RULES) {
+    if (r.match.test(label)) return r.color;
+  }
+  return dark ? '#64748b' : '#94A3B8'; // slate gray fallback
+}
+
+/** Hex → rgba với alpha. Hỗ trợ #rrggbb. */
+function hexToRgba(hex: string, alpha: number): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 function splitTwoLines(s: string, perLine: number): string[] {
@@ -96,6 +190,9 @@ export function BarByGroup({
   charsPerLine = 28,
   chartType = 'bar',
   tooltipLabel = 'Tổng dư nợ',
+  colorMode = 'rainbow',
+  baseHue = 'blue',
+  colorByKey,
 }: Props) {
   const cc = useChartColors();
   const palette = cc.palette;
@@ -105,6 +202,53 @@ export function BarByGroup({
   const h = Math.max(280, trimmed.length * 38 + 40);
   const cursor = onClick ? 'pointer' : undefined;
 
+  // Resolve màu cho từng cell theo colorMode.
+  const accentHue = cc.isDark ? HUE_DARK[baseHue] : HUE_LIGHT[baseHue];
+  const neutral = neutralBar(cc.isDark);
+  const maxValue = useMemo(
+    () => trimmed.reduce((m, d) => Math.max(m, (d as any)[metric] || 0), 0),
+    [trimmed, metric],
+  );
+  const topKey = useMemo(() => {
+    if (trimmed.length === 0) return undefined;
+    let topVal = -Infinity;
+    let topK: string | undefined;
+    for (const d of trimmed) {
+      const v = (d as any)[metric] as number || 0;
+      if (v > topVal) {
+        topVal = v;
+        topK = d.key;
+      }
+    }
+    return topK;
+  }, [trimmed, metric]);
+
+  /** Trả về fill cho cell theo index/giá trị. */
+  const getCellColor = (d: GroupAgg, i: number): string => {
+    // Override map có ưu tiên cao nhất — dùng để đồng nhất màu key qua nhiều chart.
+    if (colorByKey && colorByKey[d.key]) return colorByKey[d.key];
+    if (d.key === highlightKey) return highlightColor;
+    if (colorMode === 'rainbow') {
+      return palette[i % palette.length];
+    }
+    if (colorMode === 'monochrome') {
+      // Thanh đỉnh (lớn nhất) dùng accent; còn lại neutral để giảm noise.
+      return d.key === topKey ? accentHue : neutral;
+    }
+    if (colorMode === 'program') {
+      // Mapping cố định theo tên chương trình tín dụng (NHCSXH).
+      return programColor(d.label || d.key, cc.isDark);
+    }
+    if (colorMode === 'dvut') {
+      return dvutColor(d.label || d.key, cc.isDark);
+    }
+    // sequential: opacity scaled theo value/maxValue (0.35 → 1.0)
+    const v = (d as any)[metric] as number || 0;
+    const ratio = maxValue > 0 ? v / maxValue : 0;
+    const alpha = 0.35 + ratio * 0.65;
+    return hexToRgba(accentHue, alpha);
+  };
+
   /* treemap data */
   const treemapData = useMemo(() => {
     if (chartType !== 'treemap') return [];
@@ -112,10 +256,11 @@ export function BarByGroup({
       name: d.label,
       size: (d as any)[metric] as number || 0,
       key: d.key,
-      fill: palette[i % palette.length],
+      fill: getCellColor(d, i),
     })).filter((d) => d.size > 0);
     return items;
-  }, [trimmed, chartType, metric, palette]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trimmed, chartType, metric, palette, colorMode, baseHue, cc.isDark, highlightKey, topKey]);
 
   const treemapTotal = useMemo(
     () => treemapData.reduce((s, d) => s + d.size, 0),
@@ -129,7 +274,7 @@ export function BarByGroup({
         key: d.key,
         label: d.label,
         value: (d as any)[metric] as number || 0,
-        fill: d.key === highlightKey ? highlightColor : palette[i % palette.length],
+        fill: getCellColor(d, i),
       }))
       .filter((d) => d.value > 0);
     const pieTotal = pieData.reduce((s, d) => s + d.value, 0);
@@ -310,6 +455,7 @@ export function BarByGroup({
         data={trimmed}
         layout={isVertical ? 'vertical' : 'horizontal'}
         margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
+        barCategoryGap="30%"
       >
         <CartesianGrid stroke={cc.grid} strokeDasharray="3 3" horizontal={!isVertical} vertical={isVertical} />
         {isVertical ? (
@@ -343,10 +489,7 @@ export function BarByGroup({
           cursor={cursor}
         >
           {trimmed.map((d, i) => (
-            <Cell
-              key={d.key}
-              fill={d.key === highlightKey ? highlightColor : palette[i % palette.length]}
-            />
+            <Cell key={d.key} fill={getCellColor(d, i)} />
           ))}
         </Bar>
       </BarChart>

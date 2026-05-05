@@ -6,6 +6,8 @@ import type {
   Nq11ImportResult,
   Nq11XaSummary,
   Nq11MatchXa,
+  Nq11NoxhImportResult,
+  Nq11NoxhXaSummary,
 } from '../lib/credit-plan-types';
 
 /**
@@ -13,16 +15,23 @@ import type {
  * Gộp theo maXa + maNguonVon + maChuongTrinh → tính tổng dư nợ.
  *
  * @param file           file Excel
- * @param nq11Ids        (tuỳ chọn) set các Mã món vay NQ11 — nếu có, parser
- *                       sẽ đồng thời tính kết quả match theo xã (Nq11MatchXa)
+ * @param nq11Ids        (tuỳ chọn) set các Mã món vay NQ11 GQVL — nếu có, parser
+ *                       sẽ đồng thời tính kết quả match theo xã (Nq11MatchXa).
+ *                       Lưu ý: GQVL-NQ11 vẫn split bằng post-merge (mergeNq11IntoActuals)
+ *                       vì cần phân biệt nguồn 03A/03B; bộ này chỉ dùng cho stats.
  * @param gqvlXaNdtSet   (tuỳ chọn) whitelist các Mã nhà đầu tư thuộc QĐ GQVL xã.
  *                       Dòng CT=03 có Mã NĐT thuộc set này sẽ được chuyển NV sang '3'
  *                       (Địa phương xã). Danh sách lấy từ Decisions NV=3 có maNhaDauTu.
+ * @param nq11NoxhIds    (tuỳ chọn) set các Số khế ước NOXH-NQ11. Dòng CT=12 có Số
+ *                       khế ước thuộc set này sẽ được tách thẳng sang CT='12N'
+ *                       ("Cho vay NOXH — NQ11") ngay tại lúc parse — giống cơ chế
+ *                       split 03A/03B theo Cấp QLV. Plan có thể nhập riêng cho 12 và 12N.
  */
 export async function parseActualFile(
   file: File,
   nq11Ids?: Set<string>,
-  gqvlXaNdtSet?: Set<string>
+  gqvlXaNdtSet?: Set<string>,
+  nq11NoxhIds?: Set<string>
 ): Promise<ActualImportResult> {
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: 'array' });
@@ -165,6 +174,15 @@ export async function parseActualFile(
       maCT = (capQLV && capQLV !== '21') ? '03A' : '03B';
     }
 
+    // Split CT=12 (NOXH) sang 12N nếu Số khế ước thuộc danh sách NOXH-NQ11.
+    // Cơ chế giống 03A/03B: tách thẳng tại parse, plan nhập độc lập cho 12 / 12N.
+    if (maCT === '12' && nq11NoxhIds && nq11NoxhIds.size > 0 && iMonId !== -1) {
+      const monId = String(row[iMonId] ?? '').trim();
+      if (monId && nq11NoxhIds.has(monId)) {
+        maCT = '12N';
+      }
+    }
+
     // Reclassify CT=03 sang NV=3 ("Cho vay GQVL xã") theo whitelist Mã NĐT:
     //   Whitelist lấy từ Decisions NV=3 có maNhaDauTu (cấu hình ở màn Quyết định).
     //   Dòng nào có Mã NĐT thuộc whitelist → chuyển NV sang '3' (bất kể NV gốc).
@@ -241,6 +259,7 @@ export async function parseActualFile(
       else if (maCT === 'STEM') tenCT = 'Cho vay HSSV các ngành học STEM';
       else if (maCT === '03' && maNguonVon === '2') tenCT = 'Cho vay GQVL ĐP tỉnh';
       else if (maCT === '03' && maNguonVon === '3') tenCT = `Cho vay GQVL xã ${tenXa}`;
+      else if (maCT === '12N') tenCT = 'Cho vay NOXH — NQ11';
 
       map.set(key, {
         maXa,
@@ -495,6 +514,210 @@ export function mergeNq11IntoActuals(
       maNguonVon: '1',
       maChuongTrinh: '03N',
       tenChuongTrinh: 'Cho vay GQVL — NQ11',
+      tongDuNo: s.tongDuNo,
+      duNoTrongHan: s.duNoTrongHan,
+      duNoQuaHan: s.duNoQuaHan,
+      duNoKhoanh: s.duNoKhoanh,
+      soMonVay: s.soMonVay,
+      tongGiaiNgan: s.tongGiaiNgan,
+    });
+  }
+
+  return Array.from(map.values()).sort(
+    (a, b) =>
+      a.maXa.localeCompare(b.maXa) ||
+      a.maNguonVon.localeCompare(b.maNguonVon) ||
+      a.maChuongTrinh.localeCompare(b.maChuongTrinh)
+  );
+}
+
+/**
+ * Parse file "Sao kê khế ước theo chương trình & PNKT" cho danh sách NOXH NQ11
+ * (BCQUERY format — VD: NOXH.XLSX). Đặc trưng:
+ *   - Dòng 1: tiêu đề báo cáo, dòng 2: header
+ *   - Loan id = "Số khế ước"
+ *   - Số tiền: "Số tiền giải ngân", "Nợ trong hạn", "Nợ quá hạn", "Nợ khoanh"
+ *   - "Nguồn vốn" là chuỗi text (TW / ĐP / ĐP xã) → cần map về '1'/'2'/'3'
+ *   - "Mã chương trình" = '12' cho mọi dòng (NOXH); cảnh báo nếu khác
+ *   - "Ngày báo cáo" dạng dd/mm/yyyy ở mỗi dòng → dùng giá trị đầu tiên
+ * Mọi dòng trong file đều coi là NQ11 (không có cờ riêng).
+ */
+export async function parseNq11NoxhFile(file: File): Promise<Nq11NoxhImportResult> {
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type: 'array' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: '' });
+
+  const norm = (s: unknown) => String(s ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+
+  // Tìm dòng tiêu đề — dòng có chứa "Số khế ước" và "Mã xã"
+  let headerIdx = -1;
+  for (let i = 0; i < Math.min(rows.length, 10); i++) {
+    const row = rows[i];
+    const hasSoKU = row.some((c) => norm(c) === 'số khế ước');
+    const hasMaXa = row.some((c) => norm(c) === 'mã xã');
+    if (hasSoKU && hasMaXa) {
+      headerIdx = i;
+      break;
+    }
+  }
+  if (headerIdx === -1) {
+    throw new Error('File NOXH-NQ11 thiếu dòng tiêu đề (cần có cột "Mã xã" và "Số khế ước")');
+  }
+
+  const headers = rows[headerIdx].map((c) => norm(c));
+  const col = (name: string) => headers.indexOf(norm(name));
+
+  const iMaXa = col('Mã xã');
+  const iTenXa = col('Tên xã');
+  const iSoKU = col('Số khế ước');
+  const iMaCT = col('Mã chương trình');
+  const iNguonVon = col('Nguồn vốn');
+  const iSoTienGN = col('Số tiền giải ngân');
+  const iNoTH = col('Nợ trong hạn');
+  const iNoQH = col('Nợ quá hạn');
+  const iNoKhoanh = col('Nợ khoanh');
+  const iNgayBC = col('Ngày báo cáo');
+
+  if (iMaXa === -1 || iSoKU === -1) {
+    throw new Error('File NOXH-NQ11 thiếu cột "Mã xã" hoặc "Số khế ước"');
+  }
+
+  // Map "Nguồn vốn" text → mã NV chuẩn của hệ thống.
+  const mapNV = (raw: string): string => {
+    const v = raw.trim().toUpperCase();
+    if (!v) return '1';
+    if (v === 'TW' || v.includes('TRUNG ƯƠNG') || v.includes('TRUNG UONG')) return '1';
+    if (v === 'ĐP XÃ' || v === 'DP XA' || v.includes('XÃ')) return '3';
+    if (v === 'ĐP' || v === 'DP' || v.includes('ĐỊA PHƯƠNG') || v.includes('DIA PHUONG')) return '2';
+    return v; // giữ nguyên nếu đã là '1'/'2'/'3'
+  };
+
+  const map = new Map<string, Nq11NoxhXaSummary>();
+  const allMonVayIds: string[] = [];
+  const seenLoanIds = new Set<string>();
+  let totalRows = 0;
+  let ngaySoLieu: string | null = null;
+
+  const num = (row: unknown[], idx: number): number => {
+    if (idx === -1) return 0;
+    const v = row[idx];
+    if (typeof v === 'number') return v;
+    const n = Number(v);
+    return isNaN(n) ? 0 : n;
+  };
+
+  for (let i = headerIdx + 1; i < rows.length; i++) {
+    const row = rows[i];
+    const maXa = String(row[iMaXa] ?? '').trim();
+    const soKU = String(row[iSoKU] ?? '').trim();
+    if (!maXa || !soKU) continue; // bỏ dòng cộng/tổng (trống Mã xã hoặc Số khế ước)
+
+    // Dedup theo Số khế ước
+    if (seenLoanIds.has(soKU)) continue;
+    seenLoanIds.add(soKU);
+
+    // Cảnh báo nhẹ: nếu có cột "Mã chương trình" mà ≠ '12' → vẫn xử lý nhưng người
+    // dùng nên dùng đúng file NOXH. (Không throw để tránh chặn import; UI có thể hiển
+    // thị diagnostic sau này nếu cần.)
+    if (iMaCT !== -1) {
+      const ct = String(row[iMaCT] ?? '').trim();
+      if (ct && ct !== '12') {
+        // Không throw — chỉ skip nhẹ để bucket 12 không bị méo.
+        continue;
+      }
+    }
+
+    totalRows++;
+    allMonVayIds.push(soKU);
+
+    if (!ngaySoLieu && iNgayBC !== -1) {
+      const v = row[iNgayBC];
+      if (v) ngaySoLieu = String(v).trim();
+    }
+
+    const nv = mapNV(iNguonVon !== -1 ? String(row[iNguonVon] ?? '') : '');
+    const key = `${maXa}|${nv}`;
+
+    const th = num(row, iNoTH);
+    const qh = num(row, iNoQH);
+    const kh = num(row, iNoKhoanh);
+    const gn = num(row, iSoTienGN);
+    const total = th + qh + kh;
+
+    let s = map.get(key);
+    if (!s) {
+      s = {
+        maXa,
+        tenXa: iTenXa !== -1 ? String(row[iTenXa] ?? '').trim() : '',
+        maNguonVon: nv,
+        tongDuNo: 0,
+        duNoTrongHan: 0,
+        duNoQuaHan: 0,
+        duNoKhoanh: 0,
+        tongGiaiNgan: 0,
+        soMonVay: 0,
+        monVayIds: [],
+      };
+      map.set(key, s);
+    }
+
+    s.tongDuNo += total;
+    s.duNoTrongHan += th;
+    s.duNoQuaHan += qh;
+    s.duNoKhoanh += kh;
+    s.tongGiaiNgan += gn;
+    s.soMonVay += 1;
+    s.monVayIds.push(soKU);
+  }
+
+  return {
+    summariesByXa: Array.from(map.values()).sort(
+      (a, b) => a.maXa.localeCompare(b.maXa) || a.maNguonVon.localeCompare(b.maNguonVon)
+    ),
+    monVayIds: allMonVayIds,
+    ngaySoLieu,
+    totalRows,
+  };
+}
+
+/**
+ * Merge NOXH-NQ11 vào danh sách `ActualSummary`:
+ *   - Trừ tổng NOXH-NQ11 ra khỏi bucket gốc (xã, NV, '12')
+ *   - Thêm bucket mới (xã, NV, '12N') gắn nhãn "Cho vay NOXH — NQ11"
+ * Nếu bucket gốc không tồn tại (Báo cáo 31 chưa có món NOXH ở xã đó), vẫn
+ * tạo bucket 12N để hiện số liệu nhưng không trừ âm.
+ */
+export function mergeNq11NoxhIntoActuals(
+  actuals: ActualSummary[],
+  nq11Noxh: Nq11NoxhXaSummary[]
+): ActualSummary[] {
+  if (!nq11Noxh.length) return actuals;
+
+  const key = (maXa: string, nv: string, ct: string) => `${maXa}|${nv}|${ct}`;
+  const map = new Map<string, ActualSummary>();
+  for (const a of actuals) {
+    map.set(key(a.maXa, a.maNguonVon, a.maChuongTrinh), { ...a });
+  }
+
+  for (const s of nq11Noxh) {
+    const kBase = key(s.maXa, s.maNguonVon, '12');
+    const base = map.get(kBase);
+    if (base) {
+      base.tongDuNo = Math.max(0, base.tongDuNo - s.tongDuNo);
+      base.duNoTrongHan = Math.max(0, base.duNoTrongHan - s.duNoTrongHan);
+      base.duNoQuaHan = Math.max(0, base.duNoQuaHan - s.duNoQuaHan);
+      base.duNoKhoanh = Math.max(0, base.duNoKhoanh - s.duNoKhoanh);
+      base.tongGiaiNgan = Math.max(0, base.tongGiaiNgan - s.tongGiaiNgan);
+      base.soMonVay = Math.max(0, base.soMonVay - s.soMonVay);
+    }
+
+    map.set(key(s.maXa, s.maNguonVon, '12N'), {
+      maXa: s.maXa,
+      tenXa: s.tenXa,
+      maNguonVon: s.maNguonVon,
+      maChuongTrinh: '12N',
+      tenChuongTrinh: 'Cho vay NOXH — NQ11',
       tongDuNo: s.tongDuNo,
       duNoTrongHan: s.duNoTrongHan,
       duNoQuaHan: s.duNoQuaHan,

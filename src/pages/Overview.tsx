@@ -61,7 +61,6 @@ import type { LoanRecord } from '@/lib/types';
 
 /* ── Chart type options ────────────────────────────────────────────── */
 const STACKED_OPTS: ChartTypeOption<StackedChartType>[] = [
-  { id: 'stacked', icon: AlignLeft, tooltip: 'Thanh xếp chồng' },
   { id: 'grouped', icon: BarChart3, tooltip: 'Thanh nhóm' },
   { id: 'percent', icon: Percent, tooltip: 'Thanh tỷ lệ 100%' },
   { id: 'treemap', icon: LayoutGrid, tooltip: 'Bản đồ cây' },
@@ -119,10 +118,13 @@ export function OverviewPage() {
   const [dormantSearch, setDormantSearch] = useState('');
   const [detail, setDetail] = useState<LoanRecord | null>(null);
   const [dormantExporting, setDormantExporting] = useState(false);
-  const [stackedType, setStackedType] = useState<StackedChartType>('percent');
   const [stackedCBTDType, setStackedCBTDType] = useState<StackedChartType>('percent');
   const [barGroupType, setBarGroupType] = useState<BarGroupChartType>('bar');
-  const [barXaType, setBarXaType] = useState<BarGroupChartType>('bar');
+  // Combined "Dư nợ theo ĐVUT / Xã" card: cho phép user toggle chiều phân tích.
+  const [dimGroupBy, setDimGroupBy] = useState<'dvut' | 'xa'>('xa');
+  const [stackedDimType, setStackedDimType] = useState<StackedChartType>('percent');
+  // Combined "Số dư tiền gửi 105" card: ĐVUT vs Xã.
+  const [depositGroupBy, setDepositGroupBy] = useState<'dvut' | 'xa'>('xa');
 
   const staff = useStaffStore((s) => s.staff);
   const selectStaff = useStaffStore((s) => s.selectStaff);
@@ -216,6 +218,18 @@ export function OverviewPage() {
     () => [...byXa].sort((a, b) => b.soDuTienGui105 - a.soDuTienGui105),
     [byXa],
   );
+
+  // Stable color map xã: mỗi xã ↔ 1 hex theo thứ tự byXa (sort theo tongDuNo).
+  // Dùng để đồng nhất màu giữa donut "Dư nợ theo Xã" và bar "Số dư tiền gửi theo Xã"
+  // — Định Quán trên 2 chart sẽ cùng màu.
+  const xaColorMap = useMemo(() => {
+    const palette = ['#0EA5E9', '#6366F1', '#10B981', '#F59E0B', '#9333EA', '#BE185D', '#0F766E', '#C2410C'];
+    const map: Record<string, string> = {};
+    byXa.slice(0, 10).forEach((d, i) => {
+      map[d.key] = palette[i % palette.length];
+    });
+    return map;
+  }, [byXa]);
 
   // Tách Tổng dư nợ theo Nguồn vốn TW/DP. Báo cáo 31 mã hóa Nguồn vốn theo
   // VBSP: '1' = Trung ương, '2' = Địa phương, '3' = Địa phương xã (vẫn
@@ -416,24 +430,49 @@ export function OverviewPage() {
         />
       </div>
 
-      {/* Row 1: ĐVUT + Programs */}
+      {/* Row 1: ĐVUT/Xã (toggle) + Programs */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Dư nợ theo Đơn vị ủy thác</CardTitle>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <CardTitle>
+                  Dư nợ theo {dimGroupBy === 'dvut' ? 'Đơn vị ủy thác' : 'Xã'}
+                </CardTitle>
+                {/* Dimension toggle */}
+                <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5 text-xs shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                  {([
+                    ['xa', 'Xã'],
+                    ['dvut', 'ĐVUT'],
+                  ] as const).map(([val, label]) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setDimGroupBy(val)}
+                      className={`rounded px-2.5 py-1 font-medium transition-colors ${
+                        dimGroupBy === val
+                          ? 'bg-brand-600 text-white shadow-sm'
+                          : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="flex items-center gap-1">
-                <ChartSwitcher options={STACKED_OPTS} value={stackedType} onChange={setStackedType} />
-                <InfoPopover metricKey="chartDvut" />
+                <ChartSwitcher options={STACKED_OPTS} value={stackedDimType} onChange={setStackedDimType} />
+                <InfoPopover metricKey={dimGroupBy === 'dvut' ? 'chartDvut' : 'chartXa'} />
               </div>
             </div>
           </CardHeader>
-          <CardContent id="chart-dvut">
+          <CardContent id={dimGroupBy === 'dvut' ? 'chart-dvut' : 'chart-xa'}>
             <StackedStatus
-              data={byDVUT}
-              limit={6}
-              onClick={(v) => drillTo('tenDVUT', v)}
-              chartType={stackedType}
+              data={dimGroupBy === 'dvut' ? byDVUT : byXa}
+              limit={dimGroupBy === 'dvut' ? 6 : 10}
+              onClick={(v) => drillTo(dimGroupBy === 'dvut' ? 'tenDVUT' : 'tenXa', v)}
+              chartType={stackedDimType}
+              dvutColors={dimGroupBy === 'dvut'}
             />
           </CardContent>
         </Card>
@@ -453,69 +492,57 @@ export function OverviewPage() {
               limit={10}
               onClick={(v) => drillTo('tenChuongTrinh', v)}
               chartType={barGroupType}
+              colorMode="program"
             />
           </CardContent>
         </Card>
       </div>
 
-      {/* Row 1.5: Dư nợ theo Xã — full width */}
+      {/* Row 1.6: Số dư tiền gửi 105 (toggle ĐVUT/Xã) — sequential gradient teal,
+          đậm = dòng tiền lớn nhất. */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Dư nợ theo Xã</CardTitle>
-            <div className="flex items-center gap-1">
-              <ChartSwitcher options={BAR_GROUP_OPTS} value={barXaType} onChange={setBarXaType} />
-              <InfoPopover metricKey="chartXa" />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <CardTitle>
+                Số dư tiền gửi 105 theo {depositGroupBy === 'dvut' ? 'Đơn vị ủy thác' : 'Xã'}
+              </CardTitle>
+              <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5 text-xs shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                {([
+                  ['xa', 'Xã'],
+                  ['dvut', 'ĐVUT'],
+                ] as const).map(([val, label]) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setDepositGroupBy(val)}
+                    className={`rounded px-2.5 py-1 font-medium transition-colors ${
+                      depositGroupBy === val
+                        ? 'bg-brand-600 text-white shadow-sm'
+                        : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
+            <InfoPopover metricKey={depositGroupBy === 'dvut' ? 'chartTienGui105Dvut' : 'chartTienGui105Xa'} />
           </div>
         </CardHeader>
-        <CardContent id="chart-xa">
+        <CardContent id={depositGroupBy === 'dvut' ? 'chart-tien-gui-dvut' : 'chart-tien-gui-xa'}>
           <BarByGroup
-            data={byXa}
-            limit={10}
-            onClick={(v) => drillTo('tenXa', v)}
-            chartType={barXaType}
+            data={depositGroupBy === 'dvut' ? byDVUTDeposit : byXaDeposit}
+            limit={depositGroupBy === 'dvut' ? 6 : 10}
+            metric="soDuTienGui105"
+            tooltipLabel="Số dư tiền gửi 105"
+            onClick={(v) => drillTo(depositGroupBy === 'dvut' ? 'tenDVUT' : 'tenXa', v)}
+            colorMode={depositGroupBy === 'dvut' ? 'rainbow' : 'sequential'}
+            baseHue="teal"
+            colorByKey={depositGroupBy === 'xa' ? xaColorMap : undefined}
           />
         </CardContent>
       </Card>
-
-      {/* Row 1.6: Số dư tiền gửi 105 — by ĐVUT + by Xã */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Số dư tiền gửi 105 theo Đơn vị ủy thác</CardTitle>
-              <InfoPopover metricKey="chartTienGui105Dvut" />
-            </div>
-          </CardHeader>
-          <CardContent id="chart-tien-gui-dvut">
-            <BarByGroup
-              data={byDVUTDeposit}
-              limit={6}
-              metric="soDuTienGui105"
-              tooltipLabel="Số dư tiền gửi 105"
-              onClick={(v) => drillTo('tenDVUT', v)}
-            />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Số dư tiền gửi 105 theo Xã</CardTitle>
-              <InfoPopover metricKey="chartTienGui105Xa" />
-            </div>
-          </CardHeader>
-          <CardContent id="chart-tien-gui-xa">
-            <BarByGroup
-              data={byXaDeposit}
-              limit={10}
-              metric="soDuTienGui105"
-              tooltipLabel="Số dư tiền gửi 105"
-              onClick={(v) => drillTo('tenXa', v)}
-            />
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Row 2: Histogram + Dư nợ theo CBTD (CBTD conditional) */}
       <div
