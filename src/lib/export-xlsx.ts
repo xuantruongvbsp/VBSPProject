@@ -297,6 +297,7 @@ const BAD_DEBT_COLUMNS: {
   { header: 'Lãi tồn trong hạn (đ)', get: (r) => r.laiTonTH, numFmt: '#,##0' },
   { header: 'Lãi tồn quá hạn (đ)', get: (r) => r.laiTonQH, numFmt: '#,##0' },
   { header: 'Lãi DT chưa đến hạn (đ)', get: (r) => r.laiDTChuaDenHan, numFmt: '#,##0' },
+  { header: 'Ngày hết hạn khoanh', get: (r) => fmtDate(r.ngayHetHanKhoanh) },
   { header: 'Ngày giao dịch gần nhất', get: (r) => fmtDate(r.ngayGiaoDichGanNhat) },
 ];
 

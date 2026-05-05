@@ -636,6 +636,14 @@ export const METRIC_EXPLANATIONS: Record<string, MetricExplanation> = {
     formula: 'Lọc duNoKhoanh > 0, sắp xếp giảm dần, lấy 20 khế ước đầu.',
     note: 'Nhấp một dòng để mở ngăn chi tiết toàn bộ thông tin khế ước.',
   },
+  chartKhoanhExpiry: {
+    title: 'Lịch hết hạn khoanh',
+    definition:
+      'Phân bố các khế ước đang khoanh theo Năm × Tháng dựa vào "Ngày hết hạn Khoanh" — giúp dự báo khi nào số khoanh hết hiệu lực và quay lại nhóm thu hồi.',
+    formula:
+      'Lọc duNoKhoanh > 0 & ngayHetHanKhoanh ≠ trống, gom theo (năm, tháng) của ngayHetHanKhoanh; mỗi ô hiển thị số khế ước và tổng dư nợ khoanh trong tháng.',
+    note: 'Bấm vào ô để xem tỷ trọng dư nợ khoanh tại tháng đó.',
+  },
 
   /* ── Doanh số (BH → ĐH GDXA) ───────────────────────────────────────── */
   doanhSoChoVay: {

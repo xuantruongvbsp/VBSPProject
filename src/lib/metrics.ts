@@ -424,6 +424,33 @@ export function heatmapDaoHan(
     .map(([ym, v]) => ({ ym, ...v }));
 }
 
+/**
+ * Lịch hết hạn KHOANH — gom theo tháng dựa vào `ngayHetHanKhoanh`. Chỉ
+ * tính các khế ước đang có dư nợ khoanh > 0 (khế ước đã hết khoanh hoặc
+ * không có không có ý nghĩa cho báo cáo này). Output có cùng shape với
+ * `heatmapDaoHan` để dùng chung component HeatmapMaturity, nhưng cột
+ * `tongDuNo` ở đây là dư nợ KHOANH chứ không phải tổng dư nợ.
+ */
+export function heatmapKhoanhExpiry(
+  rows: LoanRecord[]
+): { ym: string; count: number; tongDuNo: number }[] {
+  const map = new Map<string, { count: number; tongDuNo: number }>();
+  for (const r of rows) {
+    if (r.duNoKhoanh <= 0) continue;
+    const d = r.ngayHetHanKhoanh;
+    if (!d) continue;
+    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    const cur = map.get(key) ?? { count: 0, tongDuNo: 0 };
+    cur.count++;
+    cur.tongDuNo += r.duNoKhoanh;
+    map.set(key, cur);
+  }
+  return Array.from(map.entries())
+    .filter(([, v]) => v.tongDuNo > 0)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([ym, v]) => ({ ym, ...v }));
+}
+
 export function distinctValues(
   rows: LoanRecord[],
   field: keyof LoanRecord

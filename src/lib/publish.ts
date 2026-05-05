@@ -48,6 +48,7 @@ const DATE_FIELDS: ReadonlyArray<keyof LoanRecord> = [
   'ngayDHGDXA',
   'ngayGiaoDichGanNhat',
   'ngaySoLieu',
+  'ngayHetHanKhoanh',
 ];
 
 /**
@@ -74,7 +75,7 @@ const RAW_KEYS_FOR_VIEWER: ReadonlyArray<string> = [
   // Số dư & Giải ngân
   'Mức vay', 'Tổng giải ngân', 'Dư nợ trong hạn', 'Dư nợ quá hạn',
   'Dư nợ khoanh', 'Tổng dư nợ', 'Gốc đã trả', 'Giải ngân trong tháng',
-  'Số dư tiền gửi 105',
+  'Số dư tiền gửi 105', 'Ngày hết hạn Khoanh',
   // Lãi & Thu nợ
   'Tổng thu lãi TH', 'Lãi tồn TH', 'Tổng thu lãi QH', 'Lãi tồn QH',
   'Lãi DT chưa đến hạn', 'Thu lãi TH tháng', 'Thu nợ TH tháng',

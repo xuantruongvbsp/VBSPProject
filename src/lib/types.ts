@@ -100,6 +100,8 @@ export interface LoanRecord {
   // Khác
   ngayGiaoDichGanNhat: Date | null;
   ngaySoLieu: Date | null;
+  /** Ngày hết hạn khoanh nợ — chỉ có ý nghĩa với khế ước có duNoKhoanh > 0. */
+  ngayHetHanKhoanh: Date | null;
 
   // Tham chiếu nguyên gốc (để hiển thị chi tiết toàn bộ 174 trường)
   raw: Record<string, unknown>;

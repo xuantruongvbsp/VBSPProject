@@ -16,11 +16,38 @@ import { cn } from '@/lib/utils';
 
 export type HeatmapChartType = 'heatmap' | 'stackedBar';
 
+/** Nhãn hiển thị tuỳ biến — cho phép cùng component dùng cho lịch đáo hạn
+ *  (tongDuNo, "đến hạn theo GDXA") và lịch hết hạn khoanh (duNoKhoanh,
+ *  "hết hạn khoanh"). Mặc định giữ nguyên hành vi cũ. */
+export interface HeatmapLabels {
+  popoverHeader: string;
+  popoverFooter: string;
+  emptyText: string;
+  caption: string;
+  countLabel: string;
+  amountLabel: string;
+  amountTotalLabel: string;
+}
+
+const DEFAULT_LABELS: HeatmapLabels = {
+  popoverHeader: 'Đáo hạn theo tháng',
+  popoverFooter: 'Số khế ước có ngày đến hạn theo GDXA rơi vào tháng này.',
+  emptyText: 'Không có dữ liệu đáo hạn',
+  caption:
+    'Mỗi ô = số khế ước đến hạn theo tháng. Bấm vào ô để xem chi tiết dư nợ, tỷ trọng và chuyển sang danh sách khế ước.',
+  countLabel: 'Số khế ước',
+  amountLabel: 'Tổng dư nợ',
+  amountTotalLabel: 'tổng dư nợ',
+};
+
 interface Props {
   data: { ym: string; count: number; tongDuNo: number }[];
   chartType?: HeatmapChartType;
   /** Called when user clicks a cell; receives "YYYY-MM" string */
   onClick?: (ym: string) => void;
+  /** Tuỳ biến nhãn cho biến thể "khoanh expiry" / khác. Khi không truyền,
+   *  dùng nhãn mặc định cho lịch đáo hạn (giữ tương thích ngược). */
+  labels?: Partial<HeatmapLabels>;
 }
 
 const MONTH_LABELS_VI: Record<number, string> = {
@@ -41,9 +68,15 @@ const MONTH_COLORS_DARK = [
   '#34d399', '#a3e635', '#facc15', '#fb923c', '#fb7185', '#c084fc',
 ];
 
-export function HeatmapMaturity({ data, chartType = 'heatmap', onClick }: Props) {
+export function HeatmapMaturity({
+  data,
+  chartType = 'heatmap',
+  onClick,
+  labels: labelOverrides,
+}: Props) {
   const cc = useChartColors();
   const MONTH_COLORS = cc.isDark ? MONTH_COLORS_DARK : MONTH_COLORS_LIGHT;
+  const L: HeatmapLabels = { ...DEFAULT_LABELS, ...labelOverrides };
 
   const byYear = useMemo(() => {
     const m = new Map<string, { month: number; v: typeof data[number] }[]>();
@@ -76,7 +109,7 @@ export function HeatmapMaturity({ data, chartType = 'heatmap', onClick }: Props)
   if (!data.length) {
     return (
       <div className="p-6 text-center text-xs text-slate-400 dark:text-slate-500">
-        Không có dữ liệu đáo hạn
+        {L.emptyText}
       </div>
     );
   }
@@ -129,12 +162,17 @@ export function HeatmapMaturity({ data, chartType = 'heatmap', onClick }: Props)
                   T{m}
                 </th>
               ))}
+              <th className="border-l-2 border-slate-300 bg-slate-50 px-3 py-1 text-right text-[10px] font-bold uppercase tracking-wide text-slate-700 dark:border-slate-600 dark:bg-slate-700/60 dark:text-slate-200">
+                Tổng
+              </th>
             </tr>
           </thead>
           <tbody>
             {years.map((y) => {
               const arr = byYear.get(y) ?? [];
               const map = new Map(arr.map((a) => [a.month, a.v]));
+              const yearCount = arr.reduce((s, a) => s + a.v.count, 0);
+              const yearAmount = arr.reduce((s, a) => s + a.v.tongDuNo, 0);
               return (
                 <tr key={y}>
                   <td className="px-2 py-1 font-semibold text-slate-700 dark:text-slate-200">{y}</td>
@@ -190,7 +228,7 @@ export function HeatmapMaturity({ data, chartType = 'heatmap', onClick }: Props)
                               <div className="space-y-3">
                                 <div>
                                   <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                                    Đáo hạn theo tháng
+                                    {L.popoverHeader}
                                   </div>
                                   <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                                     {MONTH_LABELS_VI[m]} {y}
@@ -198,22 +236,22 @@ export function HeatmapMaturity({ data, chartType = 'heatmap', onClick }: Props)
                                 </div>
                                 <div className="grid grid-cols-2 gap-3 border-t border-slate-100 dark:border-slate-700 pt-3">
                                   <div>
-                                    <div className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Số khế ước</div>
+                                    <div className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">{L.countLabel}</div>
                                     <div className="text-base font-bold text-slate-900 dark:text-slate-100">{fmtNumber(c.count)}</div>
                                     <div className="text-[10px] text-slate-500 dark:text-slate-400">
                                       {fmtPercent(totalCount > 0 ? (c.count / totalCount) * 100 : 0)} tổng số
                                     </div>
                                   </div>
                                   <div>
-                                    <div className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Tổng dư nợ</div>
+                                    <div className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">{L.amountLabel}</div>
                                     <div className="text-base font-bold text-slate-900 dark:text-slate-100">{fmtCurrency(c.tongDuNo)}</div>
                                     <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                                      {fmtPercent(totalDuNo > 0 ? (c.tongDuNo / totalDuNo) * 100 : 0)} tổng dư nợ
+                                      {fmtPercent(totalDuNo > 0 ? (c.tongDuNo / totalDuNo) * 100 : 0)} {L.amountTotalLabel}
                                     </div>
                                   </div>
                                 </div>
                                 <div className="border-t border-slate-100 dark:border-slate-700 pt-2 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
-                                  Số khế ước có ngày đến hạn theo GDXA rơi vào tháng này.
+                                  {L.popoverFooter}
                                 </div>
                                 {onClick && (
                                   <button
@@ -232,14 +270,57 @@ export function HeatmapMaturity({ data, chartType = 'heatmap', onClick }: Props)
                       </td>
                     );
                   })}
+                  <td className="whitespace-nowrap border-l-2 border-slate-300 bg-slate-50 px-3 py-1 text-right dark:border-slate-600 dark:bg-slate-700/40">
+                    <div className="text-sm font-bold tabular-nums text-slate-900 dark:text-white">
+                      {fmtNumber(yearCount)}
+                    </div>
+                    <div className="text-[10px] tabular-nums text-slate-500 dark:text-slate-400">
+                      {fmtCompact(yearAmount)}
+                    </div>
+                  </td>
                 </tr>
               );
             })}
+            {/* Hàng tổng dưới cùng — tổng theo từng tháng + tổng toàn cục */}
+            <tr className="border-t-2 border-slate-300 bg-slate-100 dark:border-slate-600 dark:bg-slate-700/60">
+              <td className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-700 dark:text-slate-200">
+                Tổng
+              </td>
+              {months.map((m) => {
+                let count = 0;
+                let amount = 0;
+                for (const arr of byYear.values()) {
+                  const e = arr.find((a) => a.month === m);
+                  if (e) {
+                    count += e.v.count;
+                    amount += e.v.tongDuNo;
+                  }
+                }
+                return (
+                  <td key={m} className="whitespace-nowrap px-1 py-1.5 text-center">
+                    <div className="text-[11px] font-bold tabular-nums text-slate-900 dark:text-white">
+                      {count > 0 ? fmtNumber(count) : '·'}
+                    </div>
+                    <div className="text-[9px] tabular-nums text-slate-500 dark:text-slate-400">
+                      {amount > 0 ? fmtCompact(amount) : ''}
+                    </div>
+                  </td>
+                );
+              })}
+              <td className="whitespace-nowrap border-l-2 border-slate-300 bg-brand-50 px-3 py-1.5 text-right dark:border-slate-600 dark:bg-brand-500/15">
+                <div className="text-sm font-extrabold tabular-nums text-brand-800 dark:text-brand-200">
+                  {fmtNumber(totalCount)}
+                </div>
+                <div className="text-[10px] font-semibold tabular-nums text-brand-700/80 dark:text-brand-300/80">
+                  {fmtCompact(totalDuNo)}
+                </div>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
       <div className="text-[10px] text-slate-500 dark:text-slate-400">
-        Mỗi ô = số khế ước đến hạn theo tháng. Bấm vào ô để xem chi tiết dư nợ, tỷ trọng và chuyển sang danh sách khế ước.
+        {L.caption}
       </div>
     </div>
   );

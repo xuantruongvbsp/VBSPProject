@@ -22,6 +22,7 @@ public/decision-attachments/
 overview-*.png
 viewer-*.png
 snapshot-*.png
+khoanh-*.png
 
 # Scratch / preview artifacts
 .tmp/

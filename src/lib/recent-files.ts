@@ -8,6 +8,7 @@
 //   - Object store `data`  (key=id) — bản ghi LoanRecord[] đầy đủ
 
 import type { LoanRecord } from './types';
+import { parseVnDate } from './format';
 
 const DB_NAME = 'vsppro-recent-files';
 const DB_VERSION = 1;
@@ -163,12 +164,19 @@ function backfillTypedFields(rows: LoanRecord[]): LoanRecord[] {
   // toàn bộ rows đều xuất phát từ cùng một parser snapshot.
   const sample = rows[0];
   const needsDeposit = !('soDuTienGui105' in sample);
-  if (!needsDeposit) return rows;
+  const needsKhoanhDate = !('ngayHetHanKhoanh' in sample);
+  if (!needsDeposit && !needsKhoanhDate) return rows;
   return rows.map((r) => {
     const raw = r.raw ?? {};
-    const v = raw['Số dư tiền gửi 105'];
-    const num = typeof v === 'number' ? v : Number(v) || 0;
-    return { ...r, soDuTienGui105: num } as LoanRecord;
+    const patch: Partial<LoanRecord> = {};
+    if (needsDeposit) {
+      const v = raw['Số dư tiền gửi 105'];
+      patch.soDuTienGui105 = typeof v === 'number' ? v : Number(v) || 0;
+    }
+    if (needsKhoanhDate) {
+      patch.ngayHetHanKhoanh = parseVnDate(raw['Ngày hết hạn Khoanh']);
+    }
+    return { ...r, ...patch } as LoanRecord;
   });
 }
 

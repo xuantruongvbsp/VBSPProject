@@ -12,8 +12,8 @@ import {
   Download,
 } from 'lucide-react';
 import { applyFilters, useDataStore, type FilterField } from '@/store/useDataStore';
-import { computeKpi, groupBy, type GroupAgg } from '@/lib/metrics';
-import { fmtCompact, fmtCurrency, fmtNumber, fmtPercent } from '@/lib/format';
+import { computeKpi, groupBy, heatmapKhoanhExpiry, type GroupAgg } from '@/lib/metrics';
+import { fmtCompact, fmtCurrency, fmtDate, fmtNumber, fmtPercent } from '@/lib/format';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { KpiCard } from '@/components/ui/KpiCard';
 import { InfoPopover } from '@/components/ui/InfoPopover';
@@ -22,6 +22,7 @@ import { exportBadDebtToXlsx } from '@/lib/export-xlsx';
 import { cn } from '@/lib/utils';
 import { FilterBar } from '@/components/filters/FilterBar';
 import { BarByGroup, type BarGroupChartType } from '@/components/charts/BarByGroup';
+import { HeatmapMaturity, type HeatmapChartType } from '@/components/charts/HeatmapMaturity';
 import { ChartSwitcher, type ChartTypeOption } from '@/components/ui/ChartSwitcher';
 import { LoanDetailDrawer } from '@/components/detail/LoanDetailDrawer';
 import type { LoanRecord } from '@/lib/types';
@@ -30,6 +31,11 @@ const BAR_GROUP_OPTS: ChartTypeOption<BarGroupChartType>[] = [
   { id: 'bar', icon: AlignLeft, tooltip: 'Biểu đồ thanh' },
   { id: 'treemap', icon: LayoutGrid, tooltip: 'Bản đồ cây' },
   { id: 'pie', icon: PieChart, tooltip: 'Biểu đồ tròn' },
+];
+
+const HEAT_OPTS: ChartTypeOption<HeatmapChartType>[] = [
+  { id: 'heatmap', icon: LayoutGrid, tooltip: 'Lưới nhiệt' },
+  { id: 'stackedBar', icon: AlignLeft, tooltip: 'Cột chồng theo năm' },
 ];
 
 /**
@@ -44,6 +50,7 @@ export function KhoanhPage() {
   const [chartDvutType, setChartDvutType] = useState<BarGroupChartType>('pie');
   const [chartXaType, setChartXaType] = useState<BarGroupChartType>('bar');
   const [chartProgramType, setChartProgramType] = useState<BarGroupChartType>('bar');
+  const [heatType, setHeatType] = useState<HeatmapChartType>('heatmap');
   const [exporting, setExporting] = useState(false);
 
   const drillTo = useCallback(
@@ -110,11 +117,38 @@ export function KhoanhPage() {
   const byDVUT_K = useMemo(() => sortByKhoanh(byDVUT), [byDVUT]);
   const byProgram_K = useMemo(() => sortByKhoanh(byProgram), [byProgram]);
 
-  // Top 20 khế ước có dư nợ khoanh lớn nhất
-  const topKhoanh = useMemo(
-    () => [...khoanhLoans].sort((a, b) => b.duNoKhoanh - a.duNoKhoanh).slice(0, 20),
-    [khoanhLoans]
-  );
+  // Khi user bấm 1 ô trên heatmap "Lịch hết hạn khoanh", lưu lại "YYYY-MM"
+  // để bảng Top 20 phía dưới chỉ liệt kê khế ước rơi vào tháng đó.
+  const [khoanhExpiryMonth, setKhoanhExpiryMonth] = useState<string | null>(null);
+
+  // Top 20 khế ước có dư nợ khoanh lớn nhất — khi có tháng được chọn từ
+  // heatmap, lọc trước theo ngayHetHanKhoanh thuộc tháng đó (không cắt
+  // top 20 vì lát cắt theo tháng thường ít món, người dùng muốn xem hết).
+  const topKhoanh = useMemo(() => {
+    const sorted = [...khoanhLoans].sort((a, b) => b.duNoKhoanh - a.duNoKhoanh);
+    if (!khoanhExpiryMonth) return sorted.slice(0, 20);
+    const [yStr, mStr] = khoanhExpiryMonth.split('-');
+    const y = Number(yStr);
+    const m = Number(mStr) - 1;
+    return sorted.filter((r) => {
+      const d = r.ngayHetHanKhoanh;
+      return d != null && d.getFullYear() === y && d.getMonth() === m;
+    });
+  }, [khoanhLoans, khoanhExpiryMonth]);
+
+  // Lịch hết hạn khoanh theo tháng
+  const khoanhExpiry = useMemo(() => heatmapKhoanhExpiry(filtered), [filtered]);
+
+  // Khi đổi sang tháng khác (hoặc bỏ chọn), cuộn bảng Top 20 vào tầm nhìn
+  // — UX giống Overview maturity heatmap khi drill xuống Explorer.
+  const handleSelectKhoanhMonth = useCallback((ym: string) => {
+    setKhoanhExpiryMonth(ym);
+    requestAnimationFrame(() => {
+      document
+        .getElementById('chart-khoanh-top')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, []);
 
   const handleExportKhoanh = useCallback(async () => {
     if (exporting || khoanhLoans.length === 0) return;
@@ -395,15 +429,61 @@ export function KhoanhPage() {
         </CardContent>
       </Card>
 
-      {/* Row 4: Top 20 khế ước khoanh lớn nhất */}
+      {/* Lịch hết hạn khoanh — heatmap năm × tháng */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <CardTitle>Top 20 khế ước khoanh lớn nhất</CardTitle>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                (Excel xuất đầy đủ {fmtNumber(khoanhLoans.length)} khế ước)
-              </span>
+            <CardTitle>Lịch hết hạn khoanh</CardTitle>
+            <div className="flex items-center gap-1">
+              <ChartSwitcher options={HEAT_OPTS} value={heatType} onChange={setHeatType} />
+              <InfoPopover metricKey="chartKhoanhExpiry" />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent id="chart-khoanh-expiry">
+          <HeatmapMaturity
+            data={khoanhExpiry}
+            chartType={heatType}
+            onClick={handleSelectKhoanhMonth}
+            labels={{
+              popoverHeader: 'Hết hạn khoanh theo tháng',
+              popoverFooter:
+                'Số khế ước có "Ngày hết hạn Khoanh" rơi vào tháng này, kèm tổng dư nợ khoanh.',
+              emptyText: 'Không có khế ước có ngày hết hạn khoanh',
+              caption:
+                'Mỗi ô = số khế ước hết hạn khoanh trong tháng. Bấm vào ô rồi chọn "Xem danh sách khế ước" để lọc bảng Top 20 phía dưới theo tháng đó.',
+              countLabel: 'Số khế ước',
+              amountLabel: 'Dư nợ khoanh',
+              amountTotalLabel: 'tổng dư nợ khoanh',
+            }}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Row 4: Top 20 khế ước khoanh lớn nhất (hoặc danh sách theo tháng) */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <CardTitle>
+                {khoanhExpiryMonth
+                  ? `Khế ước hết hạn khoanh tháng ${khoanhExpiryMonth.split('-')[1]}/${khoanhExpiryMonth.split('-')[0]}`
+                  : 'Top 20 khế ước khoanh lớn nhất'}
+              </CardTitle>
+              {khoanhExpiryMonth ? (
+                <button
+                  type="button"
+                  onClick={() => setKhoanhExpiryMonth(null)}
+                  className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800 ring-1 ring-amber-200 transition-colors hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-200 dark:ring-amber-800 dark:hover:bg-amber-900/60"
+                  title="Bỏ lọc theo tháng — quay lại Top 20 tổng thể"
+                >
+                  {fmtNumber(topKhoanh.length)} khế ước · Xóa lọc ✕
+                </button>
+              ) : (
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  (Excel xuất đầy đủ {fmtNumber(khoanhLoans.length)} khế ước)
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -433,7 +513,9 @@ export function KhoanhPage() {
         <CardContent id="chart-khoanh-top" className="p-0">
           {topKhoanh.length === 0 ? (
             <div className="p-6 text-center text-xs text-slate-400 dark:text-slate-500">
-              Không có khế ước khoanh trong phạm vi lọc.
+              {khoanhExpiryMonth
+                ? 'Không có khế ước hết hạn khoanh trong tháng này.'
+                : 'Không có khế ước khoanh trong phạm vi lọc.'}
             </div>
           ) : (
             <div className="scrollbar-thin max-h-[520px] overflow-auto">
@@ -449,6 +531,7 @@ export function KhoanhPage() {
                     <th className="px-3 py-2 text-right">Dư nợ khoanh</th>
                     <th className="px-3 py-2 text-right">Dư nợ QH</th>
                     <th className="px-3 py-2 text-right">Lãi DT chưa đến hạn</th>
+                    <th className="whitespace-nowrap px-3 py-2 text-right">Ngày hết hạn khoanh</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -490,6 +573,9 @@ export function KhoanhPage() {
                       </td>
                       <td className="px-3 py-2 text-right text-slate-700 dark:text-slate-300">
                         {fmtCurrency(r.laiDTChuaDenHan)}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 text-right text-slate-700 dark:text-slate-300">
+                        {r.ngayHetHanKhoanh ? fmtDate(r.ngayHetHanKhoanh) : '—'}
                       </td>
                     </tr>
                   ))}

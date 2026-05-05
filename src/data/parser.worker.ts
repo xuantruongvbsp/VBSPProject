@@ -160,6 +160,7 @@ function normalize(row: Row, idx: Record<string, number>): LoanRecord {
 
     ngayGiaoDichGanNhat: parseVnDate(get(row, idx, 'Ngày giao dịch gần nhất')),
     ngaySoLieu: parseVnDate(get(row, idx, 'Ngày số liệu')),
+    ngayHetHanKhoanh: parseVnDate(get(row, idx, 'Ngày hết hạn Khoanh')),
 
     raw,
   };
