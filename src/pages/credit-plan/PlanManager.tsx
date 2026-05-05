@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
+import { useIsOwner } from '@/store/useAuthStore';
 import type { PlanEntry, Decision } from '@/lib/credit-plan-types';
 import {
   XA_LIST,
@@ -137,6 +138,7 @@ function ProgramMultiSelect({
 
 export function PlanManager() {
   const { plans, decisions, addPlan, updatePlan, deletePlan } = useCreditPlanStore();
+  const isOwner = useIsOwner();
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [base, setBase] = useState(emptyBase);
@@ -301,9 +303,11 @@ export function PlanManager() {
             Quản lý danh mục kế hoạch dư nợ theo Quyết định
           </p>
         </div>
-        <Button onClick={() => { resetForm(); setShowForm(true); }} disabled={!hasDecisions}>
-          <Plus className="h-4 w-4" /> Thêm mục
-        </Button>
+        {isOwner && (
+          <Button onClick={() => { resetForm(); setShowForm(true); }} disabled={!hasDecisions}>
+            <Plus className="h-4 w-4" /> Thêm mục
+          </Button>
+        )}
       </div>
 
       {!hasDecisions && (
@@ -598,7 +602,7 @@ export function PlanManager() {
                               : 'Thử thay đổi bộ lọc phía trên.'}
                           </div>
                         </div>
-                        {plans.length === 0 && hasDecisions && (
+                        {plans.length === 0 && hasDecisions && isOwner && (
                           <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>
                             <Plus className="h-3.5 w-3.5" /> Thêm mục
                           </Button>
@@ -627,22 +631,24 @@ export function PlanManager() {
                         </td>
                         <td className="px-4 py-2.5 text-right font-mono tabular-nums font-semibold text-slate-900 dark:text-white">{fmtMoney(p.soTien)}</td>
                         <td className="px-4 py-2.5">
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => startEdit(p)}
-                              className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700"
-                              title="Sửa"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={() => deletePlan(p.id)}
-                              className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-rose-600 dark:hover:bg-slate-700"
-                              title="Xóa"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
+                          {isOwner ? (
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => startEdit(p)}
+                                className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700"
+                                title="Sửa"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => deletePlan(p.id)}
+                                className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-rose-600 dark:hover:bg-slate-700"
+                                title="Xóa"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ) : null}
                         </td>
                       </tr>
                     );

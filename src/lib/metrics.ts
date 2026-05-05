@@ -21,6 +21,10 @@ export interface PortfolioKpi {
   thuLaiTHThang: number;
   laiSuatBQ: number;
   mucVayBQ: number;
+  /** Tổng "Số dư tiền gửi 105" sau khi dedupe theo maKH — chỉ tiêu này lặp
+   *  giá trị trên mỗi dòng khế ước của cùng 1 khách hàng nên cộng tay sẽ
+   *  bị over-count theo số khế ước/KH. */
+  soDuTienGui105: number;
 }
 
 export function computeKpi(rows: LoanRecord[]): PortfolioKpi {
@@ -37,6 +41,7 @@ export function computeKpi(rows: LoanRecord[]): PortfolioKpi {
       thuLaiTHThang: 0,
       laiSuatBQ: 0,
       mucVayBQ: 0,
+      soDuTienGui105: 0,
     };
   }
   let tongDuNo = 0;
@@ -47,6 +52,15 @@ export function computeKpi(rows: LoanRecord[]): PortfolioKpi {
   let thuLaiTHThang = 0;
   let weightedRate = 0;
   const kh = new Set<string>();
+  // Số dư tiền gửi 105 — chỉ tiêu cấp khách hàng. Trong Báo cáo 31 giá trị
+  // chỉ điền vào 1 trong các dòng khế ước của cùng KH (các dòng còn lại =
+  // 0), nên KHÔNG cộng thẳng (over-count) và cũng KHÔNG ghi đè theo thứ
+  // tự dòng (last-wins → mất giá trị nếu dòng có số đứng trước dòng 0).
+  // Lấy MAX trên các dòng cùng maKH: an toàn cho cả "đồng nhất" lẫn "có
+  // dòng 0". Khế ước thiếu maKH dedupe theo Số khế ước để vẫn đếm 1 lần.
+  // Không lọc theo isOpenLoan — đây là chỉ tiêu cấp khách, không phụ thuộc
+  // trạng thái khoản vay.
+  const depositPerKey = new Map<string, number>();
 
   for (const r of rows) {
     tongDuNo += r.tongDuNo;
@@ -57,7 +71,17 @@ export function computeKpi(rows: LoanRecord[]): PortfolioKpi {
     thuLaiTHThang += r.thuLaiTHThang;
     weightedRate += r.laiSuat * r.tongDuNo;
     if (r.maKH && isOpenLoan(r)) kh.add(r.maKH);
+    const depKey = r.maKH || r.soKheUoc;
+    if (depKey) {
+      const v = r.soDuTienGui105 ?? 0;
+      const cur = depositPerKey.get(depKey) ?? 0;
+      if (v > cur) depositPerKey.set(depKey, v);
+      else if (!depositPerKey.has(depKey)) depositPerKey.set(depKey, v);
+    }
   }
+
+  let soDuTienGui105 = 0;
+  for (const v of depositPerKey.values()) soDuTienGui105 += v;
 
   return {
     soKheUoc: rows.length,
@@ -71,6 +95,7 @@ export function computeKpi(rows: LoanRecord[]): PortfolioKpi {
     thuLaiTHThang,
     laiSuatBQ: tongDuNo > 0 ? weightedRate / tongDuNo : 0,
     mucVayBQ: kh.size > 0 ? tongDuNo / kh.size : 0,
+    soDuTienGui105,
   };
 }
 
@@ -87,6 +112,8 @@ export interface GroupAgg {
   tyLeKhoanh: number;
   laiTonTH: number;
   thuLaiTHThang: number;
+  /** Σ "Số dư tiền gửi 105" trong nhóm, dedupe theo maKH. */
+  soDuTienGui105: number;
   /**
    * Danh sách maKH thuộc nhóm — chỉ set ở các groupBy dẫn xuất (ví dụ theo
    * độ tuổi), để phục vụ drill-down khi key không phải là trường của LoanRecord.
@@ -101,7 +128,10 @@ export function groupBy(
   const getKey = typeof field === 'function'
     ? field
     : (r: LoanRecord) => String(r[field] ?? '—') || '—';
-  const map = new Map<string, GroupAgg & { _kh: Set<string> }>();
+  const map = new Map<
+    string,
+    GroupAgg & { _kh: Set<string>; _depositPerKey: Map<string, number> }
+  >();
   for (const r of rows) {
     const key = getKey(r) || '—';
     let g = map.get(key);
@@ -119,7 +149,9 @@ export function groupBy(
         tyLeKhoanh: 0,
         laiTonTH: 0,
         thuLaiTHThang: 0,
+        soDuTienGui105: 0,
         _kh: new Set<string>(),
+        _depositPerKey: new Map<string, number>(),
       };
       map.set(key, g);
     }
@@ -131,13 +163,23 @@ export function groupBy(
     g.laiTonTH += r.laiTonTH;
     g.thuLaiTHThang += r.thuLaiTHThang;
     if (r.maKH) g._kh.add(r.maKH);
+    const depKey = r.maKH || r.soKheUoc;
+    if (depKey) {
+      const v = r.soDuTienGui105 ?? 0;
+      const cur = g._depositPerKey.get(depKey) ?? 0;
+      if (v > cur) g._depositPerKey.set(depKey, v);
+      else if (!g._depositPerKey.has(depKey)) g._depositPerKey.set(depKey, v);
+    }
   }
   const out: GroupAgg[] = [];
   for (const g of map.values()) {
     g.soKhachHang = g._kh.size;
     g.tyLeNoQH = g.tongDuNo > 0 ? (g.duNoQuaHan / g.tongDuNo) * 100 : 0;
     g.tyLeKhoanh = g.tongDuNo > 0 ? (g.duNoKhoanh / g.tongDuNo) * 100 : 0;
-    const { _kh, ...rest } = g;
+    let sd = 0;
+    for (const v of g._depositPerKey.values()) sd += v;
+    g.soDuTienGui105 = sd;
+    const { _kh, _depositPerKey, ...rest } = g;
     out.push(rest);
   }
   return out.sort((a, b) => b.tongDuNo - a.tongDuNo);
@@ -194,7 +236,14 @@ export function groupByAge(rows: LoanRecord[], refDate: Date): GroupAgg[] {
   labels.set(AGE_UNKNOWN.key, AGE_UNKNOWN.label);
 
   const order = [...AGE_BUCKETS.map((b) => b.key), AGE_UNKNOWN.key];
-  const map = new Map<string, GroupAgg & { _kh: Set<string>; _maKHs: Set<string> }>();
+  const map = new Map<
+    string,
+    GroupAgg & {
+      _kh: Set<string>;
+      _maKHs: Set<string>;
+      _depositPerKey: Map<string, number>;
+    }
+  >();
 
   for (const r of rows) {
     const key = ageBucketKey(ageYears(r.ngaySinh, refDate));
@@ -213,8 +262,10 @@ export function groupByAge(rows: LoanRecord[], refDate: Date): GroupAgg[] {
         tyLeKhoanh: 0,
         laiTonTH: 0,
         thuLaiTHThang: 0,
+        soDuTienGui105: 0,
         _kh: new Set<string>(),
         _maKHs: new Set<string>(),
+        _depositPerKey: new Map<string, number>(),
       };
       map.set(key, g);
     }
@@ -229,6 +280,13 @@ export function groupByAge(rows: LoanRecord[], refDate: Date): GroupAgg[] {
       g._kh.add(r.maKH);
       g._maKHs.add(r.maKH);
     }
+    const depKey = r.maKH || r.soKheUoc;
+    if (depKey) {
+      const v = r.soDuTienGui105 ?? 0;
+      const cur = g._depositPerKey.get(depKey) ?? 0;
+      if (v > cur) g._depositPerKey.set(depKey, v);
+      else if (!g._depositPerKey.has(depKey)) g._depositPerKey.set(depKey, v);
+    }
   }
 
   const out: GroupAgg[] = [];
@@ -238,7 +296,10 @@ export function groupByAge(rows: LoanRecord[], refDate: Date): GroupAgg[] {
     g.soKhachHang = g._kh.size;
     g.tyLeNoQH = g.tongDuNo > 0 ? (g.duNoQuaHan / g.tongDuNo) * 100 : 0;
     g.tyLeKhoanh = g.tongDuNo > 0 ? (g.duNoKhoanh / g.tongDuNo) * 100 : 0;
-    const { _kh, _maKHs, ...rest } = g;
+    let sd = 0;
+    for (const v of g._depositPerKey.values()) sd += v;
+    g.soDuTienGui105 = sd;
+    const { _kh, _maKHs, _depositPerKey, ...rest } = g;
     out.push({ ...rest, maKHs: Array.from(_maKHs) });
   }
   return out;

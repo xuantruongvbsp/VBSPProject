@@ -15,6 +15,14 @@ _inspect/
 public/published*.json
 public/published*.json.gz
 
+# PII — file PDF đính kèm Quyết định (sinh runtime trên máy owner)
+public/decision-attachments/
+
+# Test screenshots from MCP browser sessions (root-level)
+overview-*.png
+viewer-*.png
+snapshot-*.png
+
 # Scratch / preview artifacts
 .tmp/
 

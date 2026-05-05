@@ -16,7 +16,7 @@ import {
   Percent,
   LayoutGrid,
   PieChart,
-
+  PiggyBank,
   Activity,
   Table,
   Search,
@@ -206,6 +206,16 @@ export function OverviewPage() {
   const byProgram = useMemo(() => groupBy(filtered, 'tenChuongTrinh'), [filtered]);
   const byDVUT = useMemo(() => groupBy(filtered, 'tenDVUT'), [filtered]);
   const byXa = useMemo(() => groupBy(filtered, 'tenXa'), [filtered]);
+  // Top theo "Số dư tiền gửi 105" — `groupBy` sắp xếp mặc định theo tongDuNo,
+  // ở đây cần sắp lại để chart "Top 10" đúng nghĩa với chỉ tiêu tiền gửi.
+  const byDVUTDeposit = useMemo(
+    () => [...byDVUT].sort((a, b) => b.soDuTienGui105 - a.soDuTienGui105),
+    [byDVUT],
+  );
+  const byXaDeposit = useMemo(
+    () => [...byXa].sort((a, b) => b.soDuTienGui105 - a.soDuTienGui105),
+    [byXa],
+  );
 
   // Tách Tổng dư nợ theo Nguồn vốn TW/DP. Báo cáo 31 mã hóa Nguồn vốn theo
   // VBSP: '1' = Trung ương, '2' = Địa phương, '3' = Địa phương xã (vẫn
@@ -316,6 +326,8 @@ export function OverviewPage() {
               '#chart-program',
               '#chart-histogram',
               '#chart-xa',
+              '#chart-tien-gui-dvut',
+              '#chart-tien-gui-xa',
               '#chart-timeseries',
               '#chart-customer-structure',
               '#chart-maturity',
@@ -372,22 +384,10 @@ export function OverviewPage() {
           formatter={fmtCompact}
           infoKey="mucVayBinhQuan"
         />
-        <KpiCard
-          label="Dư nợ quá hạn"
-          value={kpi.duNoQuaHan}
-          tone="danger"
-          icon={<AlertTriangle className="h-4 w-4" />}
-          formatter={fmtCompact}
-          caption={`Tỷ lệ ${fmtPercent(kpi.tyLeNoQuaHan)}`}
-          infoKey="duNoQuaHan"
-        />
-        <KpiCard
-          label="Dư nợ khoanh"
-          value={kpi.duNoKhoanh}
-          tone="warning"
-          icon={<Snowflake className="h-4 w-4" />}
-          formatter={fmtCompact}
-          infoKey="duNoKhoanh"
+        <QuaHanKhoanhCard
+          quaHan={kpi.duNoQuaHan}
+          khoanh={kpi.duNoKhoanh}
+          tyLeQuaHan={kpi.tyLeNoQuaHan}
         />
         <KpiCard
           label="Lãi tồn trong hạn"
@@ -404,6 +404,15 @@ export function OverviewPage() {
           icon={<UserX className="h-4 w-4" />}
           caption="Không giao dịch ≥ 3 tháng"
           infoKey="khachHangNgungGiaoDich"
+        />
+        <KpiCard
+          label="Số dư tiền gửi 105"
+          value={kpi.soDuTienGui105}
+          tone="primary"
+          icon={<PiggyBank className="h-4 w-4" />}
+          formatter={fmtCompact}
+          caption="Tổng theo khách hàng (đã dedupe)"
+          infoKey="soDuTienGui105"
         />
       </div>
 
@@ -469,6 +478,44 @@ export function OverviewPage() {
           />
         </CardContent>
       </Card>
+
+      {/* Row 1.6: Số dư tiền gửi 105 — by ĐVUT + by Xã */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Số dư tiền gửi 105 theo Đơn vị ủy thác</CardTitle>
+              <InfoPopover metricKey="chartTienGui105Dvut" />
+            </div>
+          </CardHeader>
+          <CardContent id="chart-tien-gui-dvut">
+            <BarByGroup
+              data={byDVUTDeposit}
+              limit={6}
+              metric="soDuTienGui105"
+              tooltipLabel="Số dư tiền gửi 105"
+              onClick={(v) => drillTo('tenDVUT', v)}
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Số dư tiền gửi 105 theo Xã</CardTitle>
+              <InfoPopover metricKey="chartTienGui105Xa" />
+            </div>
+          </CardHeader>
+          <CardContent id="chart-tien-gui-xa">
+            <BarByGroup
+              data={byXaDeposit}
+              limit={10}
+              metric="soDuTienGui105"
+              tooltipLabel="Số dư tiền gửi 105"
+              onClick={(v) => drillTo('tenXa', v)}
+            />
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Row 2: Histogram + Dư nợ theo CBTD (CBTD conditional) */}
       <div
@@ -882,6 +929,60 @@ function NguonVonCard({
           {caption}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Card "Dư nợ quá hạn / khoanh" — biến thể 2 cột của KpiCard, gộp hai chỉ
+ * tiêu chất lượng tín dụng vào cùng một thẻ. Cả hai đều thuộc nhóm "có vấn
+ * đề" nên dùng tone rose (danger) làm chủ đạo. Tỷ lệ quá hạn hiển thị ở
+ * caption để khớp với hành vi cũ của KpiCard "Dư nợ quá hạn".
+ */
+function QuaHanKhoanhCard({
+  quaHan,
+  khoanh,
+  tyLeQuaHan,
+}: {
+  quaHan: number;
+  khoanh: number;
+  tyLeQuaHan: number;
+}) {
+  return (
+    <div className="relative overflow-hidden rounded-xl bg-rose-50 p-4 shadow-sm ring-1 ring-rose-200 dark:bg-rose-500/10 dark:ring-rose-500/25">
+      <span className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full bg-black/5 dark:bg-white/5" />
+      <div className="absolute right-2 top-2 z-10">
+        <InfoPopover metricKey="duNoQuaHanKhoanh" />
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-xs font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-300">
+          Dư nợ quá hạn / khoanh
+        </div>
+        <div className="rounded-full bg-rose-100 p-1.5 text-rose-800 dark:bg-rose-500/20 dark:text-rose-200">
+          <AlertTriangle className="h-4 w-4" />
+        </div>
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-3">
+        <div className="min-w-0">
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-rose-700/80 dark:text-rose-300/80">
+            Quá hạn
+          </div>
+          <div className="truncate text-lg font-bold tracking-tight text-rose-900 dark:text-rose-200">
+            {fmtCompact(quaHan)}
+          </div>
+          <div className="text-[10px] text-rose-700/70 dark:text-rose-300/70">
+            Tỷ lệ {fmtPercent(tyLeQuaHan)}
+          </div>
+        </div>
+        <div className="min-w-0 border-l border-rose-200 pl-3 dark:border-rose-500/25">
+          <div className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700/90 dark:text-amber-300/90">
+            <Snowflake className="h-3 w-3" /> Khoanh
+          </div>
+          <div className="truncate text-lg font-bold tracking-tight text-amber-800 dark:text-amber-200">
+            {fmtCompact(khoanh)}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

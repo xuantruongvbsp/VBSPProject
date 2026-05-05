@@ -19,6 +19,7 @@ import {
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
+import { useIsOwner } from '@/store/useAuthStore';
 import { parseActualFile, parseNq11File } from '@/data/credit-plan-parser';
 import { nguonVonLabel } from '@/lib/credit-plan-types';
 
@@ -82,6 +83,7 @@ export function ActualImport() {
     getMergedActuals,
     decisions,
   } = useCreditPlanStore();
+  const isOwner = useIsOwner();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -212,14 +214,15 @@ export function ActualImport() {
             Nhập file Báo cáo 31 (sao kê chi tiết) để lấy dữ liệu dư nợ thực tế
           </p>
         </div>
-        {actuals.length > 0 && (
+        {actuals.length > 0 && isOwner && (
           <Button variant="outline" onClick={clearActuals}>
             <Trash2 className="h-4 w-4" /> Xóa dữ liệu
           </Button>
         )}
       </div>
 
-      {/* Dropzone — Báo cáo 31 */}
+      {/* Dropzone — Báo cáo 31 (chỉ owner mới nhập file; viewer chỉ xem) */}
+      {isOwner && (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -277,8 +280,11 @@ export function ActualImport() {
           )}
         </CardContent>
       </Card>
+      )}
 
-      {/* NQ11 — Sao kê món vay GQVL không được cho vay quay vòng */}
+      {/* NQ11 — Sao kê món vay GQVL không được cho vay quay vòng.
+          Viewer vẫn xem được tổng hợp đã đồng bộ; chỉ ẩn ô nhập file + nút xóa. */}
+      {(isOwner || nq11Summaries.length > 0) && (
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-3">
           <div>
@@ -291,13 +297,14 @@ export function ActualImport() {
               Số liệu sẽ được tách ra khỏi 03A / 03B trong báo cáo.
             </CardDescription>
           </div>
-          {nq11Summaries.length > 0 && (
+          {nq11Summaries.length > 0 && isOwner && (
             <Button variant="outline" size="sm" onClick={clearNq11}>
               <Trash2 className="h-4 w-4" /> Xóa NQ11
             </Button>
           )}
         </CardHeader>
         <CardContent className="space-y-4">
+          {isOwner && (
           <div
             onDragOver={(e) => { e.preventDefault(); setNq11DragOver(true); }}
             onDragLeave={() => setNq11DragOver(false)}
@@ -332,8 +339,9 @@ export function ActualImport() {
               </>
             )}
           </div>
+          )}
 
-          {nq11Error && (
+          {nq11Error && isOwner && (
             <div className="flex items-start gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-300">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               <div>{nq11Error}</div>
@@ -466,6 +474,7 @@ export function ActualImport() {
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* Summary cards */}
       {actuals.length > 0 && (

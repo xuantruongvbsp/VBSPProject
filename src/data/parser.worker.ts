@@ -128,6 +128,7 @@ function normalize(row: Row, idx: Record<string, number>): LoanRecord {
     duNoKhoanh: toNumber(get(row, idx, 'Dư nợ khoanh')),
     tongDuNo: toNumber(get(row, idx, 'Tổng dư nợ')),
     gocDaTra: toNumber(get(row, idx, 'Gốc đã trả')),
+    soDuTienGui105: toNumber(get(row, idx, 'Số dư tiền gửi 105')),
 
     tongThuLaiTH: toNumber(get(row, idx, 'Tổng thu lãi TH')),
     laiTonTH: toNumber(get(row, idx, 'Lãi tồn TH')),

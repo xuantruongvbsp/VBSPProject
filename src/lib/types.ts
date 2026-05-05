@@ -58,6 +58,10 @@ export interface LoanRecord {
   duNoKhoanh: number;
   tongDuNo: number;
   gocDaTra: number;
+  /** Số dư tiền gửi tiết kiệm 105 — chỉ tiêu cấp khách hàng (lặp trên các
+   *  dòng khế ước của cùng 1 KH). Khi tổng hợp phải dedupe theo `maKH` để
+   *  không cộng lặp nhiều lần. */
+  soDuTienGui105: number;
 
   // Lãi
   tongThuLaiTH: number;

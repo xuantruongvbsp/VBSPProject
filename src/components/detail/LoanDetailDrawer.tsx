@@ -70,6 +70,7 @@ const sections: { title: string; fields: { label: string; key: string }[] }[] = 
       { label: 'Tổng dư nợ', key: 'Tổng dư nợ' },
       { label: 'Gốc đã trả', key: 'Gốc đã trả' },
       { label: 'Giải ngân trong tháng', key: 'Giải ngân trong tháng' },
+      { label: 'Số dư tiền gửi 105', key: 'Số dư tiền gửi 105' },
     ],
   },
   {
@@ -104,6 +105,7 @@ const moneyKeys = new Set([
   'Dư nợ khoanh',
   'Tổng dư nợ',
   'Gốc đã trả',
+  'Số dư tiền gửi 105',
   'Tổng thu lãi TH',
   'Lãi tồn TH',
   'Tổng thu lãi QH',

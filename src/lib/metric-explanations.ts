@@ -64,6 +64,34 @@ export const METRIC_EXPLANATIONS: Record<string, MetricExplanation> = {
       'Cộng dồn cột "Dư nợ khoanh" trên Báo cáo 31 theo từng khế ước, sau khi áp dụng bộ lọc hiện hành.',
     note: 'Nợ khoanh vẫn thuộc danh mục theo dõi nhưng tạm thời không tính vào chỉ tiêu thu hồi trong kỳ.',
   },
+  soDuTienGui105: {
+    title: 'Số dư tiền gửi 105',
+    definition:
+      'Tổng số dư tiền gửi tiết kiệm (chương trình 105) của khách hàng đang có khế ước trong danh mục, sau khi áp dụng bộ lọc hiện hành.',
+    formula:
+      'Σ "Số dư tiền gửi 105" sau khi dedupe theo Mã KH — vì giá trị này được lặp trên mỗi dòng khế ước của cùng một khách hàng, cộng tay sẽ over-count theo số khế ước/khách.',
+    note: 'Là chỉ tiêu cấp khách hàng, không phải cấp khế ước. Một KH có nhiều khế ước trong dữ liệu chỉ tính 1 lần.',
+  },
+  chartTienGui105Dvut: {
+    title: 'Số dư tiền gửi 105 theo Đơn vị ủy thác',
+    definition: 'Phân bố tổng số dư tiền gửi 105 giữa các tổ chức ủy thác (Hội đoàn thể).',
+    formula:
+      'Gom theo "Tên ĐVUT", trong mỗi nhóm dedupe theo Mã KH rồi cộng "Số dư tiền gửi 105".',
+  },
+  chartTienGui105Xa: {
+    title: 'Số dư tiền gửi 105 theo Xã',
+    definition: 'Top 10 xã có tổng số dư tiền gửi 105 cao nhất.',
+    formula:
+      'Gom theo "Tên xã", trong mỗi xã dedupe theo Mã KH rồi cộng "Số dư tiền gửi 105", lấy 10 xã đầu.',
+  },
+  duNoQuaHanKhoanh: {
+    title: 'Dư nợ quá hạn / khoanh',
+    definition:
+      'Hai phần dư nợ có vấn đề: "Quá hạn" là dư nợ gốc đã đến hạn nhưng chưa thu hồi; "Khoanh" là dư nợ được cấp có thẩm quyền cho phép tạm dừng thu hồi do rủi ro bất khả kháng.',
+    formula:
+      'Quá hạn = Σ "Dư nợ quá hạn"; Khoanh = Σ "Dư nợ khoanh". Tỷ lệ = Quá hạn ÷ Tổng dư nợ.',
+    note: 'Cả hai cùng phản ánh chất lượng tín dụng nhưng có ý nghĩa khác nhau — quá hạn là chỉ báo cảnh báo, khoanh là cơ chế bảo vệ tạm thời.',
+  },
   laiTonTrongHan: {
     title: 'Lãi tồn trong hạn',
     definition:

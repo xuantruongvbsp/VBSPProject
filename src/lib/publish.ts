@@ -12,6 +12,13 @@ import type {
   PeriodSlotKey,
   PeriodSnapshot,
 } from '@/store/usePeriodStore';
+import type {
+  Decision,
+  PlanEntry,
+  ActualSummary,
+  Nq11XaSummary,
+  Nq11MatchXa,
+} from './credit-plan-types';
 
 // File xuất bản được nén gzip để giảm kích thước on-wire ~10× (49 MB → ~5 MB).
 // Tệp `.json` cũ vẫn được fetch fallback để tương thích ngược trong giai đoạn
@@ -22,9 +29,12 @@ const PERIOD_URL_GZ = '/published-period.json.gz';
 const PERIOD_URL_PLAIN = '/published-period.json';
 const CATALOG_URL_GZ = '/published-catalog.json.gz';
 const CATALOG_URL_PLAIN = '/published-catalog.json';
+const CREDIT_PLAN_URL_GZ = '/published-credit-plan.json.gz';
+const CREDIT_PLAN_URL_PLAIN = '/published-credit-plan.json';
 const PUBLISH_API_SNAPSHOT = '/__publish/snapshot';
 const PUBLISH_API_PERIOD = '/__publish/period';
 const PUBLISH_API_CATALOG = '/__publish/catalog';
+const PUBLISH_API_CREDIT_PLAN = '/__publish/credit-plan';
 
 // ---------------------------------------------------------------------------
 // Tuần tự hóa: chuyển Date → ISO string + đánh dấu để khôi phục lại sau.
@@ -64,6 +74,7 @@ const RAW_KEYS_FOR_VIEWER: ReadonlyArray<string> = [
   // Số dư & Giải ngân
   'Mức vay', 'Tổng giải ngân', 'Dư nợ trong hạn', 'Dư nợ quá hạn',
   'Dư nợ khoanh', 'Tổng dư nợ', 'Gốc đã trả', 'Giải ngân trong tháng',
+  'Số dư tiền gửi 105',
   // Lãi & Thu nợ
   'Tổng thu lãi TH', 'Lãi tồn TH', 'Tổng thu lãi QH', 'Lãi tồn QH',
   'Lãi DT chưa đến hạn', 'Thu lãi TH tháng', 'Thu nợ TH tháng',
@@ -540,4 +551,136 @@ export async function fetchPublishedCatalog(): Promise<DeserializedCatalog | nul
 
 export async function unpublishCatalog(): Promise<void> {
   await fetch(PUBLISH_API_CATALOG, { method: 'DELETE' });
+}
+
+// ---------------------------------------------------------------------------
+// Kế hoạch tín dụng (decisions, plans, actuals, NQ11)
+//
+// Khác hai endpoint trên — dữ liệu Kế hoạch tín dụng KHÔNG đến từ Excel mỗi
+// lần. Chủ sở hữu chỉnh sửa decisions/plans qua UI và mỗi lần thay đổi sẽ
+// được auto-sync (debounce) lên endpoint này. Người xem fetch một lần lúc
+// vào trang; refresh để lấy bản mới.
+//
+// PDF đính kèm vào quyết định lưu trong IndexedDB của owner — KHÔNG đi kèm
+// payload publish (sẽ vượt quota nhanh và mỗi viewer phải có quyền IDB).
+// Viewer chỉ thấy metadata `attachment` (fileName/size); UI ẩn nút mở/tải.
+// ---------------------------------------------------------------------------
+
+export interface CreditPlanPublishPayload {
+  v: 1;
+  decisions: Decision[];
+  plans: PlanEntry[];
+  actuals: ActualSummary[];
+  actualDate: string | null;
+  actualTotalRows: number;
+  actualDiag: {
+    scannedRows?: number;
+    skippedRows?: number;
+    detectedIdCols?: string[];
+    duplicateLoanIds?: number;
+    hasInvestorCol?: boolean;
+    gqvlXaReclassified?: number;
+  } | null;
+  nq11Summaries: Nq11XaSummary[];
+  nq11MonVayIds: string[];
+  nq11Date: string | null;
+  nq11TotalRows: number;
+  nq11MatchByXa: Nq11MatchXa[];
+}
+
+export type DeserializedCreditPlan = CreditPlanPublishPayload;
+
+export function serializeCreditPlan(p: Omit<CreditPlanPublishPayload, 'v'>): string {
+  return JSON.stringify({ v: 1, ...p } satisfies CreditPlanPublishPayload);
+}
+
+export function deserializeCreditPlan(text: string): DeserializedCreditPlan | null {
+  const obj = JSON.parse(text) as Partial<CreditPlanPublishPayload>;
+  if (!obj || obj.v !== 1) return null;
+  return {
+    v: 1,
+    decisions: Array.isArray(obj.decisions) ? obj.decisions : [],
+    plans: Array.isArray(obj.plans) ? obj.plans : [],
+    actuals: Array.isArray(obj.actuals) ? obj.actuals : [],
+    actualDate: obj.actualDate ?? null,
+    actualTotalRows: typeof obj.actualTotalRows === 'number' ? obj.actualTotalRows : 0,
+    actualDiag: obj.actualDiag ?? null,
+    nq11Summaries: Array.isArray(obj.nq11Summaries) ? obj.nq11Summaries : [],
+    nq11MonVayIds: Array.isArray(obj.nq11MonVayIds) ? obj.nq11MonVayIds : [],
+    nq11Date: obj.nq11Date ?? null,
+    nq11TotalRows: typeof obj.nq11TotalRows === 'number' ? obj.nq11TotalRows : 0,
+    nq11MatchByXa: Array.isArray(obj.nq11MatchByXa) ? obj.nq11MatchByXa : [],
+  };
+}
+
+export async function publishCreditPlan(
+  payload: Omit<CreditPlanPublishPayload, 'v'>
+): Promise<void> {
+  try {
+    const blob = new Blob([serializeCreditPlan(payload)], {
+      type: 'application/json',
+    });
+    await uploadBlob(PUBLISH_API_CREDIT_PLAN, blob);
+  } catch (err) {
+    throw new Error(
+      `Xuất bản Kế hoạch tín dụng thất bại: ${
+        err instanceof Error ? err.message : String(err)
+      }`
+    );
+  }
+}
+
+export async function fetchPublishedCreditPlan(): Promise<DeserializedCreditPlan | null> {
+  try {
+    const text =
+      (await fetchAndMaybeUngzip(CREDIT_PLAN_URL_GZ)) ??
+      (await fetchAndMaybeUngzip(CREDIT_PLAN_URL_PLAIN));
+    if (text === null) return null;
+    return deserializeCreditPlan(text);
+  } catch (e) {
+    if (e instanceof SyntaxError) return null;
+    throw e;
+  }
+}
+
+export async function unpublishCreditPlan(): Promise<void> {
+  await fetch(PUBLISH_API_CREDIT_PLAN, { method: 'DELETE' });
+}
+
+// ---------------------------------------------------------------------------
+// PDF đính kèm Quyết định — mỗi file lưu tại
+// `/decision-attachments/<id>.pdf`. Owner upload nguyên blob (không gzip để
+// tránh nén lại file đã nén). Viewer mở/tải bằng URL trực tiếp.
+// ---------------------------------------------------------------------------
+
+const PUBLISH_API_ATTACHMENT_PREFIX = '/__publish/decision-attachment/';
+const VIEWER_ATTACHMENT_PREFIX = '/decision-attachments/';
+
+/** URL công khai để viewer mở/tải file PDF đã xuất bản. */
+export function publicAttachmentUrl(decisionId: string): string {
+  return `${VIEWER_ATTACHMENT_PREFIX}${encodeURIComponent(decisionId)}.pdf`;
+}
+
+/** Owner gọi sau khi lưu blob vào IndexedDB — đẩy bản sao lên server tĩnh. */
+export async function publishAttachment(decisionId: string, blob: Blob): Promise<void> {
+  const res = await fetch(`${PUBLISH_API_ATTACHMENT_PREFIX}${encodeURIComponent(decisionId)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/pdf' },
+    body: blob,
+  });
+  if (!res.ok) {
+    let detail = '';
+    try {
+      detail = await res.text();
+    } catch {
+      /* bỏ qua */
+    }
+    throw new Error(`Đẩy PDF lên thất bại: ${res.status} ${detail || res.statusText}`);
+  }
+}
+
+export async function unpublishAttachment(decisionId: string): Promise<void> {
+  await fetch(`${PUBLISH_API_ATTACHMENT_PREFIX}${encodeURIComponent(decisionId)}`, {
+    method: 'DELETE',
+  });
 }

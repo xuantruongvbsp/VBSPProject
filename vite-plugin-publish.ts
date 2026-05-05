@@ -35,11 +35,24 @@ const ROUTES: Record<string, RouteSpec> = {
     plain: 'published-catalog.json',
     gz: 'published-catalog.json.gz',
   },
+  '/__publish/credit-plan': {
+    plain: 'published-credit-plan.json',
+    gz: 'published-credit-plan.json.gz',
+  },
 };
 
 // Body đã được trình duyệt nén → giới hạn 50 MB là dư cho ~30k khế ước × 2 kỳ.
 // (Plain JSON 99 MB → gzip ~10 MB; để 50 MB phòng dữ liệu phình to.)
 const MAX_BODY_BYTES = 50 * 1024 * 1024;
+
+const ATTACHMENT_PREFIX = '/__publish/decision-attachment/';
+const ATTACHMENT_DIR = 'decision-attachments';
+// Giới hạn cao hơn cho PDF — phù hợp với MAX_ATTACHMENT_SIZE=25 MB ở client.
+const MAX_ATTACHMENT_BYTES = 30 * 1024 * 1024;
+// Whitelist id: chỉ cho phép a-z, A-Z, 0-9, dấu gạch ngang. Khớp với
+// crypto.randomUUID() dạng v4. Loại trừ '/', '..', null bytes → tránh path
+// traversal khi nhận id từ URL ngoài.
+const SAFE_ID_REGEX = /^[a-zA-Z0-9-]{1,64}$/;
 
 function readBody(req: IncomingMessage): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -83,12 +96,85 @@ function writeJson(res: ServerResponse, code: number, body: unknown) {
   res.end(JSON.stringify(body));
 }
 
+async function readAttachmentBody(req: IncomingMessage): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let total = 0;
+    req.on('data', (c: Buffer) => {
+      total += c.length;
+      if (total > MAX_ATTACHMENT_BYTES) {
+        reject(new Error('File PDF quá lớn (>30 MB)'));
+        req.destroy();
+        return;
+      }
+      chunks.push(c);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
+
+async function handleAttachment(
+  req: IncomingMessage,
+  res: ServerResponse,
+  targetDir: string,
+  id: string
+): Promise<void> {
+  if (!SAFE_ID_REGEX.test(id)) {
+    writeJson(res, 400, { error: 'id không hợp lệ' });
+    return;
+  }
+  const dir = path.join(targetDir, ATTACHMENT_DIR);
+  const filepath = path.join(dir, `${id}.pdf`);
+
+  if (req.method === 'POST') {
+    const buf = await readAttachmentBody(req);
+    // Body PDF bắt đầu bằng "%PDF" — magic bytes 0x25 0x50 0x44 0x46.
+    // Server không bắt buộc nhận đúng PDF (client đã validate), nhưng kiểm
+    // tra rẻ tiền để chặn upload nhầm file.
+    if (
+      buf.length < 4 ||
+      buf[0] !== 0x25 ||
+      buf[1] !== 0x50 ||
+      buf[2] !== 0x44 ||
+      buf[3] !== 0x46
+    ) {
+      writeJson(res, 400, { error: 'Body không phải PDF' });
+      return;
+    }
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(filepath, buf);
+    writeJson(res, 200, { ok: true, bytes: buf.length, file: `${ATTACHMENT_DIR}/${id}.pdf` });
+    return;
+  }
+  if (req.method === 'DELETE') {
+    tryUnlink(filepath);
+    writeJson(res, 200, { ok: true, file: `${ATTACHMENT_DIR}/${id}.pdf` });
+    return;
+  }
+  res.statusCode = 405;
+  res.end();
+}
+
 async function handle(
   req: IncomingMessage,
   res: ServerResponse,
   targetDir: string
 ): Promise<void> {
   const url = (req.url || '').split('?')[0];
+
+  // Routes động cho file đính kèm PDF: /__publish/decision-attachment/<id>
+  if (url.startsWith(ATTACHMENT_PREFIX)) {
+    const id = url.slice(ATTACHMENT_PREFIX.length);
+    try {
+      await handleAttachment(req, res, targetDir, id);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      writeJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
   const route = ROUTES[url];
   if (!route) {
     res.statusCode = 404;
@@ -141,7 +227,7 @@ export function publishPlugin(): Plugin {
       const publicDir = server.config.publicDir || path.resolve('public');
       server.middlewares.use((req, res, next) => {
         const url = (req.url || '').split('?')[0];
-        if (url in ROUTES) {
+        if (url in ROUTES || url.startsWith(ATTACHMENT_PREFIX)) {
           handle(req, res, publicDir);
           return;
         }
@@ -154,7 +240,7 @@ export function publishPlugin(): Plugin {
       const distDir = server.config.build.outDir || path.resolve('dist');
       server.middlewares.use((req, res, next) => {
         const url = (req.url || '').split('?')[0];
-        if (url in ROUTES) {
+        if (url in ROUTES || url.startsWith(ATTACHMENT_PREFIX)) {
           handle(req, res, distDir);
           return;
         }

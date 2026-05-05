@@ -154,6 +154,24 @@ export async function saveRecentFile(
   return meta;
 }
 
+/** Bù các trường được thêm sau khi tệp đã được parse và cache. Đọc giá trị
+ * từ `raw` (chứa toàn bộ 174 cột gốc) và gán vào trường đã type-hóa nếu
+ * trường đó đang `undefined`. Không thay đổi gì nếu trường đã có giá trị. */
+function backfillTypedFields(rows: LoanRecord[]): LoanRecord[] {
+  if (rows.length === 0) return rows;
+  // Một mẫu cũ sẽ thiếu các field mới — kiểm tra trên row đầu là đủ vì
+  // toàn bộ rows đều xuất phát từ cùng một parser snapshot.
+  const sample = rows[0];
+  const needsDeposit = !('soDuTienGui105' in sample);
+  if (!needsDeposit) return rows;
+  return rows.map((r) => {
+    const raw = r.raw ?? {};
+    const v = raw['Số dư tiền gửi 105'];
+    const num = typeof v === 'number' ? v : Number(v) || 0;
+    return { ...r, soDuTienGui105: num } as LoanRecord;
+  });
+}
+
 /** Tải lại một tệp đã lưu — trả về null nếu không tìm thấy. */
 export async function loadRecentFile(id: string): Promise<{
   meta: RecentFileMeta;
@@ -171,7 +189,7 @@ export async function loadRecentFile(id: string): Promise<{
     // Cập nhật thời điểm mở gần nhất
     meta.lastOpenedAt = Date.now();
     await reqAsPromise(t.objectStore(META_STORE).put(meta));
-    return { meta, rows: data.rows };
+    return { meta, rows: backfillTypedFields(data.rows) };
   });
 }
 

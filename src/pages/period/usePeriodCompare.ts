@@ -61,6 +61,7 @@ const EMPTY_RESULT: PeriodCompareSlice = {
       thuLaiTHThang: 0,
       laiSuatBQ: 0,
       mucVayBQ: 0,
+      soDuTienGui105: 0,
     },
     curr: {
       soKheUoc: 0,
@@ -74,6 +75,7 @@ const EMPTY_RESULT: PeriodCompareSlice = {
       thuLaiTHThang: 0,
       laiSuatBQ: 0,
       mucVayBQ: 0,
+      soDuTienGui105: 0,
     },
     delta: {
       soKheUoc: 0,
@@ -87,6 +89,7 @@ const EMPTY_RESULT: PeriodCompareSlice = {
       thuLaiTHThang: 0,
       laiSuatBQ: 0,
       mucVayBQ: 0,
+      soDuTienGui105: 0,
     },
     pct: {
       soKheUoc: null,
@@ -100,6 +103,7 @@ const EMPTY_RESULT: PeriodCompareSlice = {
       thuLaiTHThang: null,
       laiSuatBQ: null,
       mucVayBQ: null,
+      soDuTienGui105: null,
     },
   },
   rollCure: { rollRate: 0, cureRate: 0, rollCount: 0, cureCount: 0, baseTrongHanT1: 0, baseQuaHanT1: 0 },

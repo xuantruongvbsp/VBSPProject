@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Hourglass } from 'lucide-react';
 
 interface Props {
-  app: 'snapshot' | 'period';
+  app: 'snapshot' | 'period' | 'credit-plan';
 }
 
 export function ViewerEmptyState({ app }: Props) {
@@ -14,7 +14,9 @@ export function ViewerEmptyState({ app }: Props) {
   const title =
     app === 'snapshot'
       ? 'Phân tích một kỳ — chưa có dữ liệu'
-      : 'So sánh giữa hai kỳ — chưa có dữ liệu';
+      : app === 'period'
+      ? 'So sánh giữa hai kỳ — chưa có dữ liệu'
+      : 'Kế hoạch tín dụng — chưa có dữ liệu';
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-12">
       <div className="w-full max-w-lg text-center">

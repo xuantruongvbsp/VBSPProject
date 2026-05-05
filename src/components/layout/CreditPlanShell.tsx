@@ -13,6 +13,9 @@ import {
 import { cn } from '@/lib/utils';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
 import { useThemeStore } from '@/store/useThemeStore';
+import { useIsOwner } from '@/store/useAuthStore';
+import { CreditPlanAutoSync } from '@/components/owner/CreditPlanAutoSync';
+import { ViewerEmptyState } from '@/components/auth/ViewerEmptyState';
 
 const navItems = [
   { to: '/credit-plan/decisions', label: 'Quyết định', icon: FileText },
@@ -29,7 +32,17 @@ export function CreditPlanShell() {
   const actualDate = useCreditPlanStore((s) => s.actualDate);
   const nq11Summaries = useCreditPlanStore((s) => s.nq11Summaries);
   const nq11TotalRows = useCreditPlanStore((s) => s.nq11TotalRows);
+  const decisions = useCreditPlanStore((s) => s.decisions);
   const { theme, toggle: toggleTheme } = useThemeStore();
+  const isOwner = useIsOwner();
+
+  // Người xem chưa thấy dữ liệu nào — owner chưa nhập kế hoạch nào lên server.
+  // (Khác Snapshot/Period: ở đây "chưa có dữ liệu" = không có decisions/plans
+  // và không có actuals. NQ11 đứng một mình không đủ để xem báo cáo.)
+  const hasAnyData = decisions.length > 0 || plans.length > 0 || actuals.length > 0;
+  if (!isOwner && !hasAnyData) {
+    return <ViewerEmptyState app="credit-plan" />;
+  }
 
   return (
     <div className="flex h-screen w-full flex-col bg-white dark:bg-slate-900 md:flex-row">
@@ -112,6 +125,9 @@ export function CreditPlanShell() {
               NQ11 · {nq11TotalRows.toLocaleString('vi-VN')} món / {nq11Summaries.length} xã
             </div>
           )}
+          <div className="mt-2">
+            <CreditPlanAutoSync />
+          </div>
         </div>
       </aside>
 

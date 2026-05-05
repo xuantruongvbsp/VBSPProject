@@ -17,6 +17,7 @@ import {
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
+import { useIsOwner } from '@/store/useAuthStore';
 import {
   NGUON_VON_LIST,
   nguonVonListLabel,
@@ -26,11 +27,17 @@ import {
 import {
   saveAttachmentBlob,
   deleteAttachmentBlob,
+  getAttachmentBlob,
   openAttachmentInNewTab,
   downloadAttachment,
   formatBytes,
   MAX_ATTACHMENT_SIZE,
 } from '@/lib/decision-attachments';
+import {
+  publishAttachment,
+  unpublishAttachment,
+  publicAttachmentUrl,
+} from '@/lib/publish';
 
 interface DecisionForm {
   soQD: string;
@@ -95,6 +102,7 @@ export function DecisionManager() {
   const addDecision = useCreditPlanStore((s) => s.addDecision);
   const updateDecision = useCreditPlanStore((s) => s.updateDecision);
   const deleteDecision = useCreditPlanStore((s) => s.deleteDecision);
+  const isOwner = useIsOwner();
 
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -167,10 +175,14 @@ export function DecisionManager() {
       const existing = editId ? decisions.find((d) => d.id === editId) : undefined;
       const decisionId = editId ?? crypto.randomUUID();
 
-      // Xử lý attachment trước để metadata kèm theo lúc save decision
+      // Xử lý attachment trước để metadata kèm theo lúc save decision.
+      // Cả hai bên: lưu IDB (owner đọc nhanh) + publish lên server tĩnh
+      // (viewer mở qua URL công khai). Lỗi publish → ném lên catch ngoài
+      // để báo cho người dùng — không làm im lặng.
       let nextAttachment = existing?.attachment;
       if (pendingFile) {
         await saveAttachmentBlob(decisionId, pendingFile);
+        await publishAttachment(decisionId, pendingFile);
         nextAttachment = {
           fileName: pendingFile.name,
           size: pendingFile.size,
@@ -179,6 +191,7 @@ export function DecisionManager() {
         };
       } else if (removeExistingFile && existing?.attachment) {
         await deleteAttachmentBlob(decisionId).catch(() => undefined);
+        await unpublishAttachment(decisionId).catch(() => undefined);
         nextAttachment = undefined;
       }
 
@@ -232,15 +245,48 @@ export function DecisionManager() {
     if (!d.attachment) return;
     if (!confirm(`Xóa file "${d.attachment.fileName}" khỏi QĐ "${d.soQD}"?`)) return;
     await deleteAttachmentBlob(d.id).catch(() => undefined);
+    await unpublishAttachment(d.id).catch(() => undefined);
     updateDecision(d.id, { attachment: undefined });
   };
 
-  const confirmDelete = (d: Decision) => {
+  const confirmDelete = async (d: Decision) => {
     const s = stats.get(d.id);
     const msg = s
       ? `Xóa QĐ "${d.soQD}" sẽ xóa luôn ${s.count} dòng kế hoạch (tổng ${fmtMoney(s.total)} tr.đ). Tiếp tục?`
       : `Xóa QĐ "${d.soQD}"?`;
-    if (confirm(msg)) deleteDecision(d.id);
+    if (!confirm(msg)) return;
+    if (d.attachment) {
+      await unpublishAttachment(d.id).catch(() => undefined);
+    }
+    deleteDecision(d.id);
+  };
+
+  // Viewer mở/tải PDF từ URL công khai. Owner ưu tiên blob trong IndexedDB
+  // (đã có sẵn) — fallback URL trong trường hợp IDB rỗng (vd: vừa import dữ
+  // liệu từ máy khác). Đặt fallback nhẹ này giúp owner luôn xem được file.
+  const handleViewAttachment = async (d: Decision) => {
+    if (isOwner) {
+      const url = await openAttachmentInNewTab(d.id);
+      if (url) return;
+    }
+    window.open(publicAttachmentUrl(d.id), '_blank', 'noopener');
+  };
+
+  const handleDownloadAttachment = async (d: Decision) => {
+    if (!d.attachment) return;
+    if (isOwner) {
+      const blob = await getAttachmentBlob(d.id).catch(() => null);
+      if (blob) {
+        await downloadAttachment(d.id, d.attachment.fileName);
+        return;
+      }
+    }
+    const a = document.createElement('a');
+    a.href = publicAttachmentUrl(d.id);
+    a.download = d.attachment.fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   };
 
   const totalPlannedAll = Array.from(stats.values()).reduce((a, b) => a + b.total, 0);
@@ -256,9 +302,11 @@ export function DecisionManager() {
             Danh mục QĐ giao kế hoạch — dùng khi nhập kế hoạch dư nợ
           </p>
         </div>
-        <Button onClick={() => { resetForm(); setShowForm(true); }}>
-          <Plus className="h-4 w-4" /> Thêm QĐ
-        </Button>
+        {isOwner && (
+          <Button onClick={() => { resetForm(); setShowForm(true); }}>
+            <Plus className="h-4 w-4" /> Thêm QĐ
+          </Button>
+        )}
       </div>
 
       {/* Summary */}
@@ -622,7 +670,7 @@ export function DecisionManager() {
                               : 'Thử thay đổi bộ lọc phía trên.'}
                           </div>
                         </div>
-                        {decisions.length === 0 && (
+                        {decisions.length === 0 && isOwner && (
                           <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>
                             <Plus className="h-3.5 w-3.5" /> Thêm QĐ
                           </Button>
@@ -664,26 +712,28 @@ export function DecisionManager() {
                                 {d.attachment.fileName}
                               </span>
                               <button
-                                onClick={() => openAttachmentInNewTab(d.id)}
+                                onClick={() => handleViewAttachment(d)}
                                 className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-plan-700 dark:hover:bg-slate-700 dark:hover:text-plan-300"
                                 title="Xem PDF"
                               >
                                 <Eye className="h-3.5 w-3.5" />
                               </button>
                               <button
-                                onClick={() => downloadAttachment(d.id, d.attachment!.fileName)}
+                                onClick={() => handleDownloadAttachment(d)}
                                 className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700"
                                 title="Tải về"
                               >
                                 <Download className="h-3.5 w-3.5" />
                               </button>
-                              <button
-                                onClick={() => handleRowRemoveFile(d)}
-                                className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-rose-600 dark:hover:bg-slate-700"
-                                title="Xóa file"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
+                              {isOwner && (
+                                <button
+                                  onClick={() => handleRowRemoveFile(d)}
+                                  className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-rose-600 dark:hover:bg-slate-700"
+                                  title="Xóa file"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
                             </div>
                           ) : (
                             <span className="text-xs text-slate-300 dark:text-slate-600">—</span>
@@ -692,22 +742,24 @@ export function DecisionManager() {
                         <td className="px-4 py-2.5 text-right font-mono tabular-nums text-slate-600 dark:text-slate-300">{s?.count ?? 0}</td>
                         <td className="px-4 py-2.5 text-right font-mono tabular-nums font-semibold text-slate-900 dark:text-white">{fmtMoney(Math.round(s?.total ?? 0))}</td>
                         <td className="px-4 py-2.5">
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => startEdit(d)}
-                              className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700"
-                              title="Sửa"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={() => confirmDelete(d)}
-                              className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-rose-600 dark:hover:bg-slate-700"
-                              title="Xóa"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
+                          {isOwner ? (
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => startEdit(d)}
+                                className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700"
+                                title="Sửa"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => confirmDelete(d)}
+                                className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-rose-600 dark:hover:bg-slate-700"
+                                title="Xóa"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ) : null}
                         </td>
                       </tr>
                     );

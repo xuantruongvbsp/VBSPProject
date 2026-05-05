@@ -11,10 +11,12 @@ import { useDataStore } from '@/store/useDataStore';
 import { usePeriodStore } from '@/store/usePeriodStore';
 import { useStaffStore } from '@/store/useStaffStore';
 import { useTxnPointStore } from '@/store/useTxnPointStore';
+import { useCreditPlanStore } from '@/store/useCreditPlanStore';
 import {
   fetchPublishedSnapshot,
   fetchPublishedPeriod,
   fetchPublishedCatalog,
+  fetchPublishedCreditPlan,
 } from '@/lib/publish';
 
 export function ViewerBootstrap() {
@@ -65,6 +67,30 @@ export function ViewerBootstrap() {
         useTxnPointStore.getState().importPoints(d.txnPoints, 'replace');
       })
       .catch((e) => console.warn('[viewer] không tải được catalog', e));
+
+    // Đổ Kế hoạch tín dụng (decisions, plans, actuals, NQ11) — luôn replace
+    // để tránh trộn với phần dữ liệu cũ trong localStorage của viewer.
+    fetchPublishedCreditPlan()
+      .then((d) => {
+        if (!d) return;
+        useCreditPlanStore.setState({
+          decisions: d.decisions,
+          plans: d.plans,
+          actuals: d.actuals,
+          actualDate: d.actualDate,
+          actualTotalRows: d.actualTotalRows,
+          actualDiag: d.actualDiag,
+          nq11Summaries: d.nq11Summaries,
+          nq11MonVayIds: d.nq11MonVayIds,
+          nq11Date: d.nq11Date,
+          nq11TotalRows: d.nq11TotalRows,
+          nq11MatchByXa: d.nq11MatchByXa,
+          // loanDetailsByBucket không persist → owner side đã không publish
+          // (viewer không cần drill-down chi tiết món vay).
+          loanDetailsByBucket: {},
+        });
+      })
+      .catch((e) => console.warn('[viewer] không tải được credit-plan', e));
   }, [
     role,
     snapshotRows.length,
