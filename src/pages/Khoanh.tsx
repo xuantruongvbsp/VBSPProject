@@ -505,9 +505,8 @@ export function KhoanhPage() {
                     <th className="px-4 py-3">Chương trình</th>
                     <th className="px-4 py-3 text-right">Mức vay</th>
                     <th className="px-4 py-3 text-right">Dư nợ khoanh</th>
-                    <th className="px-4 py-3 text-right">Dư nợ QH</th>
-                    <th className="px-4 py-3 text-right">Lãi DT chưa đến hạn</th>
                     <th className="whitespace-nowrap px-4 py-3 text-right">Ngày hết hạn khoanh</th>
+                    <th className="whitespace-nowrap px-4 py-3 text-right">Ngày giao dịch gần nhất</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -544,14 +543,11 @@ export function KhoanhPage() {
                       <td className="px-4 py-3 text-right font-semibold text-amber-700 dark:text-amber-300">
                         {fmtCurrency(r.duNoKhoanh)}
                       </td>
-                      <td className="px-4 py-3 text-right text-rose-700 dark:text-rose-300">
-                        {fmtCurrency(r.duNoQuaHan)}
-                      </td>
-                      <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-300">
-                        {fmtCurrency(r.laiDTChuaDenHan)}
-                      </td>
                       <td className="whitespace-nowrap px-4 py-3 text-right text-slate-700 dark:text-slate-300">
                         {r.ngayHetHanKhoanh ? fmtDate(r.ngayHetHanKhoanh) : '—'}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right text-slate-700 dark:text-slate-300">
+                        {r.ngayGiaoDichGanNhat ? fmtDate(r.ngayGiaoDichGanNhat) : '—'}
                       </td>
                     </tr>
                   ))}
