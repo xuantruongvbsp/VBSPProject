@@ -43,6 +43,14 @@ export function fmtPercent(v: number | null | undefined, digits = 2): string {
   return v.toFixed(digits).replace('.', ',') + '%';
 }
 
+/** Hiển thị nguồn vốn: "1" → "TW" (Trung ương), "2" → "DP" (Địa phương). */
+export function fmtNguonVon(raw: string | null | undefined): string {
+  const k = String(raw ?? '').trim();
+  if (k === '1') return 'TW';
+  if (k === '2') return 'DP';
+  return k || '—';
+}
+
 export function fmtDate(d: Date | null | undefined): string {
   if (!d) return '—';
   const dd = String(d.getDate()).padStart(2, '0');

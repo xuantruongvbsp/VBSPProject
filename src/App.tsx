@@ -26,6 +26,7 @@ import { PeriodOrgGroupsPage } from '@/pages/period/PeriodOrgGroups';
 import { PeriodExplorerPage } from '@/pages/period/PeriodExplorer';
 import { PeriodOutreachPage } from '@/pages/period/PeriodOutreach';
 import { PeriodStaffComparisonPage } from '@/pages/period/PeriodStaffComparison';
+import { PeriodPointComparisonPage } from '@/pages/period/PeriodPointComparison';
 import { CreditPlanShell } from '@/components/layout/CreditPlanShell';
 import { PlanManager } from '@/pages/credit-plan/PlanManager';
 import { ActualImport } from '@/pages/credit-plan/ActualImport';
@@ -142,6 +143,7 @@ export default function App() {
         <Route path="khe-uoc" element={<PeriodExplorerPage />} />
         <Route path="khach-hang" element={<PeriodOutreachPage />} />
         <Route path="can-bo" element={<PeriodStaffComparisonPage />} />
+        <Route path="diem-giao-dich" element={<PeriodPointComparisonPage />} />
       </Route>
 
       {/* Mọi đường dẫn lạ → quay về lobby */}

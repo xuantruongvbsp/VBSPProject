@@ -615,6 +615,142 @@ export async function exportStaffComparisonToXlsx(
   XLSX.writeFile(wb, out);
 }
 
+// ─── So sánh hiệu quả ĐGD (period) ─────────────────────────────────────
+
+export interface PointComparisonXlsxRow {
+  maDGD: string;
+  tenDGD: string;
+  thonCount: number;
+  prevLoans: number;
+  currLoans: number;
+  prevCustomers: number;
+  currCustomers: number;
+  prevTongDuNo: number;
+  currTongDuNo: number;
+  deltaTongDuNo: number;
+  pctTongDuNo: number | null;
+  prevDuNoQH: number;
+  currDuNoQH: number;
+  prevTyLeNQH: number;
+  currTyLeNQH: number;
+  deltaTyLeNQH: number;
+  rollRate: number;
+  newLoans: number;
+  closedLoans: number;
+}
+
+export interface PointComparisonXlsxInput {
+  rows: PointComparisonXlsxRow[];
+  summaryRows?: { label: string; data: Omit<PointComparisonXlsxRow, 'maDGD' | 'tenDGD' | 'thonCount'> }[];
+  prevDate: Date | null;
+  currDate: Date | null;
+  filename?: string;
+}
+
+const POINT_COMPARE_COLUMNS: {
+  header: string;
+  get: (r: PointComparisonXlsxRow) => string | number;
+  numFmt?: string;
+}[] = [
+  { header: 'Mã ĐGD', get: (r) => r.maDGD },
+  { header: 'Tên ĐGD', get: (r) => r.tenDGD },
+  { header: 'Số thôn phụ trách', get: (r) => r.thonCount, numFmt: '#,##0' },
+  { header: 'Khế ước kỳ trước', get: (r) => r.prevLoans, numFmt: '#,##0' },
+  { header: 'Khế ước kỳ sau', get: (r) => r.currLoans, numFmt: '#,##0' },
+  { header: 'Khách hàng kỳ trước', get: (r) => r.prevCustomers, numFmt: '#,##0' },
+  { header: 'Khách hàng kỳ sau', get: (r) => r.currCustomers, numFmt: '#,##0' },
+  { header: 'Tổng dư nợ kỳ trước (đ)', get: (r) => r.prevTongDuNo, numFmt: '#,##0' },
+  { header: 'Tổng dư nợ kỳ sau (đ)', get: (r) => r.currTongDuNo, numFmt: '#,##0' },
+  { header: 'Δ Tổng dư nợ (đ)', get: (r) => r.deltaTongDuNo, numFmt: '#,##0' },
+  {
+    header: '% Δ Tổng dư nợ',
+    get: (r) => (r.pctTongDuNo == null ? '' : r.pctTongDuNo / 100),
+    numFmt: '0.00%',
+  },
+  { header: 'Dư nợ NQH kỳ trước (đ)', get: (r) => r.prevDuNoQH, numFmt: '#,##0' },
+  { header: 'Dư nợ NQH kỳ sau (đ)', get: (r) => r.currDuNoQH, numFmt: '#,##0' },
+  { header: 'Tỷ lệ NQH kỳ trước', get: (r) => r.prevTyLeNQH / 100, numFmt: '0.00%' },
+  { header: 'Tỷ lệ NQH kỳ sau', get: (r) => r.currTyLeNQH / 100, numFmt: '0.00%' },
+  { header: 'Δ Tỷ lệ NQH (điểm %)', get: (r) => r.deltaTyLeNQH / 100, numFmt: '0.00%' },
+  { header: 'Roll rate kỳ sau', get: (r) => r.rollRate / 100, numFmt: '0.00%' },
+  { header: 'Khế ước mới', get: (r) => r.newLoans, numFmt: '#,##0' },
+  { header: 'Khế ước đã đóng', get: (r) => r.closedLoans, numFmt: '#,##0' },
+];
+
+export async function exportPointComparisonToXlsx(
+  input: PointComparisonXlsxInput
+): Promise<void> {
+  const { rows, summaryRows, prevDate, currDate, filename } = input;
+  const wb = XLSX.utils.book_new();
+
+  const generated = new Date();
+  const ctx: (string | number)[][] = [
+    ['So sánh hiệu quả ĐGD — So sánh giữa hai kỳ'],
+    [`Kỳ trước: ${fmtDate(prevDate)}`],
+    [`Kỳ sau: ${fmtDate(currDate)}`],
+    [`Số ĐGD trong báo cáo: ${fmtNumber(rows.length)}`],
+    [
+      `Ngày xuất báo cáo: ${fmtDate(generated)} ${String(generated.getHours()).padStart(2, '0')}:${String(generated.getMinutes()).padStart(2, '0')}`,
+    ],
+    [''],
+    ['Ghi chú:'],
+    ['Phạm vi mỗi ĐGD = các Mã thôn được gán trong danh mục Điểm giao dịch.'],
+    [
+      'Khế ước thuộc thôn không có ĐGD duy nhất được gom vào hai dòng tổng hợp ở cuối: "(Chưa gán ĐGD)" và "(Nhiều ĐGD)".',
+    ],
+    [
+      'Roll rate = (Σ duNoQuaHan kỳ sau của khế ước Trong hạn ở kỳ trước) / (Σ duNoTrongHan kỳ trước).',
+    ],
+  ];
+  const ctxWs = XLSX.utils.aoa_to_sheet(ctx);
+  ctxWs['!cols'] = [{ wch: 90 }];
+  XLSX.utils.book_append_sheet(wb, ctxWs, safeSheetName('Bối cảnh'));
+
+  const headers = ['STT', ...POINT_COMPARE_COLUMNS.map((c) => c.header)];
+  const aoa: (string | number)[][] = [headers];
+  rows.forEach((r, i) => {
+    aoa.push([i + 1, ...POINT_COMPARE_COLUMNS.map((c) => c.get(r))]);
+  });
+  if (summaryRows && summaryRows.length > 0) {
+    aoa.push(['']);
+    for (const sr of summaryRows) {
+      const row: PointComparisonXlsxRow = {
+        maDGD: '',
+        tenDGD: sr.label,
+        thonCount: 0,
+        ...sr.data,
+      };
+      aoa.push(['', ...POINT_COMPARE_COLUMNS.map((c) => c.get(row))]);
+    }
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+  const range = XLSX.utils.decode_range(ws['!ref'] ?? 'A1');
+  for (let col = 0; col < POINT_COMPARE_COLUMNS.length; col++) {
+    const fmt = POINT_COMPARE_COLUMNS[col].numFmt;
+    if (!fmt) continue;
+    const c = col + 1;
+    for (let rowIdx = 1; rowIdx <= range.e.r; rowIdx++) {
+      const addr = XLSX.utils.encode_cell({ r: rowIdx, c });
+      const cell = ws[addr];
+      if (cell && cell.t === 'n') cell.z = fmt;
+    }
+  }
+
+  ws['!cols'] = [
+    { wch: 6 },
+    ...POINT_COMPARE_COLUMNS.map((c) => ({
+      wch: Math.min(Math.max(c.header.length + 2, 14), 28),
+    })),
+  ];
+  ws['!freeze'] = { xSplit: 3, ySplit: 1 } as never;
+  XLSX.utils.book_append_sheet(wb, ws, safeSheetName('ĐGD — So sánh kỳ'));
+
+  const out = filename ?? defaultFilename('So sanh hieu qua DGD', 'xlsx');
+  XLSX.writeFile(wb, out);
+}
+
 // ─── Báo cáo so sánh — bảng KPI nhiều đối tượng (snapshot) ─────────────
 
 export interface CompareXlsxKpiRow {

@@ -1,8 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ArrowRight,
-  TrendingUp,
-  TrendingDown,
   AlertTriangle,
   CheckCircle2,
 } from 'lucide-react';
@@ -11,9 +9,10 @@ import { FilterBar } from '@/components/filters/FilterBar';
 import { InfoPopover } from '@/components/ui/InfoPopover';
 import { ExportMenu } from '@/components/export/ExportMenu';
 import { DeltaCard } from '@/components/period/DeltaCard';
+import { PeriodGrowthStacked, type GrowthDimension } from '@/components/charts/PeriodGrowthStacked';
 import { usePeriodFilterStore } from '@/store/usePeriodFilterStore';
 import { usePeriodCompare } from './usePeriodCompare';
-import { fmtCompact, fmtCurrency, fmtDate, fmtNumber, fmtPercent } from '@/lib/format';
+import { fmtCompact, fmtCurrency, fmtDate, fmtNguonVon, fmtNumber, fmtPercent } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 /**
@@ -21,7 +20,7 @@ import { cn } from '@/lib/utils';
  * tiêu cốt lõi mà người quản lý PGD quan tâm khi nhìn diễn biến giữa
  * hai kỳ:
  *  - 8 KPI deltas
- *  - Roll rate / Cure rate
+ *  - Tăng trưởng tổng dư nợ (stacked column theo dimension)
  *  - Vòng đời khế ước (KƯ T-1 → tất toán / duy trì / mới → KƯ T)
  *  - Vòng đời khách hàng (KH T-1 → rời / còn / mới → KH T)
  *  - Quality stacked bar (Trong hạn / Quá hạn / Khoanh)
@@ -32,14 +31,33 @@ export function PeriodOverviewPage() {
     prevDate,
     currDate,
     kpiDelta,
-    rollCure,
     lifecycle,
     qualityPrev,
     qualityCurr,
     loanJoin,
     customerJoin,
+    prevRows,
     currRows,
   } = usePeriodCompare();
+
+  const [growthDim, setGrowthDim] = useState<GrowthDimension>('tenChuongTrinh');
+  const [growthFocus, setGrowthFocus] = useState<string>('');
+
+  const focusOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of prevRows) set.add(String(r[growthDim] ?? '—') || '—');
+    for (const r of currRows) set.add(String(r[growthDim] ?? '—') || '—');
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'vi'));
+  }, [prevRows, currRows, growthDim]);
+
+  const focusedPrev = useMemo(
+    () => (growthFocus ? prevRows.filter((r) => String(r[growthDim] ?? '—') === growthFocus) : prevRows),
+    [prevRows, growthDim, growthFocus],
+  );
+  const focusedCurr = useMemo(
+    () => (growthFocus ? currRows.filter((r) => String(r[growthDim] ?? '—') === growthFocus) : currRows),
+    [currRows, growthDim, growthFocus],
+  );
 
   if (!hasData) {
     return (
@@ -163,61 +181,75 @@ export function PeriodOverviewPage() {
         </div>
       </section>
 
-      {/* Roll rate + Cure rate */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Card className="border-rose-200 bg-rose-50/30">
-          <CardContent className="space-y-2 p-5">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <div className="rounded-md bg-rose-100 p-1.5 text-rose-700">
-                  <TrendingDown className="h-4 w-4" />
-                </div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-rose-700">
-                  Roll rate (chuyển xấu)
-                </div>
+      {/* Tăng trưởng tổng dư nợ — stacked bar */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle>
+              Tăng trưởng tổng dư nợ theo{' '}
+              {growthDim === 'tenChuongTrinh'
+                ? 'Chương trình tín dụng'
+                : growthDim === 'nguonVon'
+                  ? 'Nguồn vốn'
+                  : 'Xã'}
+              {growthFocus && (
+                <span className="ml-1 text-slate-500 dark:text-slate-400">
+                  · <span className="font-semibold text-period-700 dark:text-period-300">
+                    {growthDim === 'nguonVon' ? fmtNguonVon(growthFocus) : growthFocus}
+                  </span>
+                </span>
+              )}
+            </CardTitle>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5 text-xs shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                {([
+                  ['tenChuongTrinh', 'Chương trình tín dụng'],
+                  ['nguonVon', 'Nguồn vốn'],
+                  ['tenXa', 'Xã'],
+                ] as const).map(([val, label]) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => {
+                      setGrowthDim(val);
+                      setGrowthFocus('');
+                    }}
+                    className={`rounded px-2.5 py-1 font-medium transition-colors ${
+                      growthDim === val
+                        ? 'bg-period-600 text-white shadow-sm'
+                        : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
-              <InfoPopover metricKey="periodRollRate" />
+              <select
+                value={growthFocus}
+                onChange={(e) => setGrowthFocus(e.target.value)}
+                className="h-7 max-w-[220px] rounded border border-slate-200 bg-white px-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                title="Tập trung vào một mục"
+              >
+                <option value="">Tất cả</option>
+                {focusOptions.map((o) => (
+                  <option key={o} value={o}>
+                    {growthDim === 'nguonVon' ? fmtNguonVon(o) : o}
+                  </option>
+                ))}
+              </select>
             </div>
-            <div className="text-3xl font-bold tracking-tight text-rose-800">
-              {(rollCure.rollRate * 100).toFixed(3)}%
-            </div>
-            <div className="text-xs text-slate-600">
-              Σ dư nợ <strong>quá hạn kỳ sau</strong> của các khế ước vốn{' '}
-              <strong>trong hạn ở kỳ trước</strong>, chia cho tổng dư nợ trong hạn kỳ trước.
-            </div>
-            <div className="rounded-md bg-white/70 px-3 py-2 text-[11px] text-slate-600">
-              Cơ sở: {fmtCurrency(rollCure.baseTrongHanT1)} dư nợ trong hạn ở {fmtDate(prevDate)} ·{' '}
-              {fmtNumber(rollCure.rollCount)} khế ước rơi vào quá hạn
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-emerald-200 bg-emerald-50/30">
-          <CardContent className="space-y-2 p-5">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <div className="rounded-md bg-emerald-100 p-1.5 text-emerald-700">
-                  <TrendingUp className="h-4 w-4" />
-                </div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                  Cure rate (phục hồi)
-                </div>
-              </div>
-              <InfoPopover metricKey="periodCureRate" />
-            </div>
-            <div className="text-3xl font-bold tracking-tight text-emerald-800">
-              {(rollCure.cureRate * 100).toFixed(3)}%
-            </div>
-            <div className="text-xs text-slate-600">
-              Σ dư nợ <strong>trong hạn kỳ sau</strong> của các khế ước vốn{' '}
-              <strong>quá hạn ở kỳ trước</strong>, chia cho tổng dư nợ quá hạn kỳ trước.
-            </div>
-            <div className="rounded-md bg-white/70 px-3 py-2 text-[11px] text-slate-600">
-              Cơ sở: {fmtCurrency(rollCure.baseQuaHanT1)} dư nợ quá hạn ở {fmtDate(prevDate)} ·{' '}
-              {fmtNumber(rollCure.cureCount)} khế ước phục hồi
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <PeriodGrowthStacked
+            prevRows={focusedPrev}
+            currRows={focusedCurr}
+            prevDate={prevDate}
+            currDate={currDate}
+            dimension={growthDim}
+          />
+        </CardContent>
+      </Card>
 
       {/* Lifecycle: loans + customers */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

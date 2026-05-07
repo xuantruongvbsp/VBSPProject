@@ -7,6 +7,7 @@ import {
   TrendingUpDown,
   Users2,
   UserCheck,
+  MapPin,
   Table,
   Megaphone,
   GitCompareArrows,
@@ -39,6 +40,7 @@ const navItems = [
   { to: '/period/top-bien-dong', label: 'Top tăng / giảm', icon: TrendingUpDown },
   { to: '/period/hoi-doan-the', label: 'Hội đoàn thể & Tổ', icon: Users2 },
   { to: '/period/can-bo', label: 'So sánh hiệu quả cán bộ', icon: UserCheck },
+  { to: '/period/diem-giao-dich', label: 'So sánh hiệu quả ĐGD', icon: MapPin },
   { to: '/period/khe-uoc', label: 'Bảng khế ước biến động', icon: Table },
   { to: '/period/khach-hang', label: 'Outreach & khách hàng', icon: Megaphone },
 ];
