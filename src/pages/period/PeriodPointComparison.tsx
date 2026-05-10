@@ -16,7 +16,7 @@ import { usePeriodFilterStore } from '@/store/usePeriodFilterStore';
 import { usePeriodStore } from '@/store/usePeriodStore';
 import { useTxnPointStore } from '@/store/useTxnPointStore';
 import { usePeriodCompare } from './usePeriodCompare';
-import { deriveStatus, type JoinedLoan } from '@/lib/period-compare';
+import { type JoinedLoan } from '@/lib/period-compare';
 import {
   exportPointComparisonToXlsx,
   type PointComparisonXlsxRow,
@@ -32,7 +32,8 @@ type SortKey =
   | 'pctTongDuNo'
   | 'currDuNoQH'
   | 'deltaTyLeNQH'
-  | 'rollRate'
+  | 'currDuNoKhoanh'
+  | 'deltaTyLeKhoanh'
   | 'newLoans'
   | 'closedLoans';
 
@@ -61,10 +62,12 @@ interface PointSlice {
   currTyLeNQH: number;
   deltaTyLeNQH: number;
 
-  // Roll rate
-  baseTrongHanT1: number;
-  rollNumerator: number;
-  rollRate: number;
+  // Khoanh
+  prevDuNoKhoanh: number;
+  currDuNoKhoanh: number;
+  prevTyLeKhoanh: number;
+  currTyLeKhoanh: number;
+  deltaTyLeKhoanh: number;
 }
 
 const NUMERIC_KEYS: SortKey[] = [
@@ -73,7 +76,8 @@ const NUMERIC_KEYS: SortKey[] = [
   'pctTongDuNo',
   'currDuNoQH',
   'deltaTyLeNQH',
-  'rollRate',
+  'currDuNoKhoanh',
+  'deltaTyLeKhoanh',
   'newLoans',
   'closedLoans',
 ];
@@ -126,9 +130,11 @@ export function PeriodPointComparisonPage() {
       prevTyLeNQH: 0,
       currTyLeNQH: 0,
       deltaTyLeNQH: 0,
-      baseTrongHanT1: 0,
-      rollNumerator: 0,
-      rollRate: 0,
+      prevDuNoKhoanh: 0,
+      currDuNoKhoanh: 0,
+      prevTyLeKhoanh: 0,
+      currTyLeKhoanh: 0,
+      deltaTyLeKhoanh: 0,
     });
     type Bucket = ReturnType<typeof empty> & {
       prevCustSet: Set<string>;
@@ -158,45 +164,49 @@ export function PeriodPointComparisonPage() {
         b.prevLoans += 1;
         b.prevTongDuNo += j.prev.tongDuNo;
         b.prevDuNoQH += j.prev.duNoQuaHan;
+        b.prevDuNoKhoanh += j.prev.duNoKhoanh;
         if (j.prev.maKH) b.prevCustSet.add(j.prev.maKH);
-        if (deriveStatus(j.prev) === 'th') {
-          b.baseTrongHanT1 += j.prev.duNoTrongHan;
-          if (j.curr) b.rollNumerator += j.curr.duNoQuaHan;
-        }
       }
       if (j.curr) {
         b.currLoans += 1;
         b.currTongDuNo += j.curr.tongDuNo;
         b.currDuNoQH += j.curr.duNoQuaHan;
+        b.currDuNoKhoanh += j.curr.duNoKhoanh;
         if (j.curr.maKH) b.currCustSet.add(j.curr.maKH);
       }
       if (j.bucket === 'new') b.newLoans += 1;
       if (j.bucket === 'closed') b.closedLoans += 1;
     }
 
-    const finalize = (b: Bucket): Omit<PointSlice, 'point' | 'thonCount'> => ({
-      prevLoans: b.prevLoans,
-      currLoans: b.currLoans,
-      newLoans: b.newLoans,
-      closedLoans: b.closedLoans,
-      prevCustomers: b.prevCustSet.size,
-      currCustomers: b.currCustSet.size,
-      prevTongDuNo: b.prevTongDuNo,
-      currTongDuNo: b.currTongDuNo,
-      deltaTongDuNo: b.currTongDuNo - b.prevTongDuNo,
-      pctTongDuNo:
-        b.prevTongDuNo > 0 ? ((b.currTongDuNo - b.prevTongDuNo) / b.prevTongDuNo) * 100 : null,
-      prevDuNoQH: b.prevDuNoQH,
-      currDuNoQH: b.currDuNoQH,
-      prevTyLeNQH: b.prevTongDuNo > 0 ? (b.prevDuNoQH / b.prevTongDuNo) * 100 : 0,
-      currTyLeNQH: b.currTongDuNo > 0 ? (b.currDuNoQH / b.currTongDuNo) * 100 : 0,
-      deltaTyLeNQH:
-        (b.currTongDuNo > 0 ? (b.currDuNoQH / b.currTongDuNo) * 100 : 0) -
-        (b.prevTongDuNo > 0 ? (b.prevDuNoQH / b.prevTongDuNo) * 100 : 0),
-      baseTrongHanT1: b.baseTrongHanT1,
-      rollNumerator: b.rollNumerator,
-      rollRate: b.baseTrongHanT1 > 0 ? (b.rollNumerator / b.baseTrongHanT1) * 100 : 0,
-    });
+    const finalize = (b: Bucket): Omit<PointSlice, 'point' | 'thonCount'> => {
+      const prevTyLeNQH = b.prevTongDuNo > 0 ? (b.prevDuNoQH / b.prevTongDuNo) * 100 : 0;
+      const currTyLeNQH = b.currTongDuNo > 0 ? (b.currDuNoQH / b.currTongDuNo) * 100 : 0;
+      const prevTyLeKhoanh = b.prevTongDuNo > 0 ? (b.prevDuNoKhoanh / b.prevTongDuNo) * 100 : 0;
+      const currTyLeKhoanh = b.currTongDuNo > 0 ? (b.currDuNoKhoanh / b.currTongDuNo) * 100 : 0;
+      return {
+        prevLoans: b.prevLoans,
+        currLoans: b.currLoans,
+        newLoans: b.newLoans,
+        closedLoans: b.closedLoans,
+        prevCustomers: b.prevCustSet.size,
+        currCustomers: b.currCustSet.size,
+        prevTongDuNo: b.prevTongDuNo,
+        currTongDuNo: b.currTongDuNo,
+        deltaTongDuNo: b.currTongDuNo - b.prevTongDuNo,
+        pctTongDuNo:
+          b.prevTongDuNo > 0 ? ((b.currTongDuNo - b.prevTongDuNo) / b.prevTongDuNo) * 100 : null,
+        prevDuNoQH: b.prevDuNoQH,
+        currDuNoQH: b.currDuNoQH,
+        prevTyLeNQH,
+        currTyLeNQH,
+        deltaTyLeNQH: currTyLeNQH - prevTyLeNQH,
+        prevDuNoKhoanh: b.prevDuNoKhoanh,
+        currDuNoKhoanh: b.currDuNoKhoanh,
+        prevTyLeKhoanh,
+        currTyLeKhoanh,
+        deltaTyLeKhoanh: currTyLeKhoanh - prevTyLeKhoanh,
+      };
+    };
 
     const rows: PointSlice[] = points.map((p) => {
       const b = slices.get(p.id)!;
@@ -274,7 +284,11 @@ export function PeriodPointComparisonPage() {
       prevTyLeNQH: r.prevTyLeNQH,
       currTyLeNQH: r.currTyLeNQH,
       deltaTyLeNQH: r.deltaTyLeNQH,
-      rollRate: r.rollRate,
+      prevDuNoKhoanh: r.prevDuNoKhoanh,
+      currDuNoKhoanh: r.currDuNoKhoanh,
+      prevTyLeKhoanh: r.prevTyLeKhoanh,
+      currTyLeKhoanh: r.currTyLeKhoanh,
+      deltaTyLeKhoanh: r.deltaTyLeKhoanh,
       newLoans: r.newLoans,
       closedLoans: r.closedLoans,
     }));
@@ -341,7 +355,7 @@ export function PeriodPointComparisonPage() {
                 definition:
                   'Bảng xếp hạng các Điểm giao dịch giữa kỳ trước và kỳ sau. Phạm vi mỗi ĐGD là các Mã thôn được gán trong danh mục Điểm giao dịch. Khế ước thuộc thôn chưa có ĐGD duy nhất được tổng hợp riêng để thấy phần ngoài tầm phủ.',
                 formula:
-                  'Δ Dư nợ = curr − prev · NQH% = duNoQuaHan / tongDuNo · Roll rate = (Σ duNoQuaHan kỳ sau của khế ước Trong hạn ở kỳ trước) / (Σ duNoTrongHan kỳ trước)',
+                  'Δ Dư nợ = curr − prev · NQH% = duNoQuaHan / tongDuNo · NK% = duNoKhoanh / tongDuNo (Δ tính theo điểm %)',
                 note: 'Bấm vào một dòng để mở Bảng khế ước biến động đã lọc theo ĐGD đó.',
               }}
             />
@@ -426,7 +440,8 @@ export function PeriodPointComparisonPage() {
                   <Th label="% Δ" sortKey="pctTongDuNo" activeKey={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
                   <Th label="Dư nợ NQH" sortKey="currDuNoQH" activeKey={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
                   <Th label="NQH%" sortKey="deltaTyLeNQH" activeKey={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
-                  <Th label="Roll rate" sortKey="rollRate" activeKey={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
+                  <Th label="Dư nợ khoanh" sortKey="currDuNoKhoanh" activeKey={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
+                  <Th label="NK%" sortKey="deltaTyLeKhoanh" activeKey={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
                   <Th label="Mới" sortKey="newLoans" activeKey={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
                   <Th label="Đóng" sortKey="closedLoans" activeKey={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
                 </tr>
@@ -434,7 +449,7 @@ export function PeriodPointComparisonPage() {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {visibleRows.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="px-4 py-6 text-center text-slate-400">
+                    <td colSpan={12} className="px-4 py-6 text-center text-slate-400">
                       Không có ĐGD phù hợp.
                     </td>
                   </tr>
@@ -551,15 +566,44 @@ function PointRow({ row, onDrill }: { row: PointSlice; onDrill: () => void }) {
           {row.deltaTyLeNQH.toFixed(2)} pp
         </div>
       </td>
-      <td
-        className={cn(
-          'whitespace-nowrap px-3 py-2 text-right',
-          row.rollRate > 2
-            ? 'font-semibold text-rose-700 dark:text-rose-400'
-            : 'text-slate-700 dark:text-slate-200'
-        )}
-      >
-        {fmtPercent(row.rollRate)}
+      <td className="whitespace-nowrap px-3 py-2 text-right">
+        <div
+          className={cn(
+            'font-semibold',
+            row.currDuNoKhoanh > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-slate-500'
+          )}
+        >
+          {fmtCompact(row.currDuNoKhoanh)}
+        </div>
+        <div
+          className={cn(
+            'text-[11px] font-medium',
+            row.currDuNoKhoanh - row.prevDuNoKhoanh > 0
+              ? 'text-rose-700 dark:text-rose-400'
+              : row.currDuNoKhoanh - row.prevDuNoKhoanh < 0
+                ? 'text-emerald-700 dark:text-emerald-400'
+                : 'text-slate-500'
+          )}
+        >
+          {row.currDuNoKhoanh - row.prevDuNoKhoanh > 0 ? '+' : ''}
+          {fmtCompact(row.currDuNoKhoanh - row.prevDuNoKhoanh)}
+        </div>
+      </td>
+      <td className="whitespace-nowrap px-3 py-2 text-right text-slate-700 dark:text-slate-200">
+        {fmtPercent(row.currTyLeKhoanh)}
+        <div
+          className={cn(
+            'text-[11px] font-medium',
+            row.deltaTyLeKhoanh > 0
+              ? 'text-rose-700 dark:text-rose-400'
+              : row.deltaTyLeKhoanh < 0
+                ? 'text-emerald-700 dark:text-emerald-400'
+                : 'text-slate-500'
+          )}
+        >
+          {row.deltaTyLeKhoanh > 0 ? '+' : ''}
+          {row.deltaTyLeKhoanh.toFixed(2)} pp
+        </div>
       </td>
       <td className="whitespace-nowrap px-3 py-2 text-right text-emerald-700 dark:text-emerald-400">
         {row.newLoans > 0 ? `+${fmtNumber(row.newLoans)}` : '0'}
@@ -595,7 +639,8 @@ function SummaryRow({
       </td>
       <td className="px-3 py-2 text-right">{fmtCompact(data.currDuNoQH)}</td>
       <td className="px-3 py-2 text-right">{fmtPercent(data.currTyLeNQH)}</td>
-      <td className="px-3 py-2 text-right">{fmtPercent(data.rollRate)}</td>
+      <td className="px-3 py-2 text-right">{fmtCompact(data.currDuNoKhoanh)}</td>
+      <td className="px-3 py-2 text-right">{fmtPercent(data.currTyLeKhoanh)}</td>
       <td className="px-3 py-2 text-right">+{fmtNumber(data.newLoans)}</td>
       <td className="px-3 py-2 text-right">−{fmtNumber(data.closedLoans)}</td>
     </tr>

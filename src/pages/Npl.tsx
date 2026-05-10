@@ -16,6 +16,8 @@ import {
   ChevronRight,
   CalendarClock,
   UserX,
+  Table,
+  BarChart2,
 } from 'lucide-react';
 import { applyFilters, useDataStore, type FilterField } from '@/store/useDataStore';
 import { computeKpi, groupBy, isOpenLoan, type GroupAgg } from '@/lib/metrics';
@@ -28,6 +30,7 @@ import { exportBadDebtToXlsx } from '@/lib/export-xlsx';
 import { cn } from '@/lib/utils';
 import { FilterBar } from '@/components/filters/FilterBar';
 import { BarByGroup, type BarGroupChartType } from '@/components/charts/BarByGroup';
+import { HeatmapMaturity, type HeatmapChartType } from '@/components/charts/HeatmapMaturity';
 import { ChartSwitcher, type ChartTypeOption } from '@/components/ui/ChartSwitcher';
 import { LoanDetailDrawer } from '@/components/detail/LoanDetailDrawer';
 import type { LoanRecord } from '@/lib/types';
@@ -36,6 +39,11 @@ const BAR_GROUP_OPTS: ChartTypeOption<BarGroupChartType>[] = [
   { id: 'bar', icon: AlignLeft, tooltip: 'Biểu đồ thanh' },
   { id: 'treemap', icon: LayoutGrid, tooltip: 'Bản đồ cây' },
   { id: 'pie', icon: PieChart, tooltip: 'Biểu đồ tròn' },
+];
+
+const HEAT_OPTS: ChartTypeOption<HeatmapChartType>[] = [
+  { id: 'heatmap', icon: Table, tooltip: 'Bảng nhiệt' },
+  { id: 'stackedBar', icon: BarChart2, tooltip: 'Cột xếp chồng theo năm' },
 ];
 
 /**
@@ -53,7 +61,11 @@ export function NplPage() {
   // Combined "Dư nợ quá hạn" — toggle theo chiều phân tích.
   const [qhDim, setQhDim] = useState<'xa' | 'dvut' | 'program'>('xa');
   const [chartQhType, setChartQhType] = useState<BarGroupChartType>('bar');
-  const [dueSoonScope, setDueSoonScope] = useState<'month' | 'quarter'>('month');
+  const [dueSoonScope, setDueSoonScope] = useState<'month' | 'quarter' | 'year'>('month');
+  const [dueSoonHeatType, setDueSoonHeatType] = useState<HeatmapChartType>('heatmap');
+  // Khi user click một ô trên heatmap, lưu lại "YYYY-MM" để bảng cảnh báo
+  // bên dưới chỉ hiển thị khế ước trong tháng đó. Null = không lọc theo ô.
+  const [dueSoonHeatMonth, setDueSoonHeatMonth] = useState<string | null>(null);
   const [exportingDueSoon, setExportingDueSoon] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportingChuyenNQH, setExportingChuyenNQH] = useState(false);
@@ -223,23 +235,31 @@ export function NplPage() {
   );
 
   // Dự kiến chuyển NQH (chưa quá hạn nhưng sắp): ngayDHGDXA SAU ngày chốt
-  // số liệu, OPEN. Tách 2 mức:
-  //   - Tháng: cùng tháng+năm với ngaySoLieu, ngày > dCutoff
+  // số liệu, OPEN. Tách 3 mức:
+  //   - Tháng: cùng tháng+năm với ngaySoLieu, ngày > ngaySoLieu
   //   - Quý:   cùng quý+năm, ngày > ngaySoLieu (bao gồm cả phần "tháng")
-  const { dueSoonThang, dueSoonQuy } = useMemo(() => {
-    if (!ngaySoLieu) return { dueSoonThang: [] as LoanRecord[], dueSoonQuy: [] as LoanRecord[] };
+  //   - Năm:   cùng năm với ngaySoLieu, ngày > ngaySoLieu (bao gồm cả "quý")
+  const { dueSoonThang, dueSoonQuy, dueSoonNam } = useMemo(() => {
+    if (!ngaySoLieu)
+      return {
+        dueSoonThang: [] as LoanRecord[],
+        dueSoonQuy: [] as LoanRecord[],
+        dueSoonNam: [] as LoanRecord[],
+      };
     const y = ngaySoLieu.getFullYear();
     const m = ngaySoLieu.getMonth();
     const q = Math.floor(m / 3);
     const refMs = ngaySoLieu.getTime();
     const thang: LoanRecord[] = [];
     const quy: LoanRecord[] = [];
+    const nam: LoanRecord[] = [];
     for (const r of filtered) {
       if (!isOpenLoan(r)) continue;
       const d = r.ngayDHGDXA;
       if (!d) continue;
       if (d.getFullYear() !== y) continue;
       if (d.getTime() <= refMs) continue; // đã đến hạn → thuộc nhóm "đã chuyển"
+      nam.push(r);
       const dq = Math.floor(d.getMonth() / 3);
       if (dq !== q) continue;
       quy.push(r);
@@ -249,7 +269,8 @@ export function NplPage() {
       (a.ngayDHGDXA?.getTime() ?? 0) - (b.ngayDHGDXA?.getTime() ?? 0);
     thang.sort(sortByDate);
     quy.sort(sortByDate);
-    return { dueSoonThang: thang, dueSoonQuy: quy };
+    nam.sort(sortByDate);
+    return { dueSoonThang: thang, dueSoonQuy: quy, dueSoonNam: nam };
   }, [filtered, ngaySoLieu]);
 
   const tongDuNoDueSoonThang = useMemo(
@@ -296,6 +317,21 @@ export function NplPage() {
     return out;
   }, [dueSoonQuy, ngaySoLieu]);
 
+  const dueSoonDormantNam = useMemo(() => {
+    if (!ngaySoLieu || dueSoonNam.length === 0) return [] as Array<LoanRecord & { daysSince: number }>;
+    const refMs = ngaySoLieu.getTime();
+    const dayMs = 86_400_000;
+    const out: Array<LoanRecord & { daysSince: number }> = [];
+    for (const r of dueSoonNam) {
+      const last = r.ngayGiaoDichGanNhat;
+      if (!last) continue;
+      const days = Math.floor((refMs - last.getTime()) / dayMs);
+      if (days > 90) out.push({ ...r, daysSince: days });
+    }
+    out.sort(sortByDHGDXA);
+    return out;
+  }, [dueSoonNam, ngaySoLieu]);
+
   const tongDuNoDueSoonDormantThang = useMemo(
     () => dueSoonDormantThang.reduce((s, r) => s + r.tongDuNo, 0),
     [dueSoonDormantThang],
@@ -303,6 +339,64 @@ export function NplPage() {
   const tongDuNoDueSoonDormant = useMemo(
     () => dueSoonDormant.reduce((s, r) => s + r.tongDuNo, 0),
     [dueSoonDormant],
+  );
+  const tongDuNoDueSoonDormantNam = useMemo(
+    () => dueSoonDormantNam.reduce((s, r) => s + r.tongDuNo, 0),
+    [dueSoonDormantNam],
+  );
+
+  // Tập gốc cho heatmap & drill: TẤT CẢ khế ước OPEN có ngayDHGDXA SAU ngày
+  // chốt VÀ KH đã ngừng giao dịch > 90 ngày (không giới hạn theo năm).
+  const dueSoonDormantAll = useMemo(() => {
+    if (!ngaySoLieu) return [] as Array<LoanRecord & { daysSince: number }>;
+    const refMs = ngaySoLieu.getTime();
+    const dayMs = 86_400_000;
+    const out: Array<LoanRecord & { daysSince: number }> = [];
+    for (const r of filtered) {
+      if (!isOpenLoan(r)) continue;
+      const d = r.ngayDHGDXA;
+      if (!d || d.getTime() <= refMs) continue;
+      const last = r.ngayGiaoDichGanNhat;
+      if (!last) continue;
+      const days = Math.floor((refMs - last.getTime()) / dayMs);
+      if (days <= 90) continue;
+      out.push({ ...r, daysSince: days });
+    }
+    out.sort(sortByDHGDXA);
+    return out;
+  }, [filtered, ngaySoLieu]);
+
+  // Heatmap data: gom dueSoonDormantAll theo năm-tháng.
+  const dueSoonDormantHeatmap = useMemo(() => {
+    const map = new Map<string, { count: number; tongDuNo: number }>();
+    for (const r of dueSoonDormantAll) {
+      const d = r.ngayDHGDXA;
+      if (!d) continue;
+      const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      const cur = map.get(key) ?? { count: 0, tongDuNo: 0 };
+      cur.count++;
+      cur.tongDuNo += r.tongDuNo;
+      map.set(key, cur);
+    }
+    return Array.from(map.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([ym, v]) => ({ ym, ...v }));
+  }, [dueSoonDormantAll]);
+
+  // Khi user chọn ô trên heatmap, lọc bảng theo đúng tháng đó.
+  const dueSoonDormantByMonth = useMemo(() => {
+    if (!dueSoonHeatMonth) return [] as Array<LoanRecord & { daysSince: number }>;
+    const [yStr, mStr] = dueSoonHeatMonth.split('-');
+    const y = Number(yStr);
+    const m = Number(mStr) - 1;
+    return dueSoonDormantAll.filter((r) => {
+      const d = r.ngayDHGDXA;
+      return !!d && d.getFullYear() === y && d.getMonth() === m;
+    });
+  }, [dueSoonDormantAll, dueSoonHeatMonth]);
+  const tongDuNoDueSoonDormantByMonth = useMemo(
+    () => dueSoonDormantByMonth.reduce((s, r) => s + r.tongDuNo, 0),
+    [dueSoonDormantByMonth],
   );
 
   const handleExportChuyenNQH = useCallback(async () => {
@@ -323,12 +417,27 @@ export function NplPage() {
   }, [exportingChuyenNQH, chuyenNQHThang, ngaySoLieu, filtered.length]);
 
   const handleExportDueSoonDormant = useCallback(async () => {
-    const list = dueSoonScope === 'month' ? dueSoonDormantThang : dueSoonDormant;
+    const heatActive = !!dueSoonHeatMonth;
+    const list = heatActive
+      ? dueSoonDormantByMonth
+      : dueSoonScope === 'month'
+        ? dueSoonDormantThang
+        : dueSoonScope === 'quarter'
+          ? dueSoonDormant
+          : dueSoonDormantNam;
     if (exportingDueSoon || list.length === 0) return;
     setExportingDueSoon(true);
     try {
       await exportBadDebtToXlsx({
-        kind: dueSoonScope === 'month' ? 'dueSoonDormantThang' : 'dueSoonDormantQuy',
+        // Khi user lọc theo ô heatmap (1 tháng cụ thể, có thể khác tháng/quý/năm
+        // hiện tại), tái sử dụng kind 'dueSoonDormantThang' — đều là 1 tháng.
+        kind: heatActive
+          ? 'dueSoonDormantThang'
+          : dueSoonScope === 'month'
+            ? 'dueSoonDormantThang'
+            : dueSoonScope === 'quarter'
+              ? 'dueSoonDormantQuy'
+              : 'dueSoonDormantNam',
         loans: list,
         referenceDate: ngaySoLieu,
         totalFilteredRows: filtered.length,
@@ -338,7 +447,17 @@ export function NplPage() {
     } finally {
       setExportingDueSoon(false);
     }
-  }, [exportingDueSoon, dueSoonScope, dueSoonDormantThang, dueSoonDormant, ngaySoLieu, filtered.length]);
+  }, [
+    exportingDueSoon,
+    dueSoonScope,
+    dueSoonHeatMonth,
+    dueSoonDormantByMonth,
+    dueSoonDormantThang,
+    dueSoonDormant,
+    dueSoonDormantNam,
+    ngaySoLieu,
+    filtered.length,
+  ]);
 
   // Bảng "hotspot" — tỷ lệ QH theo xã, sắp xếp giảm dần (tối thiểu 3 khế ước
   // để tránh tạp nhiễu từ các xã quá nhỏ).
@@ -439,6 +558,8 @@ export function NplPage() {
           thangDuNo={tongDuNoDueSoonDormantThang}
           quyCount={dueSoonDormant.length}
           quyDuNo={tongDuNoDueSoonDormant}
+          namCount={dueSoonDormantNam.length}
+          namDuNo={tongDuNoDueSoonDormantNam}
         />
       </div>
 
@@ -493,20 +614,20 @@ export function NplPage() {
               {ngaySoLieu.getFullYear()} với tình trạng OPEN.
             </div>
           ) : (
-            <div className="scrollbar-thin max-h-[520px] overflow-auto">
-              <table className="w-full text-xs">
+            <div className="scrollbar-thin max-h-[640px] overflow-auto">
+              <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800">
                   <tr className="text-left text-slate-500 dark:text-slate-400">
-                    <th className="px-3 py-2">#</th>
-                    <th className="px-3 py-2">Khách hàng</th>
-                    <th className="px-3 py-2">Xã · ĐVUT</th>
-                    <th className="px-3 py-2">Tổ TK&amp;VV</th>
-                    <th className="px-3 py-2">Chương trình</th>
-                    <th className="px-3 py-2 text-right">Ngày ĐH GDXA</th>
-                    <th className="px-3 py-2 text-right">Mức vay</th>
-                    <th className="px-3 py-2 text-right">Dư nợ QH</th>
-                    <th className="px-3 py-2 text-right">Dư nợ khoanh</th>
-                    <th className="px-3 py-2 text-right">Lãi tồn QH</th>
+                    <th className="px-4 py-3">#</th>
+                    <th className="px-4 py-3">Khách hàng</th>
+                    <th className="px-4 py-3">Xã · ĐVUT</th>
+                    <th className="px-4 py-3">Tổ TK&amp;VV</th>
+                    <th className="px-4 py-3">Chương trình</th>
+                    <th className="px-4 py-3 text-right">Ngày ĐH GDXA</th>
+                    <th className="px-4 py-3 text-right">Mức vay</th>
+                    <th className="px-4 py-3 text-right">Dư nợ QH</th>
+                    <th className="px-4 py-3 text-right">Dư nợ khoanh</th>
+                    <th className="px-4 py-3 text-right">Lãi tồn QH</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -516,43 +637,43 @@ export function NplPage() {
                       onClick={() => setDetail(r)}
                       className="cursor-pointer border-t border-slate-100 hover:bg-rose-50 dark:border-slate-700 dark:hover:bg-rose-900/20"
                     >
-                      <td className="px-3 py-2 text-slate-500 dark:text-slate-400">{i + 1}</td>
-                      <td className="px-3 py-2">
+                      <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">{i + 1}</td>
+                      <td className="px-4 py-2.5">
                         <div className="font-medium text-slate-800 dark:text-slate-100">
                           {r.tenKH}
                         </div>
-                        <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
                           {r.soKheUoc}
                         </div>
                       </td>
-                      <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
+                      <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">
                         <div>{r.tenXa || '—'}</div>
-                        <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
                           {r.tenDVUT || '—'}
                         </div>
                       </td>
                       <td
-                        className="max-w-[160px] truncate px-3 py-2 text-slate-600 dark:text-slate-300"
+                        className="max-w-[200px] truncate px-4 py-2.5 text-slate-600 dark:text-slate-300"
                         title={r.tenTo}
                       >
                         {r.tenTo || '—'}
                       </td>
-                      <td className="max-w-[200px] truncate px-3 py-2 text-slate-600 dark:text-slate-300">
+                      <td className="max-w-[240px] truncate px-4 py-2.5 text-slate-600 dark:text-slate-300">
                         {r.tenChuongTrinh}
                       </td>
-                      <td className="px-3 py-2 text-right text-slate-600 dark:text-slate-300">
+                      <td className="px-4 py-2.5 text-right text-slate-600 dark:text-slate-300">
                         {fmtDate(r.ngayDHGDXA)}
                       </td>
-                      <td className="px-3 py-2 text-right text-slate-700 dark:text-slate-300">
+                      <td className="px-4 py-2.5 text-right text-slate-700 dark:text-slate-300">
                         {fmtCurrency(r.mucVay)}
                       </td>
-                      <td className="px-3 py-2 text-right font-semibold text-rose-700 dark:text-rose-300">
+                      <td className="px-4 py-2.5 text-right font-semibold text-rose-700 dark:text-rose-300">
                         {fmtCurrency(r.duNoQuaHan)}
                       </td>
-                      <td className="px-3 py-2 text-right text-amber-700 dark:text-amber-300">
+                      <td className="px-4 py-2.5 text-right text-amber-700 dark:text-amber-300">
                         {fmtCurrency(r.duNoKhoanh)}
                       </td>
-                      <td className="px-3 py-2 text-right text-slate-700 dark:text-slate-300">
+                      <td className="px-4 py-2.5 text-right text-slate-700 dark:text-slate-300">
                         {fmtCurrency(r.laiTonQH)}
                       </td>
                     </tr>
@@ -567,9 +688,31 @@ export function NplPage() {
       {/* Cảnh báo sớm: KH có khế ước SẮP đến hạn (tháng/quý) + ngừng GD > 90 ngày.
           Đặt ngay sau KPI strip để cán bộ thấy danh sách ưu tiên đôn đốc trước nhất. */}
       {(() => {
-        const list = dueSoonScope === 'month' ? dueSoonDormantThang : dueSoonDormant;
-        const tong = dueSoonScope === 'month' ? tongDuNoDueSoonDormantThang : tongDuNoDueSoonDormant;
-        const scopeLabel = dueSoonScope === 'month' ? 'tháng' : 'quý';
+        const heatActive = !!dueSoonHeatMonth;
+        const list = heatActive
+          ? dueSoonDormantByMonth
+          : dueSoonScope === 'month'
+            ? dueSoonDormantThang
+            : dueSoonScope === 'quarter'
+              ? dueSoonDormant
+              : dueSoonDormantNam;
+        const tong = heatActive
+          ? tongDuNoDueSoonDormantByMonth
+          : dueSoonScope === 'month'
+            ? tongDuNoDueSoonDormantThang
+            : dueSoonScope === 'quarter'
+              ? tongDuNoDueSoonDormant
+              : tongDuNoDueSoonDormantNam;
+        const heatMonthLabel = heatActive
+          ? `${dueSoonHeatMonth!.split('-')[1]}/${dueSoonHeatMonth!.split('-')[0]}`
+          : '';
+        const scopeLabel = heatActive
+          ? `tháng ${heatMonthLabel}`
+          : dueSoonScope === 'month'
+            ? 'tháng'
+            : dueSoonScope === 'quarter'
+              ? 'quý'
+              : 'năm';
         return (
       <Card>
         <CardHeader>
@@ -579,15 +722,27 @@ export function NplPage() {
                 <UserX className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                 Cảnh báo sớm: sắp đến hạn nhưng đã ngừng giao dịch &gt; 90 ngày
               </CardTitle>
-              <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5 text-xs shadow-sm dark:border-slate-700 dark:bg-slate-800">
+              <div
+                className={cn(
+                  'inline-flex rounded-md border border-slate-200 bg-white p-0.5 text-xs shadow-sm dark:border-slate-700 dark:bg-slate-800',
+                  heatActive && 'pointer-events-none opacity-50'
+                )}
+                title={
+                  heatActive
+                    ? 'Đang lọc theo tháng từ heatmap — xóa lọc để bật lại Tháng/Quý/Năm'
+                    : undefined
+                }
+              >
                 {([
                   ['month', 'Tháng'],
                   ['quarter', 'Quý'],
+                  ['year', 'Năm'],
                 ] as const).map(([val, label]) => (
                   <button
                     key={val}
                     type="button"
                     onClick={() => setDueSoonScope(val)}
+                    disabled={heatActive}
                     className={`rounded px-2.5 py-1 font-medium transition-colors ${
                       dueSoonScope === val
                         ? 'bg-amber-600 text-white shadow-sm'
@@ -598,6 +753,16 @@ export function NplPage() {
                   </button>
                 ))}
               </div>
+              {heatActive && (
+                <button
+                  type="button"
+                  onClick={() => setDueSoonHeatMonth(null)}
+                  className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-semibold text-purple-800 ring-1 ring-purple-200 transition-colors hover:bg-purple-200 dark:bg-purple-900/40 dark:text-purple-200 dark:ring-purple-800 dark:hover:bg-purple-900/60"
+                  title="Bỏ lọc theo tháng từ heatmap — quay lại Tháng/Quý/Năm"
+                >
+                  Tháng {heatMonthLabel} · Xóa lọc ✕
+                </button>
+              )}
               <span className="text-[11px] text-slate-500 dark:text-slate-400">
                 {ngaySoLieu
                   ? `${fmtNumber(list.length)} khế ước · Tổng dư nợ ${fmtCurrency(tong)}`
@@ -631,7 +796,7 @@ export function NplPage() {
                 definition:
                   `Khế ước có "Ngày ĐH theo GDXA" nằm trong ${scopeLabel} hiện tại (sau ngày chốt số liệu, OPEN) MÀ khách hàng đã không phát sinh giao dịch (Ngày giao dịch gần nhất) trong > 90 ngày.`,
                 formula:
-                  `dueSoon${dueSoonScope === 'month' ? 'Thang' : 'Quy'} ∩ (refDate − ngayGiaoDichGanNhat > 90 ngày). Sắp xếp tăng dần theo Ngày ĐH GDXA.`,
+                  `dueSoon${dueSoonScope === 'month' ? 'Thang' : dueSoonScope === 'quarter' ? 'Quy' : 'Nam'} ∩ (refDate − ngayGiaoDichGanNhat > 90 ngày). Sắp xếp tăng dần theo Ngày ĐH GDXA.`,
                 note: 'Nhóm này vừa có nguy cơ chuyển NQH cao, vừa khó liên hệ — cần ưu tiên đôn đốc trước khi đến hạn.',
               }}
             />
@@ -655,9 +820,10 @@ export function NplPage() {
                     <th className="px-4 py-3">#</th>
                     <th className="px-4 py-3">Khách hàng</th>
                     <th className="px-4 py-3">Xã · ĐVUT</th>
+                    <th className="px-4 py-3">Tổ TK&amp;VV</th>
                     <th className="px-4 py-3">Chương trình</th>
-                    <th className="px-4 py-3 text-right">Ngày ĐH GDXA</th>
                     <th className="px-4 py-3 text-right">Ngày GD gần nhất</th>
+                    <th className="px-4 py-3 text-right">Ngày ĐH GDXA</th>
                     <th className="px-4 py-3 text-right">Ngừng GD (ngày)</th>
                     <th className="px-4 py-3 text-right">Tổng dư nợ</th>
                   </tr>
@@ -678,14 +844,20 @@ export function NplPage() {
                         <div>{r.tenXa || '—'}</div>
                         <div className="text-xs text-slate-500 dark:text-slate-400">{r.tenDVUT || '—'}</div>
                       </td>
+                      <td
+                        className="max-w-[200px] truncate px-4 py-2.5 text-slate-600 dark:text-slate-300"
+                        title={r.tenTo}
+                      >
+                        {r.tenTo || '—'}
+                      </td>
                       <td className="max-w-[240px] truncate px-4 py-2.5 text-slate-600 dark:text-slate-300">
                         {r.tenChuongTrinh || '—'}
                       </td>
-                      <td className="px-4 py-2.5 text-right font-mono tabular-nums text-slate-700 dark:text-slate-200">
-                        {fmtDate(r.ngayDHGDXA)}
-                      </td>
                       <td className="px-4 py-2.5 text-right font-mono tabular-nums text-slate-600 dark:text-slate-300">
                         {fmtDate(r.ngayGiaoDichGanNhat)}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-mono tabular-nums text-slate-700 dark:text-slate-200">
+                        {fmtDate(r.ngayDHGDXA)}
                       </td>
                       <td className="px-4 py-2.5 text-right font-mono tabular-nums font-semibold text-purple-700 dark:text-purple-300">
                         {r.daysSince}
@@ -703,6 +875,52 @@ export function NplPage() {
       </Card>
         );
       })()}
+
+      {/* Heatmap: lịch sắp đến hạn của các KH ngừng GD > 90 ngày — phân bố
+          theo năm-tháng để cán bộ thấy áp lực thu hồi tổng thể. Đặt sau bảng
+          cảnh báo để bảng chi tiết hiện trước, heatmap đóng vai trò drill ngược. */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle className="flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              Lịch sắp đến hạn — KH ngừng GD &gt; 90 ngày
+            </CardTitle>
+            <div className="flex items-center gap-1">
+              <ChartSwitcher
+                options={HEAT_OPTS}
+                value={dueSoonHeatType}
+                onChange={setDueSoonHeatType}
+              />
+              <InfoPopover
+                explanation={{
+                  title: 'Lịch sắp đến hạn — KH ngừng GD > 90 ngày',
+                  definition:
+                    'Khế ước OPEN có "Ngày ĐH theo GDXA" sau ngày chốt số liệu MÀ khách hàng đã không phát sinh giao dịch > 90 ngày, gom theo năm-tháng của ngày đến hạn.',
+                  formula:
+                    'group_by(year-month(ngayDHGDXA)) trên các khế ước OPEN với ngayDHGDXA > ngày chốt VÀ (refDate − ngayGiaoDichGanNhat) > 90 ngày. Mỗi ô = số khế ước + tổng dư nợ.',
+                  note: 'Cùng định nghĩa với card KPI "Dự kiến chuyển NQH (KH ngừng GD > 90d)" và bảng cảnh báo sớm phía trên — chỉ khác cách nhìn theo lịch.',
+                }}
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent id="chart-due-soon-dormant-heatmap">
+          <HeatmapMaturity
+            data={dueSoonDormantHeatmap}
+            chartType={dueSoonHeatType}
+            onClick={(ym) => setDueSoonHeatMonth(ym)}
+            labels={{
+              popoverHeader: 'Sắp đến hạn — KH ngừng GD > 90 ngày',
+              popoverFooter:
+                'Số khế ước có Ngày ĐH theo GDXA rơi vào tháng này, KH đã ngừng giao dịch > 90 ngày.',
+              emptyText: 'Không có khế ước nào thoả điều kiện cảnh báo.',
+              caption:
+                'Mỗi ô = số khế ước sắp đến hạn (sau ngày chốt) của KH ngừng GD > 90 ngày. Bấm vào ô rồi chọn "Xem danh sách khế ước" để lọc bảng cảnh báo phía trên theo tháng.',
+            }}
+          />
+        </CardContent>
+      </Card>
 
       {/* Dư nợ quá hạn — toggle Xã / ĐVUT / Chương trình. */}
       {(() => {
@@ -1039,11 +1257,15 @@ function DueSoonCard({
   thangDuNo,
   quyCount,
   quyDuNo,
+  namCount,
+  namDuNo,
 }: {
   thangCount: number;
   thangDuNo: number;
   quyCount: number;
   quyDuNo: number;
+  namCount: number;
+  namDuNo: number;
 }) {
   return (
     <div className="relative overflow-hidden rounded-xl bg-purple-50 p-4 shadow-md shadow-slate-200/60 dark:bg-purple-500/10 dark:shadow-slate-950/40">
@@ -1055,7 +1277,7 @@ function DueSoonCard({
             definition:
               'Khế ước có "Ngày ĐH theo GDXA" sắp đến (sau ngày chốt số liệu, OPEN) MÀ khách hàng đã ngừng giao dịch > 90 ngày. Nhóm này có nguy cơ chuyển NQH cao nhất vì vừa sắp đến hạn vừa khó liên hệ.',
             formula:
-              'Tháng = ngayDHGDXA cùng tháng+năm với ngày chốt VÀ > ngày chốt VÀ (refDate − ngayGiaoDichGanNhat) > 90 ngày. Quý = ngayDHGDXA cùng quý+năm với ngày chốt VÀ > ngày chốt VÀ ngừng GD > 90 ngày. Đếm khế ước + tổng dư nợ.',
+              'Tháng = ngayDHGDXA cùng tháng+năm với ngày chốt VÀ > ngày chốt VÀ (refDate − ngayGiaoDichGanNhat) > 90 ngày. Quý = cùng quý+năm. Năm = cùng năm. Đếm khế ước + tổng dư nợ.',
             note: 'Chi tiết danh sách ở bảng cảnh báo bên dưới.',
           }}
         />
@@ -1068,7 +1290,7 @@ function DueSoonCard({
           <CalendarClock className="h-4 w-4" />
         </div>
       </div>
-      <div className="mt-2 grid grid-cols-2 gap-3">
+      <div className="mt-2 grid grid-cols-3 gap-3">
         <div className="min-w-0">
           <div className="text-[10px] font-semibold uppercase tracking-wide text-purple-700/80 dark:text-purple-300/80">
             Tháng
@@ -1089,6 +1311,17 @@ function DueSoonCard({
           </div>
           <div className="text-[10px] text-purple-700/70 dark:text-purple-300/70">
             {fmtNumber(quyCount)} khế ước
+          </div>
+        </div>
+        <div className="min-w-0 border-l border-purple-200 pl-3 dark:border-purple-500/25">
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-purple-700/80 dark:text-purple-300/80">
+            Năm
+          </div>
+          <div className="truncate text-lg font-bold tracking-tight text-purple-800 dark:text-purple-200">
+            {fmtCompact(namDuNo)}
+          </div>
+          <div className="text-[10px] text-purple-700/70 dark:text-purple-300/70">
+            {fmtNumber(namCount)} khế ước
           </div>
         </div>
       </div>

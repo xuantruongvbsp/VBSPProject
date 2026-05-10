@@ -245,12 +245,22 @@ const DORMANT_COLUMNS: {
     header: 'Hoạt động cuối',
     get: (d) => fmtDate(d.ngayHoatDongCuoi),
   },
+  {
+    header: 'Ngày ĐH theo GDXA',
+    get: (d) => fmtDate(d.nearestDHGDXA),
+  },
   { header: 'Số ngày không giao dịch', get: (d) => d.daysSince, numFmt: '#,##0' },
 ];
 
 // ─── Xuất danh sách NPL / Khoanh ──────────────────────────────────────────
 
-export type BadDebtKind = 'qh' | 'khoanh' | 'chuyenNQHThang' | 'dueSoonDormantThang' | 'dueSoonDormantQuy';
+export type BadDebtKind =
+  | 'qh'
+  | 'khoanh'
+  | 'chuyenNQHThang'
+  | 'dueSoonDormantThang'
+  | 'dueSoonDormantQuy'
+  | 'dueSoonDormantNam';
 
 export interface BadDebtXlsxInput {
   /** Loại báo cáo: 'qh' = quá hạn (NPL), 'khoanh' = dư nợ khoanh */
@@ -316,13 +326,17 @@ export async function exportBadDebtToXlsx(input: BadDebtXlsxInput): Promise<void
           ? 'Danh sách chuyển NQH trong tháng'
           : kind === 'dueSoonDormantThang'
             ? 'Cảnh báo sớm: Sắp đến hạn (tháng) — KH ngừng GD > 90 ngày'
-            : 'Cảnh báo sớm: Sắp đến hạn (quý) — KH ngừng GD > 90 ngày';
+            : kind === 'dueSoonDormantQuy'
+              ? 'Cảnh báo sớm: Sắp đến hạn (quý) — KH ngừng GD > 90 ngày'
+              : 'Cảnh báo sớm: Sắp đến hạn (năm) — KH ngừng GD > 90 ngày';
+  const isDueSoonDormant =
+    kind === 'dueSoonDormantThang' ||
+    kind === 'dueSoonDormantQuy' ||
+    kind === 'dueSoonDormantNam';
   const sortByDH = (a: LoanRecord, b: LoanRecord) =>
     (a.ngayDHGDXA?.getTime() ?? 0) - (b.ngayDHGDXA?.getTime() ?? 0);
   const sortedLoans =
-    kind === 'chuyenNQHThang' ||
-    kind === 'dueSoonDormantThang' ||
-    kind === 'dueSoonDormantQuy'
+    kind === 'chuyenNQHThang' || isDueSoonDormant
       ? [...loans].sort(sortByDH)
       : [...loans].sort((a, b) => b[sumField] - a[sumField]);
 
@@ -342,11 +356,11 @@ export async function exportBadDebtToXlsx(input: BadDebtXlsxInput): Promise<void
       `Tổng ${
         kind === 'khoanh'
           ? 'dư nợ khoanh'
-          : kind === 'dueSoonDormantThang' || kind === 'dueSoonDormantQuy'
+          : isDueSoonDormant
             ? 'dư nợ (sẽ chuyển NQH)'
             : 'dư nợ quá hạn'
       }: ${fmtCurrency(
-        kind === 'dueSoonDormantThang' || kind === 'dueSoonDormantQuy'
+        isDueSoonDormant
           ? sortedLoans.reduce((s, r) => s + r.tongDuNo, 0)
           : totalAmount,
       )}`,
@@ -363,7 +377,7 @@ export async function exportBadDebtToXlsx(input: BadDebtXlsxInput): Promise<void
           ? 'Danh sách được sắp xếp giảm dần theo "Dư nợ khoanh". "Ngày chuyển NQH" lấy từ "Ngày ĐH theo GDXA".'
           : kind === 'chuyenNQHThang'
             ? 'Khế ước có "Ngày ĐH theo GDXA" rơi vào tháng của ngày chốt số liệu và "Tình trạng món vay" = OPEN. Sắp xếp tăng dần theo "Ngày ĐH theo GDXA".'
-            : `Khế ước có "Ngày ĐH theo GDXA" trong ${kind === 'dueSoonDormantThang' ? 'tháng' : 'quý'} hiện tại (sau ngày chốt, OPEN) MÀ KH đã ngừng giao dịch > 90 ngày. Sắp xếp tăng dần theo "Ngày ĐH theo GDXA".`,
+            : `Khế ước có "Ngày ĐH theo GDXA" trong ${kind === 'dueSoonDormantThang' ? 'tháng' : kind === 'dueSoonDormantQuy' ? 'quý' : 'năm'} hiện tại (sau ngày chốt, OPEN) MÀ KH đã ngừng giao dịch > 90 ngày. Sắp xếp tăng dần theo "Ngày ĐH theo GDXA".`,
     ],
   ];
   const ctxWs = XLSX.utils.aoa_to_sheet(ctx);
@@ -407,7 +421,9 @@ export async function exportBadDebtToXlsx(input: BadDebtXlsxInput): Promise<void
           ? 'Chuyển NQH trong tháng'
           : kind === 'dueSoonDormantThang'
             ? 'Cảnh báo sớm (tháng)'
-            : 'Cảnh báo sớm (quý)'
+            : kind === 'dueSoonDormantQuy'
+              ? 'Cảnh báo sớm (quý)'
+              : 'Cảnh báo sớm (năm)'
   );
   XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
@@ -487,7 +503,11 @@ export interface StaffComparisonXlsxRow {
   prevTyLeNQH: number;
   currTyLeNQH: number;
   deltaTyLeNQH: number;
-  rollRate: number;
+  prevDuNoKhoanh: number;
+  currDuNoKhoanh: number;
+  prevTyLeKhoanh: number;
+  currTyLeKhoanh: number;
+  deltaTyLeKhoanh: number;
   newLoans: number;
   closedLoans: number;
 }
@@ -529,7 +549,11 @@ const STAFF_COMPARE_COLUMNS: {
   { header: 'Tỷ lệ NQH kỳ trước', get: (r) => r.prevTyLeNQH / 100, numFmt: '0.00%' },
   { header: 'Tỷ lệ NQH kỳ sau', get: (r) => r.currTyLeNQH / 100, numFmt: '0.00%' },
   { header: 'Δ Tỷ lệ NQH (điểm %)', get: (r) => r.deltaTyLeNQH / 100, numFmt: '0.00%' },
-  { header: 'Roll rate kỳ sau', get: (r) => r.rollRate / 100, numFmt: '0.00%' },
+  { header: 'Dư nợ khoanh kỳ trước (đ)', get: (r) => r.prevDuNoKhoanh, numFmt: '#,##0' },
+  { header: 'Dư nợ khoanh kỳ sau (đ)', get: (r) => r.currDuNoKhoanh, numFmt: '#,##0' },
+  { header: 'Tỷ lệ khoanh kỳ trước', get: (r) => r.prevTyLeKhoanh / 100, numFmt: '0.00%' },
+  { header: 'Tỷ lệ khoanh kỳ sau', get: (r) => r.currTyLeKhoanh / 100, numFmt: '0.00%' },
+  { header: 'Δ Tỷ lệ khoanh (điểm %)', get: (r) => r.deltaTyLeKhoanh / 100, numFmt: '0.00%' },
   { header: 'Khế ước mới', get: (r) => r.newLoans, numFmt: '#,##0' },
   { header: 'Khế ước đã đóng', get: (r) => r.closedLoans, numFmt: '#,##0' },
 ];
@@ -559,7 +583,7 @@ export async function exportStaffComparisonToXlsx(
       'Khế ước thuộc thôn không có cán bộ duy nhất được gom vào hai dòng tổng hợp ở cuối: "(Chưa gán cán bộ)" và "(Nhiều cán bộ phụ trách)".',
     ],
     [
-      'Roll rate = (Σ duNoQuaHan kỳ sau của khế ước Trong hạn ở kỳ trước) / (Σ duNoTrongHan kỳ trước).',
+      'Tỷ lệ khoanh = Σ duNoKhoanh / Σ tongDuNo trong cùng kỳ. Δ Tỷ lệ khoanh = currTyLeKhoanh − prevTyLeKhoanh (điểm %).',
     ],
   ];
   const ctxWs = XLSX.utils.aoa_to_sheet(ctx);
@@ -634,7 +658,11 @@ export interface PointComparisonXlsxRow {
   prevTyLeNQH: number;
   currTyLeNQH: number;
   deltaTyLeNQH: number;
-  rollRate: number;
+  prevDuNoKhoanh: number;
+  currDuNoKhoanh: number;
+  prevTyLeKhoanh: number;
+  currTyLeKhoanh: number;
+  deltaTyLeKhoanh: number;
   newLoans: number;
   closedLoans: number;
 }
@@ -672,7 +700,11 @@ const POINT_COMPARE_COLUMNS: {
   { header: 'Tỷ lệ NQH kỳ trước', get: (r) => r.prevTyLeNQH / 100, numFmt: '0.00%' },
   { header: 'Tỷ lệ NQH kỳ sau', get: (r) => r.currTyLeNQH / 100, numFmt: '0.00%' },
   { header: 'Δ Tỷ lệ NQH (điểm %)', get: (r) => r.deltaTyLeNQH / 100, numFmt: '0.00%' },
-  { header: 'Roll rate kỳ sau', get: (r) => r.rollRate / 100, numFmt: '0.00%' },
+  { header: 'Dư nợ khoanh kỳ trước (đ)', get: (r) => r.prevDuNoKhoanh, numFmt: '#,##0' },
+  { header: 'Dư nợ khoanh kỳ sau (đ)', get: (r) => r.currDuNoKhoanh, numFmt: '#,##0' },
+  { header: 'Tỷ lệ khoanh kỳ trước', get: (r) => r.prevTyLeKhoanh / 100, numFmt: '0.00%' },
+  { header: 'Tỷ lệ khoanh kỳ sau', get: (r) => r.currTyLeKhoanh / 100, numFmt: '0.00%' },
+  { header: 'Δ Tỷ lệ khoanh (điểm %)', get: (r) => r.deltaTyLeKhoanh / 100, numFmt: '0.00%' },
   { header: 'Khế ước mới', get: (r) => r.newLoans, numFmt: '#,##0' },
   { header: 'Khế ước đã đóng', get: (r) => r.closedLoans, numFmt: '#,##0' },
 ];
@@ -699,7 +731,7 @@ export async function exportPointComparisonToXlsx(
       'Khế ước thuộc thôn không có ĐGD duy nhất được gom vào hai dòng tổng hợp ở cuối: "(Chưa gán ĐGD)" và "(Nhiều ĐGD)".',
     ],
     [
-      'Roll rate = (Σ duNoQuaHan kỳ sau của khế ước Trong hạn ở kỳ trước) / (Σ duNoTrongHan kỳ trước).',
+      'Tỷ lệ khoanh = Σ duNoKhoanh / Σ tongDuNo trong cùng kỳ. Δ Tỷ lệ khoanh = currTyLeKhoanh − prevTyLeKhoanh (điểm %).',
     ],
   ];
   const ctxWs = XLSX.utils.aoa_to_sheet(ctx);

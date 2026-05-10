@@ -825,6 +825,7 @@ export function OverviewPage() {
                     <th className="px-4 py-3 text-right">Số khế ước</th>
                     <th className="px-4 py-3 text-right">Tổng dư nợ</th>
                     <th className="px-4 py-3 text-right">Hoạt động cuối</th>
+                    <th className="px-4 py-3 text-right">Ngày ĐH theo GDXA</th>
                     <th className="px-4 py-3 text-right">Số ngày</th>
                   </tr>
                 </thead>
@@ -860,6 +861,16 @@ export function OverviewPage() {
                         </td>
                         <td className="px-4 py-2.5 text-right text-slate-600 dark:text-slate-300">
                           {fmtDate(d.ngayHoatDongCuoi)}
+                        </td>
+                        <td
+                          className="px-4 py-2.5 text-right text-slate-600 dark:text-slate-300"
+                          title={
+                            d.soKheUoc > 1
+                              ? 'Ngày ĐH theo GDXA gần nhất sắp tới (sau ngày chốt). Nếu tất cả đã qua, lấy ngày gần nhất trong quá khứ.'
+                              : undefined
+                          }
+                        >
+                          {fmtDate(d.nearestDHGDXA)}
                         </td>
                         <td className="px-4 py-2.5 text-right">
                           <span className="rounded-full bg-amber-100 dark:bg-slate-800 dark:ring-1 dark:ring-amber-500/30 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:text-amber-300">

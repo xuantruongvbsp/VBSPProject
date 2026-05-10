@@ -479,6 +479,12 @@ export interface DormantCustomer {
   laiTon: number;
   ngayHoatDongCuoi: Date | null;
   daysSince: number;
+  /**
+   * "Ngày ĐH theo GDXA" gần nhất tính tới ngày chốt số liệu.
+   * Nếu KH có nhiều khế ước: ưu tiên ngày sớm nhất sắp tới (≥ ngày chốt);
+   * nếu tất cả đã qua, lấy ngày gần nhất trong quá khứ (lớn nhất < ngày chốt).
+   */
+  nearestDHGDXA: Date | null;
 }
 
 /**
@@ -515,6 +521,10 @@ export function dormantCustomers(
   const refMs = referenceDate.getTime();
   const dayMs = 86_400_000;
 
+  // Lưu riêng "ngày ĐH sớm nhất sắp tới" và "ngày ĐH gần nhất đã qua" cho mỗi KH
+  const upcomingByKH = new Map<string, Date>();
+  const pastByKH = new Map<string, Date>();
+
   const map = new Map<string, DormantCustomer>();
   for (const r of rows) {
     if (!r.maKH) continue;
@@ -533,6 +543,7 @@ export function dormantCustomers(
         laiTon: 0,
         ngayHoatDongCuoi: null,
         daysSince: 0,
+        nearestDHGDXA: null,
       };
       map.set(r.maKH, entry);
     }
@@ -543,6 +554,16 @@ export function dormantCustomers(
     if (last && (!entry.ngayHoatDongCuoi || last > entry.ngayHoatDongCuoi)) {
       entry.ngayHoatDongCuoi = last;
     }
+    const dh = r.ngayDHGDXA;
+    if (dh) {
+      if (dh.getTime() >= refMs) {
+        const cur = upcomingByKH.get(r.maKH);
+        if (!cur || dh < cur) upcomingByKH.set(r.maKH, dh);
+      } else {
+        const cur = pastByKH.get(r.maKH);
+        if (!cur || dh > cur) pastByKH.set(r.maKH, dh);
+      }
+    }
   }
 
   const out: DormantCustomer[] = [];
@@ -552,6 +573,7 @@ export function dormantCustomers(
     if (t > minCutoffMs) continue;
     if (maxCutoffMs !== null && t <= maxCutoffMs) continue;
     e.daysSince = Math.floor((refMs - t) / dayMs);
+    e.nearestDHGDXA = upcomingByKH.get(e.maKH) ?? pastByKH.get(e.maKH) ?? null;
     out.push(e);
   }
   return out.sort((a, b) => b.daysSince - a.daysSince);
