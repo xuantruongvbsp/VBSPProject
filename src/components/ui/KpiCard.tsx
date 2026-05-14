@@ -88,7 +88,7 @@ const toneMap: Record<Tone, { card: string; label: string; value: string; chip: 
 interface Props {
   label: string;
   value: number | string;
-  caption?: string;
+  caption?: React.ReactNode;
   delta?: number;
   trend?: Trend;
   tone?: Tone;

@@ -217,6 +217,7 @@ export function NplPage() {
     return filtered
       .filter((r) => {
         if (!isOpenLoan(r)) return false;
+        if (!(r.duNoQuaHan > 0)) return false;
         const d = r.ngayDHGDXA;
         if (!d) return false;
         if (d.getFullYear() !== y || d.getMonth() !== m) return false;
@@ -547,9 +548,23 @@ export function NplPage() {
           tone={chuyenNQHThang.length > 0 ? 'danger' : 'success'}
           icon={<FileWarning className="h-4 w-4" />}
           caption={
-            ngaySoLieu
-              ? `Tháng ${String(ngaySoLieu.getMonth() + 1).padStart(2, '0')}/${ngaySoLieu.getFullYear()} · Dư nợ QH ${fmtCompact(tongChuyenNQH)}`
-              : 'Không có ngày chốt số liệu'
+            ngaySoLieu ? (
+              <div className="space-y-1">
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  {`Tháng ${String(ngaySoLieu.getMonth() + 1).padStart(2, '0')}/${ngaySoLieu.getFullYear()}`}
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-red-700/80 dark:text-red-300/80">
+                    Dư nợ QH
+                  </span>
+                  <span className="text-lg font-bold tabular-nums text-red-700 dark:text-red-300">
+                    {fmtCompact(tongChuyenNQH)}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              'Không có ngày chốt số liệu'
+            )
           }
           infoKey="chuyenNQHThang"
         />

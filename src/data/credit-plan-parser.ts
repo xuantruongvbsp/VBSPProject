@@ -176,9 +176,11 @@ export async function parseActualFile(
 
     // Split CT=12 (NOXH) sang 12N nếu Số khế ước thuộc danh sách NOXH-NQ11.
     // Cơ chế giống 03A/03B: tách thẳng tại parse, plan nhập độc lập cho 12 / 12N.
-    if (maCT === '12' && nq11NoxhIds && nq11NoxhIds.size > 0 && iMonId !== -1) {
-      const monId = String(row[iMonId] ?? '').trim();
-      if (monId && nq11NoxhIds.has(monId)) {
+    // NOXH-NQ11 file (BCQUERY) match bằng "Số khế ước" — KHÔNG dùng iMonId
+    // (vì iMonId ưu tiên "Mã món vay" → không khớp với set Số khế ước).
+    if (maCT === '12' && nq11NoxhIds && nq11NoxhIds.size > 0 && iSoKheUoc !== -1) {
+      const sku = String(row[iSoKheUoc] ?? '').trim();
+      if (sku && nq11NoxhIds.has(sku)) {
         maCT = '12N';
       }
     }
