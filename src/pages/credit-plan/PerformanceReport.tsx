@@ -27,7 +27,9 @@ const TW_GROUPS: ProgramGroup[] = [
 
 const DP_GROUPS: ProgramGroup[] = [
   { title: 'GQVL ĐP TỈNH', codes: ['03'], maNguonVon: '2' },
-  { title: 'HN, HCN, HTN TỈNH', codes: ['01', '19', '09'], maNguonVon: '2' },
+  { title: 'HN', codes: ['01'], maNguonVon: '2' },
+  { title: 'HCN', codes: ['19'], maNguonVon: '2' },
+  { title: 'HTN', codes: ['09'], maNguonVon: '2' },
   { title: 'Án Phạt Tù ĐP', codes: ['26'], maNguonVon: '2' },
   { title: 'NOXH ĐP', codes: ['12'], maNguonVon: '2' },
   { title: 'MỨC SỐNG TB', codes: ['99'], maNguonVon: '2' },

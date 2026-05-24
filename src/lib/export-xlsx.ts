@@ -98,6 +98,7 @@ const LOAN_COLUMNS: LoanColumn[] = [
   { header: 'Dư nợ quá hạn', get: (r) => r.duNoQuaHan, numFmt: '#,##0' },
   { header: 'Dư nợ khoanh', get: (r) => r.duNoKhoanh, numFmt: '#,##0' },
   { header: 'Tổng dư nợ', get: (r) => r.tongDuNo, numFmt: '#,##0' },
+  { header: 'Số dư TK 105', get: (r) => r.soDuTienGui105, numFmt: '#,##0' },
   { header: 'Gốc đã trả', get: (r) => r.gocDaTra, numFmt: '#,##0' },
   { header: 'Lãi tồn trong hạn', get: (r) => r.laiTonTH, numFmt: '#,##0' },
   { header: 'Lãi tồn quá hạn', get: (r) => r.laiTonQH, numFmt: '#,##0' },
