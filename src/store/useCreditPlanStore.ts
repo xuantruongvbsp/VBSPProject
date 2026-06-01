@@ -295,14 +295,17 @@ export const useCreditPlanStore = create<CreditPlanState>()(
       getPlanVsActual: () => {
         const { plans, decisions } = get();
         const actuals = get().getMergedActuals();
-        const decIds = new Set(decisions.map((d) => d.id));
+        // Chỉ tính kế hoạch thuộc QĐ "Hiệu lực" (active). QĐ Nháp/Lưu trữ bị loại.
+        const decIds = new Set(
+          decisions.filter((d) => d.trangThai === 'active').map((d) => d.id),
+        );
         const key = (maXa: string, nguonVon: string, ct: string) =>
           `${maXa}|${nguonVon}|${ct}`;
 
         // Aggregate plans by (xã, NV-from-line, chương trình)
         const planMap = new Map<string, { total: number; entry: PlanEntry }>();
         for (const p of plans) {
-          if (!decIds.has(p.decisionId)) continue; // orphan — skip
+          if (!decIds.has(p.decisionId)) continue; // orphan / không hiệu lực — skip
           const k = key(p.maXa, p.maNguonVon, p.maChuongTrinh);
           const existing = planMap.get(k);
           if (existing) {

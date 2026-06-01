@@ -81,7 +81,7 @@ export function PerformanceReport() {
   const xaGroups = useMemo<ProgramGroup[]>(() => {
     const hasConfiguredNdt = decisions.some(
       (d) =>
-        d.trangThai !== 'archived' &&
+        d.trangThai === 'active' &&
         d.maNguonVonList.includes('3') &&
         !!d.maNhaDauTu,
     );
@@ -209,18 +209,9 @@ export function PerformanceReport() {
       <section>
         <SectionHeader title="Chỉ tiêu địa phương còn lại" date={actualDate ?? '—'} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
-          {DP_GROUPS.map(renderCard)}
+          {[...DP_GROUPS, ...xaGroups].map(renderCard)}
         </div>
       </section>
-
-      {xaGroups.length > 0 && (
-        <section>
-          <SectionHeader title="Chỉ tiêu địa phương xã còn lại" date={actualDate ?? '—'} />
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
-            {xaGroups.map(renderCard)}
-          </div>
-        </section>
-      )}
     </div>
   );
 }

@@ -185,6 +185,39 @@ export function PlanReports() {
     XLSX.writeFile(wb, `ChiTiet_${safeName}.xlsx`);
   };
 
+  /** Xuất bảng "Chi tiết so sánh" (theo bộ lọc hiện tại) ra file Excel. */
+  const exportCompareGrid = () => {
+    const data = compareGrid.filtered;
+    if (data.length === 0) {
+      alert('Không có dòng nào để xuất.');
+      return;
+    }
+    const rows = data.map((c, i) => ({
+      STT: i + 1,
+      'Xã': c.tenXa,
+      'Nguồn vốn': nguonVonLabel(c.maNguonVon),
+      'Mã CT': c.maChuongTrinh || '',
+      'Tên chương trình': c.tenChuongTrinh,
+      'KH (tr.đ)': Math.round(c.planAmount),
+      'TT (tr.đ)': Math.round(c.actualAmount),
+      'Còn phải thực hiện (tr.đ)': Math.round(c.planAmount - c.actualAmount),
+      'Tỷ lệ (%)': c.planAmount > 0 ? Math.round(c.pct * 10) / 10 : 0,
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const tPlan = data.reduce((s, c) => s + c.planAmount, 0);
+    const tActual = data.reduce((s, c) => s + c.actualAmount, 0);
+    const tPct = tPlan > 0 ? Math.round((tActual / tPlan) * 1000) / 10 : 0;
+    XLSX.utils.sheet_add_aoa(
+      ws,
+      [['', 'TỔNG CỘNG', '', '', '', Math.round(tPlan), Math.round(tActual), Math.round(tPlan - tActual), tPct]],
+      { origin: -1 },
+    );
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Chi tiết so sánh');
+    const stamp = (actualDate ?? '').replace(/[^\p{L}\p{N}_-]+/gu, '_');
+    XLSX.writeFile(wb, `ChiTietSoSanh${stamp ? `_${stamp}` : ''}.xlsx`);
+  };
+
   const hasData = plans.length > 0 || actuals.length > 0;
 
   // Aggregate comparison by groupBy
@@ -707,8 +740,20 @@ export function PlanReports() {
       {/* Detail comparison table */}
       <Card>
         <CardHeader>
-          <CardTitle>Chi tiết so sánh</CardTitle>
-          <CardDescription>So sánh từng dòng KH vs TT theo Xã × Nguồn vốn × Chương trình. Bấm nút tải để xuất danh sách món vay đóng góp.</CardDescription>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <CardTitle>Chi tiết so sánh</CardTitle>
+              <CardDescription>So sánh từng dòng KH vs TT theo Xã × Nguồn vốn × Chương trình. Bấm nút tải để xuất danh sách món vay đóng góp.</CardDescription>
+            </div>
+            <button
+              onClick={exportCompareGrid}
+              disabled={compareGrid.filtered.length === 0}
+              title="Xuất bảng (theo bộ lọc hiện tại) ra Excel"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            >
+              <FileDown className="h-3.5 w-3.5" /> Xuất Excel
+            </button>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">

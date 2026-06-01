@@ -123,7 +123,9 @@ export function TxnPointPerformancePage() {
       b.duNoQuaHan += r.duNoQuaHan;
       b.duNoKhoanh += r.duNoKhoanh;
       b.laiTonTH += r.laiTonTH;
-      if (r.maKH) b.kh.add(r.maKH);
+      // Chỉ tính KH có dư nợ > 0 — bỏ qua Mã KH đã tất toán (dư nợ = 0)
+      // để Mức vay BQ và số KH phản ánh đúng khách hàng còn dư nợ.
+      if (r.maKH && r.tongDuNo > 0) b.kh.add(r.maKH);
     }
 
     const finalize = (b: Bucket): Omit<PointSlice, 'point' | 'thonCount'> => ({
