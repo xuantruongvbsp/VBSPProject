@@ -31,7 +31,7 @@ import { parseExcelFile } from '@/data/parser';
 import { saveRecentPeriodPair } from '@/lib/recent-period-pairs';
 import { PeriodImportDropzone } from '@/components/import/PeriodImportDropzone';
 import { ViewerEmptyState } from '@/components/auth/ViewerEmptyState';
-import { PublishButton } from '@/components/owner/PublishButton';
+import { DataAutoSync } from '@/components/owner/DataAutoSync';
 
 const navItems = [
   { to: '/period/dien-bien', label: 'Diễn biến', icon: Activity },
@@ -372,7 +372,7 @@ export function PeriodShell() {
                 <RefreshCw className="h-3 w-3" /> Đổi tệp
               </button>
               <div className="mt-3">
-                <PublishButton kind="period" />
+                <DataAutoSync kind="period" />
               </div>
             </>
           )}

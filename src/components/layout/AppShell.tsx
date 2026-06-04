@@ -20,7 +20,7 @@ import { useDataStore } from '@/store/useDataStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import { useIsOwner } from '@/store/useAuthStore';
 import { fmtDate } from '@/lib/format';
-import { PublishButton } from '@/components/owner/PublishButton';
+import { DataAutoSync } from '@/components/owner/DataAutoSync';
 
 const navItems = [
   { to: '/snapshot', label: 'Tổng quan', icon: LayoutDashboard, end: true },
@@ -117,7 +117,7 @@ export function AppShell() {
                 <RefreshCw className="h-3 w-3" /> Tải tệp khác
               </button>
               <div className="mt-3">
-                <PublishButton kind="snapshot" />
+                <DataAutoSync kind="snapshot" />
               </div>
             </>
           )}
