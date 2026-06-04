@@ -784,6 +784,96 @@ export async function exportPointComparisonToXlsx(
   XLSX.writeFile(wb, out);
 }
 
+// ─── Kế hoạch tín dụng — Lưới danh mục kế hoạch ───────────────────────
+
+export interface PlanGridXlsxRow {
+  soQD: string;
+  ngayQD: string;
+  tenXa: string;
+  nguonVon: string;
+  tenChuongTrinh: string;
+  soTien: number;
+}
+
+export interface PlanGridXlsxInput {
+  rows: PlanGridXlsxRow[];
+  /** Mô tả bộ lọc đang áp (vd "Tất cả Quyết định · Tất cả xã") */
+  filterSummary?: string;
+  filename?: string;
+}
+
+const PLAN_GRID_COLUMNS: {
+  header: string;
+  get: (r: PlanGridXlsxRow) => string | number;
+  numFmt?: string;
+}[] = [
+  { header: 'Số QĐ', get: (r) => r.soQD },
+  { header: 'Ngày QĐ', get: (r) => r.ngayQD },
+  { header: 'Xã', get: (r) => r.tenXa },
+  { header: 'Nguồn vốn', get: (r) => r.nguonVon },
+  { header: 'Chương trình', get: (r) => r.tenChuongTrinh },
+  { header: 'Số tiền (tr.đ)', get: (r) => r.soTien, numFmt: '#,##0' },
+];
+
+export async function exportPlanGridToXlsx(input: PlanGridXlsxInput): Promise<void> {
+  const { rows, filterSummary, filename } = input;
+  const wb = XLSX.utils.book_new();
+
+  const totalAmount = rows.reduce((s, r) => s + r.soTien, 0);
+
+  // Sheet bối cảnh
+  const generated = new Date();
+  const ctx: (string | number)[][] = [
+    ['Kế hoạch tín dụng — Danh mục kế hoạch dư nợ'],
+    filterSummary ? [`Bộ lọc: ${filterSummary}`] : [''],
+    [`Số mục trong báo cáo: ${fmtNumber(rows.length)}`],
+    [`Tổng kế hoạch (tr.đ): ${fmtNumber(totalAmount)}`],
+    [
+      `Ngày xuất báo cáo: ${fmtDate(generated)} ${String(generated.getHours()).padStart(2, '0')}:${String(generated.getMinutes()).padStart(2, '0')}`,
+    ],
+  ];
+  const ctxWs = XLSX.utils.aoa_to_sheet(ctx);
+  ctxWs['!cols'] = [{ wch: 80 }];
+  XLSX.utils.book_append_sheet(wb, ctxWs, safeSheetName('Bối cảnh'));
+
+  // Sheet dữ liệu
+  const headers = ['STT', ...PLAN_GRID_COLUMNS.map((c) => c.header)];
+  const aoa: (string | number)[][] = [headers];
+  rows.forEach((r, i) => {
+    aoa.push([i + 1, ...PLAN_GRID_COLUMNS.map((c) => c.get(r))]);
+  });
+  // Dòng tổng cộng
+  const totalRow: (string | number)[] = ['', '', '', '', '', 'Tổng cộng', totalAmount];
+  aoa.push(totalRow);
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+  // Áp định dạng số (bỏ qua cột STT)
+  const range = XLSX.utils.decode_range(ws['!ref'] ?? 'A1');
+  for (let col = 0; col < PLAN_GRID_COLUMNS.length; col++) {
+    const fmt = PLAN_GRID_COLUMNS[col].numFmt;
+    if (!fmt) continue;
+    const c = col + 1;
+    for (let rowIdx = 1; rowIdx <= range.e.r; rowIdx++) {
+      const addr = XLSX.utils.encode_cell({ r: rowIdx, c });
+      const cell = ws[addr];
+      if (cell && cell.t === 'n') cell.z = fmt;
+    }
+  }
+
+  ws['!cols'] = [
+    { wch: 6 },
+    ...PLAN_GRID_COLUMNS.map((c) => ({
+      wch: Math.min(Math.max(c.header.length + 2, 14), 40),
+    })),
+  ];
+  ws['!freeze'] = { xSplit: 0, ySplit: 1 } as never;
+  XLSX.utils.book_append_sheet(wb, ws, safeSheetName('Kế hoạch tín dụng'));
+
+  const out = filename ?? defaultFilename('Ke hoach tin dung', 'xlsx');
+  XLSX.writeFile(wb, out);
+}
+
 // ─── Báo cáo so sánh — bảng KPI nhiều đối tượng (snapshot) ─────────────
 
 export interface CompareXlsxKpiRow {

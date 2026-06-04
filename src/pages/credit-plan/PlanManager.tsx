@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Plus, Pencil, Trash2, Save, X, Check, ChevronDown, FileText, ClipboardList } from 'lucide-react';
+import { Plus, Pencil, Trash2, Save, X, Check, ChevronDown, FileText, ClipboardList, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ColumnFilter } from '@/components/ui/ColumnFilter';
 import { useGridFilter } from '@/lib/grid-filter';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
+import { exportPlanGridToXlsx } from '@/lib/export-xlsx';
 import { useIsOwner } from '@/store/useAuthStore';
 import type { PlanEntry, Decision } from '@/lib/credit-plan-types';
 import {
@@ -300,6 +301,31 @@ export function PlanManager() {
   });
   const filtered = grid.filtered;
 
+  const handleExport = () => {
+    const decXa = XA_LIST.find((x) => x.maXa === filterXa);
+    const decNV = NGUON_VON_LIST.find((n) => n.ma === filterNV);
+    const decQD = decById.get(filterDecision);
+    const filterSummary = [
+      decQD ? `QĐ ${decQD.soQD} (${decQD.ngayQD})` : 'Tất cả Quyết định',
+      decXa ? decXa.tenXa : 'Tất cả xã',
+      decNV ? decNV.ten : 'Tất cả nguồn vốn',
+    ].join(' · ');
+    void exportPlanGridToXlsx({
+      rows: filtered.map((p) => {
+        const dec = decById.get(p.decisionId);
+        return {
+          soQD: dec?.soQD ?? '',
+          ngayQD: dec?.ngayQD ?? '',
+          tenXa: p.tenXa,
+          nguonVon: nguonVonLabel(p.maNguonVon),
+          tenChuongTrinh: p.tenChuongTrinh,
+          soTien: p.soTien,
+        };
+      }),
+      filterSummary,
+    });
+  };
+
   const totalPlan = plans.reduce((s, p) => s + p.soTien, 0);
   const selectedSet = new Set(programs.keys());
   const sortedSelected = programsForNV.filter((c) => programs.has(c.ma));
@@ -315,11 +341,16 @@ export function PlanManager() {
             Quản lý danh mục kế hoạch dư nợ theo Quyết định
           </p>
         </div>
-        {isOwner && (
-          <Button onClick={() => { resetForm(); setShowForm(true); }} disabled={!hasDecisions}>
-            <Plus className="h-4 w-4" /> Thêm mục
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={handleExport} disabled={filtered.length === 0}>
+            <Download className="h-4 w-4" /> Xuất Excel
           </Button>
-        )}
+          {isOwner && (
+            <Button onClick={() => { resetForm(); setShowForm(true); }} disabled={!hasDecisions}>
+              <Plus className="h-4 w-4" /> Thêm mục
+            </Button>
+          )}
+        </div>
       </div>
 
       {!hasDecisions && (
