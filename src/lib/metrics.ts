@@ -162,7 +162,10 @@ export function groupBy(
     g.duNoKhoanh += r.duNoKhoanh;
     g.laiTonTH += r.laiTonTH;
     g.thuLaiTHThang += r.thuLaiTHThang;
-    if (r.maKH) g._kh.add(r.maKH);
+    // Đếm khách hàng theo cùng định nghĩa với KPI "Khách hàng" — chỉ tính
+    // khách còn dư nợ (có ít nhất 1 khế ước chưa đóng), để donut "Cơ cấu
+    // khách hàng" khớp số với thẻ KPI.
+    if (r.maKH && isOpenLoan(r)) g._kh.add(r.maKH);
     const depKey = r.maKH || r.soKheUoc;
     if (depKey) {
       const v = r.soDuTienGui105 ?? 0;
@@ -276,7 +279,8 @@ export function groupByAge(rows: LoanRecord[], refDate: Date): GroupAgg[] {
     g.duNoKhoanh += r.duNoKhoanh;
     g.laiTonTH += r.laiTonTH;
     g.thuLaiTHThang += r.thuLaiTHThang;
-    if (r.maKH) {
+    // Chỉ đếm/drill khách còn dư nợ — khớp định nghĩa KPI "Khách hàng".
+    if (r.maKH && isOpenLoan(r)) {
       g._kh.add(r.maKH);
       g._maKHs.add(r.maKH);
     }

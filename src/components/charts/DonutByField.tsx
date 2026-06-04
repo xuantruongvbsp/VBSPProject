@@ -19,6 +19,11 @@ import type { GroupAgg } from '@/lib/metrics';
 
 export type DonutChartType = 'donut' | 'bar' | 'hbar' | 'treemap';
 
+/** Số lát tối đa hiển thị; phần dư được gộp vào một lát "Khác". */
+const MAX_SLICES = 8;
+/** Key đặc biệt cho lát gộp — không drill-down được (không phải giá trị thật). */
+const OTHER_KEY = '__OTHER__';
+
 interface Props {
   data: GroupAgg[];
   metric?: 'tongDuNo' | 'soKheUoc' | 'soKhachHang';
@@ -29,12 +34,39 @@ interface Props {
 export function DonutByField({ data, metric = 'tongDuNo', onClick, chartType = 'donut' }: Props) {
   const cc = useChartColors();
   const palette = cc.palette;
-  const top = data.slice(0, 8);
+
+  // Giữ top (MAX_SLICES − 1) lát lớn nhất, gộp toàn bộ phần còn lại vào một
+  // lát "Khác" để tổng các lát luôn bằng tổng thật (khớp số với thẻ KPI).
+  const top = useMemo<GroupAgg[]>(() => {
+    if (data.length <= MAX_SLICES) return data;
+    const head = data.slice(0, MAX_SLICES - 1);
+    const rest = data.slice(MAX_SLICES - 1);
+    const other: GroupAgg = {
+      key: OTHER_KEY,
+      label: 'Khác',
+      soKheUoc: rest.reduce((s, d) => s + d.soKheUoc, 0),
+      soKhachHang: rest.reduce((s, d) => s + d.soKhachHang, 0),
+      tongDuNo: rest.reduce((s, d) => s + d.tongDuNo, 0),
+      duNoTrongHan: rest.reduce((s, d) => s + d.duNoTrongHan, 0),
+      duNoQuaHan: rest.reduce((s, d) => s + d.duNoQuaHan, 0),
+      duNoKhoanh: rest.reduce((s, d) => s + d.duNoKhoanh, 0),
+      tyLeNoQH: 0,
+      tyLeKhoanh: 0,
+      laiTonTH: rest.reduce((s, d) => s + d.laiTonTH, 0),
+      thuLaiTHThang: rest.reduce((s, d) => s + d.thuLaiTHThang, 0),
+      soDuTienGui105: rest.reduce((s, d) => s + d.soDuTienGui105, 0),
+    };
+    return [...head, other];
+  }, [data]);
   const cursor = onClick ? 'pointer' : undefined;
 
+  // Lát "Khác" là tổng hợp, không tương ứng một giá trị lọc thật → bỏ qua click.
+  const emit = (key?: string) => {
+    if (key && key !== OTHER_KEY && onClick) onClick(key);
+  };
+
   const handleClick = (d: any) => {
-    const key = d?.key ?? d?.payload?.key;
-    if (key && onClick) onClick(key);
+    emit(d?.key ?? d?.payload?.key);
   };
 
   const fmt = (v: number) => (metric === 'tongDuNo' ? fmtCurrency(v) : fmtNumber(v));
@@ -57,10 +89,7 @@ export function DonutByField({ data, metric = 'tongDuNo', onClick, chartType = '
           dataKey="size"
           nameKey="name"
           stroke="#fff"
-          onClick={(node: any) => {
-            const key = node?.key ?? node?.payload?.key;
-            if (key && onClick) onClick(key);
-          }}
+          onClick={(node: any) => emit(node?.key ?? node?.payload?.key)}
           isAnimationActive={false}
         >
           {treemapData.map((entry, i) => (
@@ -169,8 +198,8 @@ export function DonutByField({ data, metric = 'tongDuNo', onClick, chartType = '
         {slicesWithPct.map((s) => (
           <div
             key={s.key}
-            onClick={() => onClick?.(s.key)}
-            className={`flex items-center gap-2 rounded-md px-2 py-1 ${cursor ? 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800' : ''}`}
+            onClick={() => emit(s.key)}
+            className={`flex items-center gap-2 rounded-md px-2 py-1 ${cursor && s.key !== OTHER_KEY ? 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800' : ''}`}
           >
             <span className="inline-block h-3 w-3 rounded-full" style={{ background: s.fill }} />
             <div>

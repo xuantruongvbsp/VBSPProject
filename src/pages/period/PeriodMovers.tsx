@@ -40,6 +40,12 @@ interface Dimension {
   drillKind: 'filter' | 'staff' | 'txnpoint' | 'none';
   /** Chỉ dùng khi drillKind='filter'. */
   filterField?: FilterField;
+  /**
+   * Chỉ dùng khi drillKind='filter'. Chuyển groupKey hiển thị thành giá trị
+   * lọc thực sự (vd: tách "01 — Tổ A" → "01" để lọc theo Mã tổ). Nếu bỏ
+   * trống, dùng nguyên groupKey làm giá trị lọc.
+   */
+  keyToFilterValue?: (key: string) => string | null;
 }
 
 const BASE_DIMENSIONS: Dimension[] = [
@@ -70,13 +76,6 @@ const BASE_DIMENSIONS: Dimension[] = [
     extractor: (r) => String(r.tenChuongTrinh ?? '—') || '—',
     drillKind: 'filter',
     filterField: 'tenChuongTrinh',
-  },
-  {
-    id: 'tenTo',
-    label: 'Tổ TK&VV',
-    extractor: (r) => String(r.tenTo ?? '—') || '—',
-    drillKind: 'filter',
-    filterField: 'tenTo',
   },
 ];
 
@@ -141,6 +140,42 @@ export function PeriodMoversPage() {
   // Build dimensions động — Cán bộ/ĐGD chỉ hiện khi danh mục có dữ liệu.
   const dimensions = useMemo<Dimension[]>(() => {
     const out = [...BASE_DIMENSIONS];
+
+    // Tổ TK&VV — gom nhóm theo Mã tổ (duy nhất), hiển thị kèm Tên tổ. Tên
+    // hiển thị ưu tiên lấy ở kỳ "B - Hiện tại" (j.curr); chỉ khi mã tổ không
+    // có khế ước nào ở kỳ hiện tại mới fallback sang tên ở kỳ "A" (j.prev).
+    const maToToName = new Map<string, string>();
+    for (const j of loanJoin.joined) {
+      if (!j.curr) continue;
+      const ma = String(j.curr.maTo ?? '').trim();
+      if (!ma || maToToName.has(ma)) continue;
+      const ten = String(j.curr.tenTo ?? '').trim();
+      if (ten) maToToName.set(ma, ten);
+    }
+    for (const j of loanJoin.joined) {
+      if (!j.prev) continue;
+      const ma = String(j.prev.maTo ?? '').trim();
+      if (!ma || maToToName.has(ma)) continue;
+      const ten = String(j.prev.tenTo ?? '').trim();
+      if (ten) maToToName.set(ma, ten);
+    }
+    out.push({
+      id: 'tenTo',
+      label: 'Tổ TK&VV',
+      extractor: (r) => {
+        const ma = String(r.maTo ?? '').trim();
+        if (!ma) return '(Chưa gán tổ)';
+        const ten = maToToName.get(ma) ?? String(r.tenTo ?? '').trim();
+        return ten ? `${ma} — ${ten}` : ma;
+      },
+      drillKind: 'filter',
+      filterField: 'maTo',
+      keyToFilterValue: (key) => {
+        const m = /^([^—]+) —/.exec(key);
+        return m ? m[1].trim() : key;
+      },
+    });
+
     if (points.length > 0) {
       const thonToPoint = buildPointKeyMap(points);
       const pointById = new Map(points.map((p) => [p.id, p]));
@@ -174,7 +209,7 @@ export function PeriodMoversPage() {
       });
     }
     return out;
-  }, [staff, points]);
+  }, [staff, points, loanJoin]);
 
   const [dimId, setDimId] = useState<string>(BASE_DIMENSIONS[0].id);
   const dim = useMemo(
@@ -225,9 +260,11 @@ export function PeriodMoversPage() {
 
   const handleDrill = (groupKey: string) => {
     if (dim.drillKind === 'filter' && dim.filterField) {
+      const value = dim.keyToFilterValue ? dim.keyToFilterValue(groupKey) : groupKey;
+      if (value == null) return;
       setPendingDrill({
         to: '/period/khe-uoc',
-        filters: [{ field: dim.filterField, value: groupKey }],
+        filters: [{ field: dim.filterField, value }],
       });
       navigate('/period/khe-uoc');
       return;

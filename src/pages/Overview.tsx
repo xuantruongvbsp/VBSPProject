@@ -85,6 +85,12 @@ const HIST_UNIT_OPTS: ChartTypeOption<HistogramUnit>[] = [
   { id: 'loan', icon: FileText, tooltip: 'Đếm theo khế ước' },
   { id: 'customer', icon: Users, tooltip: 'Đếm theo khách hàng (theo tổng mức vay)' },
 ];
+// "Cơ cấu khách hàng" — chọn chỉ tiêu hiển thị: Tổng dư nợ vs số khách hàng.
+type DonutUnit = 'money' | 'customer';
+const DONUT_UNIT_OPTS: ChartTypeOption<DonutUnit>[] = [
+  { id: 'money', icon: Banknote, tooltip: 'Theo tổng dư nợ' },
+  { id: 'customer', icon: Users, tooltip: 'Đếm theo khách hàng' },
+];
 const HEAT_OPTS: ChartTypeOption<HeatmapChartType>[] = [
   { id: 'heatmap', icon: Table, tooltip: 'Bảng nhiệt' },
   { id: 'stackedBar', icon: BarChart2, tooltip: 'Cột xếp chồng theo năm' },
@@ -114,6 +120,8 @@ export function OverviewPage() {
   const [donutField, setDonutField] = useState<
     'gioiTinh' | 'tenDanToc' | 'age'
   >('gioiTinh');
+  // "Cơ cấu khách hàng" — hiển thị theo Tổng dư nợ hay số khách hàng.
+  const [donutUnit, setDonutUnit] = useState<DonutUnit>('money');
   const [dormantBucket, setDormantBucket] = useState<DormantBucketId>('all');
   const [dormantSearch, setDormantSearch] = useState('');
   const [detail, setDetail] = useState<LoanRecord | null>(null);
@@ -622,6 +630,7 @@ export function OverviewPage() {
             <div className="flex items-center justify-between gap-2">
               <CardTitle>Cơ cấu khách hàng</CardTitle>
               <div className="flex items-center gap-1">
+                <ChartSwitcher options={DONUT_UNIT_OPTS} value={donutUnit} onChange={setDonutUnit} />
                 <select
                   value={donutField}
                   onChange={(e) => setDonutField(e.target.value as any)}
@@ -638,6 +647,7 @@ export function OverviewPage() {
           <CardContent id="chart-customer-structure">
             <DonutByField
               data={byClassification}
+              metric={donutUnit === 'customer' ? 'soKhachHang' : 'tongDuNo'}
               onClick={(v) => {
                 if (donutField === 'age') {
                   const bucket = byClassification.find((g) => g.key === v);

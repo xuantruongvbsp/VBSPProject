@@ -18,7 +18,10 @@ export type FilterField =
   | 'maKH'
   // Chỉ dùng nội bộ bởi bộ chọn "Cán bộ" (lọc theo Mã thôn phụ trách).
   // Không xuất hiện trong danh sách FIELDS thủ công của FilterBar.
-  | 'maThon';
+  | 'maThon'
+  // Chỉ dùng cho drill-down theo Mã tổ (vd: từ trang Top biến động "Tổ TK&VV").
+  // Gom nhóm theo mã tổ duy nhất nhưng hiển thị kèm tên tổ.
+  | 'maTo';
 
 export interface ActiveFilter {
   id: string;
@@ -298,4 +301,5 @@ export const FIELD_LABEL: Record<FilterField, string> = {
   hinhThucVay: 'Hình thức vay',
   maKH: 'Mã KH',
   maThon: 'Mã thôn',
+  maTo: 'Mã tổ',
 };
