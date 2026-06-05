@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { FilterBar } from '@/components/filters/FilterBar';
 import { InfoPopover } from '@/components/ui/InfoPopover';
 import { ExportMenu } from '@/components/export/ExportMenu';
-import { DeltaCard } from '@/components/period/DeltaCard';
+import { DeltaCard, DualDeltaCard, FlowCard } from '@/components/period/DeltaCard';
 import { PeriodGrowthStacked, type GrowthDimension } from '@/components/charts/PeriodGrowthStacked';
 import { usePeriodFilterStore } from '@/store/usePeriodFilterStore';
 import { usePeriodCompare } from './usePeriodCompare';
@@ -59,6 +59,26 @@ export function PeriodOverviewPage() {
     [currRows, growthDim, growthFocus],
   );
 
+  // Doanh số cho vay = tổng giải ngân của các khế ước được giải ngân trong
+  // khoảng thời gian Kỳ A → Kỳ B, dựa trên `ngayVay` (đồng bộ logic biểu đồ
+  // "Giải ngân theo thời gian"). Cửa sổ (prevDate, currDate].
+  const doanhSoChoVay = useMemo(() => {
+    if (!prevDate || !currDate) return { total: 0, count: 0 };
+    const lo = prevDate.getTime();
+    const hi = currDate.getTime();
+    let total = 0;
+    let count = 0;
+    for (const r of currRows) {
+      if (!r.ngayVay) continue;
+      const t = r.ngayVay.getTime();
+      if (t > lo && t <= hi) {
+        total += r.tongGiaiNgan;
+        count += 1;
+      }
+    }
+    return { total, count };
+  }, [currRows, prevDate, currDate]);
+
   if (!hasData) {
     return (
       <div className="flex h-full items-center justify-center p-6 text-sm text-slate-500">
@@ -68,6 +88,10 @@ export function PeriodOverviewPage() {
   }
 
   const { prev, curr } = kpiDelta;
+
+  // Tỷ lệ nợ khoanh = Dư nợ khoanh / Tổng dư nợ (đơn vị %, đồng bộ với tyLeNoQuaHan).
+  const prevTyLeKhoanh = prev.tongDuNo > 0 ? (prev.duNoKhoanh / prev.tongDuNo) * 100 : 0;
+  const currTyLeKhoanh = curr.tongDuNo > 0 ? (curr.duNoKhoanh / curr.tongDuNo) * 100 : 0;
 
   const collisionWarning = loanJoin.collisions > 0;
 
@@ -142,27 +166,45 @@ export function PeriodOverviewPage() {
           formatter={(n) => fmtNumber(Math.round(n))}
           tone="neutral"
         />
-        <DeltaCard
-          label="Tỷ lệ NQH"
-          prevValue={prev.tyLeNoQuaHan}
-          currValue={curr.tyLeNoQuaHan}
-          formatter={(n) => fmtPercent(n, 3)}
-          primary="abs"
-          tone="bad-up"
-        />
-        <DeltaCard
-          label="Dư nợ quá hạn"
-          prevValue={prev.duNoQuaHan}
-          currValue={curr.duNoQuaHan}
+        <FlowCard
+          label="Doanh số cho vay"
+          value={doanhSoChoVay.total}
           formatter={fmtCompact}
-          tone="bad-up"
+          caption={`Giải ngân ${fmtDate(prevDate)} → ${fmtDate(currDate)} · ${fmtNumber(doanhSoChoVay.count)} khế ước`}
         />
-        <DeltaCard
-          label="Dư nợ khoanh"
-          prevValue={prev.duNoKhoanh}
-          currValue={curr.duNoKhoanh}
-          formatter={fmtCompact}
-          tone="bad-up"
+        <DualDeltaCard
+          left={{
+            label: 'Dư nợ quá hạn',
+            prevValue: prev.duNoQuaHan,
+            currValue: curr.duNoQuaHan,
+            formatter: fmtCompact,
+            tone: 'bad-up',
+          }}
+          right={{
+            label: 'Tỷ lệ NQH',
+            prevValue: prev.tyLeNoQuaHan,
+            currValue: curr.tyLeNoQuaHan,
+            formatter: (n) => fmtPercent(n, 3),
+            primary: 'abs',
+            tone: 'bad-up',
+          }}
+        />
+        <DualDeltaCard
+          left={{
+            label: 'Dư nợ khoanh',
+            prevValue: prev.duNoKhoanh,
+            currValue: curr.duNoKhoanh,
+            formatter: fmtCompact,
+            tone: 'bad-up',
+          }}
+          right={{
+            label: 'Tỷ lệ nợ khoanh',
+            prevValue: prevTyLeKhoanh,
+            currValue: currTyLeKhoanh,
+            formatter: (n) => fmtPercent(n, 3),
+            primary: 'abs',
+            tone: 'bad-up',
+          }}
         />
         <DeltaCard
           label="Lãi tồn TH"
