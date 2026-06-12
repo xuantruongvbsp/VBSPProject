@@ -167,7 +167,11 @@ export function DecisionManager() {
     maNDT: (d) => d.maNhaDauTu ?? '',
     trangThai: (d) => statusLabel[d.trangThai],
   });
-  const filtered = grid.filtered;
+  // Sắp xếp theo Ngày QĐ (cũ nhất lên trước). ngayQD dạng YYYY-MM-DD nên so sánh chuỗi đúng thứ tự.
+  const filtered = useMemo(
+    () => [...grid.filtered].sort((a, b) => a.ngayQD.localeCompare(b.ngayQD)),
+    [grid.filtered],
+  );
 
   const resetForm = () => {
     setForm(emptyForm);

@@ -299,7 +299,14 @@ export function PlanManager() {
     nguonVon: (p) => nguonVonLabel(p.maNguonVon),
     chuongTrinh: (p) => p.tenChuongTrinh,
   });
-  const filtered = grid.filtered;
+  // Sắp xếp theo Ngày QĐ (cũ nhất lên trước). ngayQD dạng YYYY-MM-DD nên so sánh chuỗi đúng thứ tự.
+  const filtered = useMemo(
+    () =>
+      [...grid.filtered].sort((a, b) =>
+        (decById.get(a.decisionId)?.ngayQD ?? '').localeCompare(decById.get(b.decisionId)?.ngayQD ?? ''),
+      ),
+    [grid.filtered, decById],
+  );
 
   const handleExport = () => {
     const decXa = XA_LIST.find((x) => x.maXa === filterXa);
