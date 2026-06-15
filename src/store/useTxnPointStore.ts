@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { ownerOnlyJSONStorage } from '@/lib/owner-only-storage';
 import type { TxnPointRecord } from '@/lib/types';
 
 interface TxnPointState {
@@ -81,6 +82,8 @@ export const useTxnPointStore = create<TxnPointState>()(
     {
       name: 'vsppro-txn-points',
       version: 1,
+      // Chỉ admin được ghi; người xem chỉ nhận danh mục đã xuất bản trong bộ nhớ.
+      storage: ownerOnlyJSONStorage,
     }
   )
 );

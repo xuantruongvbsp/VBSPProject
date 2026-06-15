@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { ownerOnlyJSONStorage } from '@/lib/owner-only-storage';
 import type {
   Decision,
   PlanEntry,
@@ -355,6 +356,10 @@ export const useCreditPlanStore = create<CreditPlanState>()(
     {
       name: 'vsppro-credit-plan',
       version: 7,
+      // Chỉ admin (owner) mới ghi xuống localStorage. Người xem chỉ đọc bản đã
+      // xuất bản trong bộ nhớ phiên → dữ liệu gốc của chủ sở hữu không bao giờ
+      // bị ghi đè bởi luồng xem.
+      storage: ownerOnlyJSONStorage,
       migrate: (persisted: unknown, version: number) => {
         let s = (persisted ?? {}) as Partial<CreditPlanState> & {
           decisions?: LegacyDecisionV1[];

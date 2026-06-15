@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { ownerOnlyJSONStorage } from '@/lib/owner-only-storage';
 import type { StaffRecord } from '@/lib/types';
 
 interface StaffState {
@@ -82,6 +83,8 @@ export const useStaffStore = create<StaffState>()(
     {
       name: 'vsppro-staff',
       version: 2,
+      // Chỉ admin được ghi; người xem chỉ nhận danh mục đã xuất bản trong bộ nhớ.
+      storage: ownerOnlyJSONStorage,
       // v1 → v2: schema thay đổi từ "Cán bộ → maThons[]" sang
       // "Cán bộ → maDGDs[]" (cán bộ phụ trách nhiều Điểm giao dịch).
       // Dữ liệu maThons cũ không thể tự động chuyển đổi (không có
