@@ -177,13 +177,23 @@ export interface PlanVsActual {
   soMonVay: number;      // Số món vay thực tế đóng góp vào bucket (0 nếu không có actual)
 }
 
-/** Danh sách xã cố định (Định Quán) */
-export const XA_LIST: { maXa: string; tenXa: string }[] = [
-  { maXa: '460025', tenXa: 'La Ngà' },
+/** Một mục trong danh mục xã (quản lý qua giao diện, publish cho viewer). */
+export interface XaCatalogEntry {
+  maXa: string;
+  tenXa: string;
+}
+
+/** Danh mục xã mặc định (seed ban đầu — Định Quán).
+ *  Thứ tự mảng = thứ tự hiển thị (dropdown + báo cáo thực hiện):
+ *  Phú Hòa, Phú Vinh, Định Quán, Thanh Sơn, La Ngà.
+ *  Owner có thể thêm/sửa/xóa/sắp xếp qua trang "Danh mục xã"; giá trị này chỉ
+ *  dùng khi store chưa có danh mục nào (lần đầu chạy hoặc migrate). */
+export const DEFAULT_XA_LIST: XaCatalogEntry[] = [
   { maXa: '460044', tenXa: 'Phú Hòa' },
   { maXa: '460050', tenXa: 'Phú Vinh' },
-  { maXa: '460060', tenXa: 'Thanh Sơn' },
   { maXa: '460092', tenXa: 'Định Quán' },
+  { maXa: '460060', tenXa: 'Thanh Sơn' },
+  { maXa: '460025', tenXa: 'La Ngà' },
 ];
 
 /** Nguồn vốn */
@@ -257,6 +267,9 @@ export function chuongTrinhLabel(ma: string): string {
   return CHUONG_TRINH_LIST.find((c) => c.ma === ma)?.ten ?? ma;
 }
 
-export function xaLabel(ma: string): string {
-  return XA_LIST.find((x) => x.maXa === ma)?.tenXa ?? ma;
+/** Tra tên xã từ mã. Truyền `catalog` (từ store) để dùng danh mục hiện hành;
+ *  không truyền thì rơi về danh mục mặc định. Không tìm thấy → trả lại mã
+ *  (dữ liệu cũ dùng mã xã đã xóa vẫn hiển thị được). */
+export function xaLabel(ma: string, catalog: XaCatalogEntry[] = DEFAULT_XA_LIST): string {
+  return catalog.find((x) => x.maXa === ma)?.tenXa ?? ma;
 }

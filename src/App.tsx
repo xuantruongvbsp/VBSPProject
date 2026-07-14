@@ -33,6 +33,7 @@ import { ActualImport } from '@/pages/credit-plan/ActualImport';
 import { PlanReports } from '@/pages/credit-plan/PlanReports';
 import { PerformanceReport } from '@/pages/credit-plan/PerformanceReport';
 import { DecisionManager } from '@/pages/credit-plan/DecisionManager';
+import { XaCatalogManager } from '@/pages/credit-plan/XaCatalogManager';
 
 /**
  * Lớp bao trang ngoài cùng cho ứng dụng "Phân tích một kỳ" (snapshot).
@@ -130,6 +131,7 @@ export default function App() {
         <Route path="actual" element={<ActualImport />} />
         <Route path="reports" element={<PlanReports />} />
         <Route path="performance" element={<PerformanceReport />} />
+        <Route path="xa-catalog" element={<XaCatalogManager />} />
       </Route>
 
       {/* Ứng dụng So sánh giữa hai kỳ */}

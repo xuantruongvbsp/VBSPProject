@@ -9,6 +9,7 @@ import {
   Moon,
   Sun,
   Activity,
+  MapPin,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
@@ -23,6 +24,7 @@ const navItems = [
   { to: '/credit-plan/actual', label: 'Thực tế', icon: FileDown },
   { to: '/credit-plan/reports', label: 'Báo cáo', icon: BarChart3 },
   { to: '/credit-plan/performance', label: 'Báo cáo thực hiện', icon: Activity },
+  { to: '/credit-plan/xa-catalog', label: 'Danh mục xã', icon: MapPin },
 ];
 
 export function CreditPlanShell() {

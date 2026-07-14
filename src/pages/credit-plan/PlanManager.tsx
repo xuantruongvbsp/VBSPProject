@@ -10,7 +10,6 @@ import { exportPlanGridToXlsx } from '@/lib/export-xlsx';
 import { useIsOwner } from '@/store/useAuthStore';
 import type { PlanEntry, Decision } from '@/lib/credit-plan-types';
 import {
-  XA_LIST,
   NGUON_VON_LIST,
   visibleProgramsFor,
   nguonVonLabel,
@@ -141,6 +140,7 @@ function ProgramMultiSelect({
 
 export function PlanManager() {
   const { plans, decisions, addPlan, updatePlan, deletePlan } = useCreditPlanStore();
+  const xaCatalog = useCreditPlanStore((s) => s.xaCatalog);
   const isOwner = useIsOwner();
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -202,7 +202,7 @@ export function PlanManager() {
   };
 
   const handleXaChange = (maXa: string) => {
-    const xa = XA_LIST.find((x) => x.maXa === maXa);
+    const xa = xaCatalog.find((x) => x.maXa === maXa);
     setBase((f) => ({ ...f, maXa, tenXa: xa?.tenXa ?? '' }));
   };
 
@@ -309,7 +309,7 @@ export function PlanManager() {
   );
 
   const handleExport = () => {
-    const decXa = XA_LIST.find((x) => x.maXa === filterXa);
+    const decXa = xaCatalog.find((x) => x.maXa === filterXa);
     const decNV = NGUON_VON_LIST.find((n) => n.ma === filterNV);
     const decQD = decById.get(filterDecision);
     const filterSummary = [
@@ -472,7 +472,7 @@ export function PlanManager() {
                     onChange={(e) => handleXaChange(e.target.value)}
                   >
                     <option value="">-- Chọn xã --</option>
-                    {XA_LIST.map((x) => (
+                    {xaCatalog.map((x) => (
                       <option key={x.maXa} value={x.maXa}>{x.tenXa} ({x.maXa})</option>
                     ))}
                   </select>
@@ -602,7 +602,7 @@ export function PlanManager() {
           onChange={(e) => setFilterXa(e.target.value)}
         >
           <option value="">Tất cả xã</option>
-          {XA_LIST.map((x) => (
+          {xaCatalog.map((x) => (
             <option key={x.maXa} value={x.maXa}>{x.tenXa}</option>
           ))}
         </select>

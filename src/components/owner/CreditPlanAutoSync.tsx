@@ -28,6 +28,7 @@ function relTime(ts: number | null): string {
 
 export function CreditPlanAutoSync() {
   const role = useAuthStore((s) => s.role);
+  const xaCatalog = useCreditPlanStore((s) => s.xaCatalog);
   const decisions = useCreditPlanStore((s) => s.decisions);
   const plans = useCreditPlanStore((s) => s.plans);
   const actuals = useCreditPlanStore((s) => s.actuals);
@@ -104,6 +105,7 @@ export function CreditPlanAutoSync() {
       setStatus('syncing');
       try {
         await publishCreditPlan({
+          xaCatalog,
           decisions,
           plans,
           actuals,
@@ -152,6 +154,7 @@ export function CreditPlanAutoSync() {
     };
   }, [
     role,
+    xaCatalog,
     decisions,
     plans,
     actuals,

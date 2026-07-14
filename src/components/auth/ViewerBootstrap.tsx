@@ -74,6 +74,7 @@ export function ViewerBootstrap() {
       .then((d) => {
         if (!d) return;
         useCreditPlanStore.setState({
+          xaCatalog: d.xaCatalog ?? [],
           decisions: d.decisions,
           plans: d.plans,
           actuals: d.actuals,

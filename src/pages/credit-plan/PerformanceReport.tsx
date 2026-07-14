@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { Activity, Calendar } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
-import { XA_LIST } from '@/lib/credit-plan-types';
 
 type ProgramGroup = {
   title: string;
@@ -35,9 +34,6 @@ const DP_GROUPS: ProgramGroup[] = [
   { title: 'MỨC SỐNG TB', codes: ['99'], maNguonVon: '2' },
   { title: 'Án Phạt Tù TW', codes: ['26'], maNguonVon: '1' },
 ];
-
-// Thứ tự hiển thị xã: Phú Hòa, Phú Vinh, Định Quán, Thanh Sơn, La Ngà
-const XA_ORDER = ['460044', '460050', '460092', '460060', '460025'];
 
 /** Excel-style: số âm bọc ngoặc, 0 hiển thị "—". */
 function fmtCell(n: number): string {
@@ -74,7 +70,11 @@ export function PerformanceReport() {
   const nq11Summaries = useCreditPlanStore((s) => s.nq11Summaries);
   const nq11MatchByXa = useCreditPlanStore((s) => s.nq11MatchByXa);
   const decisions = useCreditPlanStore((s) => s.decisions);
+  const xaCatalog = useCreditPlanStore((s) => s.xaCatalog);
   const comparison = useMemo(() => getPlanVsActual(), [getPlanVsActual]);
+
+  // Thứ tự hiển thị xã = thứ tự trong danh mục xã (owner sắp xếp được).
+  const XA_ORDER = useMemo(() => xaCatalog.map((x) => x.maXa), [xaCatalog]);
 
   /** Báo cáo GQVL ĐP XÃ — 1 card tổng hợp, hiển thị đầy đủ 5 xã.
    *  Chỉ render khi có ít nhất 1 QĐ NV=3 + Mã NĐT (nếu không thì parser không reclassify). */
@@ -119,7 +119,7 @@ export function PerformanceReport() {
       const kh = x?.kh ?? 0;
       const tt = x?.tt ?? 0;
       const recovered = group.subtractNq11Recovered ? (recoveredByXa.get(maXa) ?? 0) : 0;
-      const xaInfo = XA_LIST.find((v) => v.maXa === maXa);
+      const xaInfo = xaCatalog.find((v) => v.maXa === maXa);
       return {
         stt: idx + 1,
         maXa,

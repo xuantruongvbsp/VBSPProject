@@ -19,7 +19,9 @@ import type {
   Nq11XaSummary,
   Nq11MatchXa,
   Nq11NoxhXaSummary,
+  XaCatalogEntry,
 } from './credit-plan-types';
+import { DEFAULT_XA_LIST } from './credit-plan-types';
 
 // File xuất bản được nén gzip để giảm kích thước on-wire ~10× (49 MB → ~5 MB).
 // Tệp `.json` cũ vẫn được fetch fallback để tương thích ngược trong giai đoạn
@@ -570,6 +572,9 @@ export async function unpublishCatalog(): Promise<void> {
 
 export interface CreditPlanPublishPayload {
   v: 1;
+  /** Danh mục xã. Tùy chọn để tương thích ngược với bản publish cũ (v1 không
+   *  có trường này) — khi thiếu, viewer rơi về danh mục mặc định. */
+  xaCatalog?: XaCatalogEntry[];
   decisions: Decision[];
   plans: PlanEntry[];
   actuals: ActualSummary[];
@@ -605,6 +610,10 @@ export function deserializeCreditPlan(text: string): DeserializedCreditPlan | nu
   if (!obj || obj.v !== 1) return null;
   return {
     v: 1,
+    xaCatalog:
+      Array.isArray(obj.xaCatalog) && obj.xaCatalog.length > 0
+        ? obj.xaCatalog
+        : DEFAULT_XA_LIST,
     decisions: Array.isArray(obj.decisions) ? obj.decisions : [],
     plans: Array.isArray(obj.plans) ? obj.plans : [],
     actuals: Array.isArray(obj.actuals) ? obj.actuals : [],

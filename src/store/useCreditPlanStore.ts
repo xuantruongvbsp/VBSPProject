@@ -10,12 +10,24 @@ import type {
   Nq11XaSummary,
   Nq11MatchXa,
   Nq11NoxhXaSummary,
+  XaCatalogEntry,
 } from '../lib/credit-plan-types';
-import { CHUONG_TRINH_LIST } from '../lib/credit-plan-types';
+import { CHUONG_TRINH_LIST, DEFAULT_XA_LIST } from '../lib/credit-plan-types';
 import { mergeNq11IntoActuals } from '../data/credit-plan-parser';
 import { deleteAttachmentBlob } from '../lib/decision-attachments';
 
 interface CreditPlanState {
+  // Danh mục xã (quản lý qua giao diện; thứ tự mảng = thứ tự hiển thị)
+  xaCatalog: XaCatalogEntry[];
+  /** Thêm xã mới. Trả về false nếu maXa để trống hoặc đã tồn tại. */
+  addXa: (entry: XaCatalogEntry) => boolean;
+  /** Cập nhật tên xã theo mã (mã xã không đổi để không mồ côi dữ liệu cũ). */
+  updateXa: (maXa: string, tenXa: string) => void;
+  /** Xóa xã khỏi danh mục. Dữ liệu kế hoạch cũ giữ nguyên (đã lưu tenXa riêng). */
+  deleteXa: (maXa: string) => void;
+  /** Dời một xã lên/xuống để đổi thứ tự hiển thị. */
+  moveXa: (maXa: string, dir: -1 | 1) => void;
+
   // Decisions (gom các dòng kế hoạch cùng QĐ)
   decisions: Decision[];
   addDecision: (d: Decision) => void;
@@ -215,6 +227,33 @@ function migrateFromV1(
 export const useCreditPlanStore = create<CreditPlanState>()(
   persist(
     (set, get) => ({
+      xaCatalog: DEFAULT_XA_LIST,
+      addXa: (entry) => {
+        const maXa = entry.maXa.trim();
+        const tenXa = entry.tenXa.trim();
+        if (!maXa) return false;
+        if (get().xaCatalog.some((x) => x.maXa === maXa)) return false;
+        set((s) => ({ xaCatalog: [...s.xaCatalog, { maXa, tenXa }] }));
+        return true;
+      },
+      updateXa: (maXa, tenXa) =>
+        set((s) => ({
+          xaCatalog: s.xaCatalog.map((x) =>
+            x.maXa === maXa ? { ...x, tenXa: tenXa.trim() } : x,
+          ),
+        })),
+      deleteXa: (maXa) =>
+        set((s) => ({ xaCatalog: s.xaCatalog.filter((x) => x.maXa !== maXa) })),
+      moveXa: (maXa, dir) =>
+        set((s) => {
+          const idx = s.xaCatalog.findIndex((x) => x.maXa === maXa);
+          const to = idx + dir;
+          if (idx === -1 || to < 0 || to >= s.xaCatalog.length) return s;
+          const next = [...s.xaCatalog];
+          [next[idx], next[to]] = [next[to], next[idx]];
+          return { xaCatalog: next };
+        }),
+
       decisions: [],
       addDecision: (d) => set((s) => ({ decisions: [...s.decisions, d] })),
       updateDecision: (id, updates) =>
@@ -355,7 +394,7 @@ export const useCreditPlanStore = create<CreditPlanState>()(
     }),
     {
       name: 'vsppro-credit-plan',
-      version: 7,
+      version: 8,
       // Chỉ admin (owner) mới ghi xuống localStorage. Người xem chỉ đọc bản đã
       // xuất bản trong bộ nhớ phiên → dữ liệu gốc của chủ sở hữu không bao giờ
       // bị ghi đè bởi luồng xem.
@@ -400,9 +439,18 @@ export const useCreditPlanStore = create<CreditPlanState>()(
         }
         // v6 → v7: thêm slice nq11Noxh — không cần migrate dữ liệu cũ, chỉ
         // cần default rỗng (xử lý ở init state).
+        // v7 → v8: thêm danh mục xã (xaCatalog). Nếu bản cũ chưa có → seed
+        // danh mục mặc định để dropdown/báo cáo không rỗng.
+        if (version < 8) {
+          const existing = (s as { xaCatalog?: XaCatalogEntry[] }).xaCatalog;
+          if (!Array.isArray(existing) || existing.length === 0) {
+            s = { ...s, xaCatalog: DEFAULT_XA_LIST } as typeof s;
+          }
+        }
         return s as CreditPlanState;
       },
       partialize: (s) => ({
+        xaCatalog: s.xaCatalog,
         decisions: s.decisions,
         plans: s.plans,
         actuals: s.actuals,
