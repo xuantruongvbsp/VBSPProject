@@ -32,6 +32,10 @@ khoanh-*.png
 .env.*
 !.env.example
 
+# IMS export — chua IP noi bo, username, mat khau (DPAPI). KHONG push len GitHub.
+scripts/ims-export/config.json
+scripts/ims-export/logs/
+
 # OS / editor noise
 .DS_Store
 Thumbs.db

@@ -268,6 +268,10 @@ export function Lobby() {
             </button>
           )}
         </div>
+
+        <p className="mt-6 text-center text-[11px] font-medium text-slate-400 dark:text-slate-500">
+          Created by Tuấn Kiệt · VBSP Định Quán
+        </p>
       </div>
 
       <OwnerLoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />

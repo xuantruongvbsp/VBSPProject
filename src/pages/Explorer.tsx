@@ -1,6 +1,7 @@
 import { useMemo, useState, useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { applyFilters, useDataStore } from '@/store/useDataStore';
+import { useTxnPointStore } from '@/store/useTxnPointStore';
 import { Card, CardContent } from '@/components/ui/Card';
 import { InfoPopover } from '@/components/ui/InfoPopover';
 import { ExportMenu } from '@/components/export/ExportMenu';
@@ -12,8 +13,12 @@ import type { LoanRecord } from '@/lib/types';
 import { ArrowDownAZ, ArrowUpAZ } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+/** Khóa cột tổng hợp không thuộc LoanRecord (suy ra từ dữ liệu khác). */
+type SyntheticColKey = 'tenDGD';
+type ColKey = keyof LoanRecord | SyntheticColKey;
+
 interface Col {
-  key: keyof LoanRecord;
+  key: ColKey;
   label: string;
   width: number;
   align?: 'left' | 'right';
@@ -24,13 +29,15 @@ interface ColRenderCtx {
   /** Map maKH → max(soDuTienGui105) — dùng cho cột "Số dư tiền gửi 105" để hiện
    *  giá trị mức cao nhất của khách (do field này lặp trên nhiều dòng khế ước). */
   maxDepositByKH: Map<string, number>;
+  /** Map maThon → tên ĐGD (Điểm giao dịch) — suy ra từ danh mục ĐGD. */
+  thonToDGD: Map<string, string>;
 }
 
 const COLS: Col[] = [
   { key: 'soKheUoc', label: 'Số khế ước', width: 130 },
   { key: 'tenKH', label: 'Khách hàng', width: 200 },
-  { key: 'tenPGD', label: 'PGD', width: 160 },
   { key: 'tenXa', label: 'Xã/Phường', width: 140 },
+  { key: 'tenDGD', label: 'ĐGD', width: 160, render: (r, ctx) => ctx.thonToDGD.get(r.maThon) ?? '' },
   { key: 'tenDVUT', label: 'Đơn vị ủy thác', width: 160 },
   { key: 'tenTo', label: 'Tổ TK&VV', width: 180 },
   { key: 'tenChuongTrinh', label: 'Chương trình', width: 220 },
@@ -53,7 +60,8 @@ const COLS: Col[] = [
 
 export function ExplorerPage() {
   const { rows, filters, ranges, search } = useDataStore();
-  const [sort, setSort] = useState<{ key: keyof LoanRecord; dir: 'asc' | 'desc' }>({
+  const points = useTxnPointStore((s) => s.points);
+  const [sort, setSort] = useState<{ key: ColKey; dir: 'asc' | 'desc' }>({
     key: 'tenXa',
     dir: 'asc',
   });
@@ -78,6 +86,18 @@ export function ExplorerPage() {
     return m;
   }, [filtered]);
 
+  // Map maThon → tên ĐGD. Một thôn thuộc nhiều ĐGD (hiếm) thì nối tên bằng ' / '.
+  const thonToDGD = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const p of points) {
+      for (const t of p.maThons) {
+        const cur = m.get(t);
+        m.set(t, cur ? `${cur} / ${p.tenDGD}` : p.tenDGD);
+      }
+    }
+    return m;
+  }, [points]);
+
   const sorted = useMemo(() => {
     const copy = [...filtered];
     // Khi sort theo soDuTienGui105 → so sánh max-per-KH để dòng cùng KH luôn cạnh nhau.
@@ -85,9 +105,13 @@ export function ExplorerPage() {
     copy.sort((a, b) => {
       const av = sortKey === 'soDuTienGui105'
         ? (maxDepositByKH.get(a.maKH) ?? 0)
+        : sortKey === 'tenDGD'
+        ? (thonToDGD.get(a.maThon) ?? '')
         : a[sortKey];
       const bv = sortKey === 'soDuTienGui105'
         ? (maxDepositByKH.get(b.maKH) ?? 0)
+        : sortKey === 'tenDGD'
+        ? (thonToDGD.get(b.maThon) ?? '')
         : b[sortKey];
       if (typeof av === 'number' && typeof bv === 'number') {
         return sort.dir === 'asc' ? av - bv : bv - av;
@@ -97,7 +121,7 @@ export function ExplorerPage() {
       return sort.dir === 'asc' ? as.localeCompare(bs, 'vi') : bs.localeCompare(as, 'vi');
     });
     return copy;
-  }, [filtered, sort, maxDepositByKH]);
+  }, [filtered, sort, maxDepositByKH, thonToDGD]);
 
   const parentRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer({
@@ -198,7 +222,9 @@ export function ExplorerPage() {
                           c.align === 'right' && 'justify-end font-medium text-slate-900 dark:text-slate-100'
                         )}
                       >
-                        {c.render ? c.render(r, { maxDepositByKH }) : String(r[c.key] ?? '')}
+                        {c.render
+                          ? c.render(r, { maxDepositByKH, thonToDGD })
+                          : String(r[c.key as keyof LoanRecord] ?? '')}
                       </div>
                     ))}
                   </div>

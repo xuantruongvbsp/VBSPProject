@@ -438,8 +438,13 @@ export function OverviewPage() {
         />
       </div>
 
-      {/* Row 1: Combined "Dư nợ theo Xã/ĐVUT/CT" + "Số dư tiền gửi 105 theo Xã/ĐVUT" — 2 cột cạnh nhau. */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      {/* Row 1: Combined "Dư nợ theo Xã/ĐVUT/CT" + "Dư nợ theo CBTD" (CBTD conditional). */}
+      <div
+        className={cn(
+          'grid grid-cols-1 gap-4',
+          byCBTD.length > 0 && 'lg:grid-cols-2'
+        )}
+      >
         {(() => {
           const data =
             dimGroupBy === 'xa' ? byXa : dimGroupBy === 'dvut' ? byDVUT : byProgram;
@@ -497,6 +502,68 @@ export function OverviewPage() {
         </Card>
           );
         })()}
+        {byCBTD.length > 0 && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Dư nợ theo CBTD</CardTitle>
+                <div className="flex items-center gap-1">
+                  <ChartSwitcher
+                    options={STACKED_OPTS}
+                    value={stackedCBTDType}
+                    onChange={setStackedCBTDType}
+                  />
+                  <InfoPopover
+                    explanation={{
+                      title: 'Dư nợ theo Cán bộ tín dụng',
+                      definition:
+                        'Cơ cấu dư nợ (Trong hạn / Quá hạn / Khoanh) của từng cán bộ tín dụng. Phạm vi mỗi cán bộ là hợp các Mã thôn của các Điểm giao dịch họ phụ trách (cấu hình ở danh mục Cán bộ + ĐGD).',
+                      formula:
+                        'Khế ước được phân về cán bộ duy nhất quản lý Mã thôn của khế ước đó. Khế ước thuộc thôn không có cán bộ duy nhất được gom vào nhóm "(Chưa gán cán bộ)" hoặc "(Nhiều cán bộ phụ trách)".',
+                      note: 'Bấm vào một cột cán bộ để mở Tra cứu chi tiết đã lọc theo cán bộ đó.',
+                    }}
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent id="chart-cbtd">
+              <StackedStatus
+                data={byCBTD}
+                limit={10}
+                onClick={drillToCBTD}
+                chartType={stackedCBTDType}
+              />
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Row 2: Histogram + Số dư tiền gửi 105 theo Xã/ĐVUT — 2 cột cạnh nhau. */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Phân bố tổng dư nợ</CardTitle>
+              <div className="flex items-center gap-1">
+                <ChartSwitcher options={HIST_UNIT_OPTS} value={histUnit} onChange={setHistUnit} />
+                <ChartSwitcher options={HIST_OPTS} value={histType} onChange={setHistType} />
+                <InfoPopover metricKey="chartHistogram" />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent id="chart-histogram">
+            <HistogramAmount
+              data={histogram}
+              onClick={(b) =>
+                histUnit === 'loan'
+                  ? drillByTongDuNo([b.min, b.max])
+                  : drillByCustomers(b.maKHs ?? [])
+              }
+              chartType={histType}
+              unit={histUnit}
+            />
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -537,76 +604,12 @@ export function OverviewPage() {
               colorMode={depositGroupBy === 'dvut' ? 'rainbow' : 'sequential'}
               baseHue="teal"
               colorByKey={depositGroupBy === 'xa' ? xaColorMap : undefined}
+              rowHeight={54}
+              tickFontSize={13}
+              axisFontSize={13}
             />
           </CardContent>
         </Card>
-      </div>
-
-      {/* Row 2: Histogram + Dư nợ theo CBTD (CBTD conditional) */}
-      <div
-        className={cn(
-          'grid grid-cols-1 gap-4',
-          byCBTD.length > 0 && 'lg:grid-cols-2'
-        )}
-      >
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Phân bố tổng dư nợ</CardTitle>
-              <div className="flex items-center gap-1">
-                <ChartSwitcher options={HIST_UNIT_OPTS} value={histUnit} onChange={setHistUnit} />
-                <ChartSwitcher options={HIST_OPTS} value={histType} onChange={setHistType} />
-                <InfoPopover metricKey="chartHistogram" />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent id="chart-histogram">
-            <HistogramAmount
-              data={histogram}
-              onClick={(b) =>
-                histUnit === 'loan'
-                  ? drillByTongDuNo([b.min, b.max])
-                  : drillByCustomers(b.maKHs ?? [])
-              }
-              chartType={histType}
-              unit={histUnit}
-            />
-          </CardContent>
-        </Card>
-        {byCBTD.length > 0 && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Dư nợ theo CBTD</CardTitle>
-                <div className="flex items-center gap-1">
-                  <ChartSwitcher
-                    options={STACKED_OPTS}
-                    value={stackedCBTDType}
-                    onChange={setStackedCBTDType}
-                  />
-                  <InfoPopover
-                    explanation={{
-                      title: 'Dư nợ theo Cán bộ tín dụng',
-                      definition:
-                        'Cơ cấu dư nợ (Trong hạn / Quá hạn / Khoanh) của từng cán bộ tín dụng. Phạm vi mỗi cán bộ là hợp các Mã thôn của các Điểm giao dịch họ phụ trách (cấu hình ở danh mục Cán bộ + ĐGD).',
-                      formula:
-                        'Khế ước được phân về cán bộ duy nhất quản lý Mã thôn của khế ước đó. Khế ước thuộc thôn không có cán bộ duy nhất được gom vào nhóm "(Chưa gán cán bộ)" hoặc "(Nhiều cán bộ phụ trách)".',
-                      note: 'Bấm vào một cột cán bộ để mở Tra cứu chi tiết đã lọc theo cán bộ đó.',
-                    }}
-                  />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent id="chart-cbtd">
-              <StackedStatus
-                data={byCBTD}
-                limit={10}
-                onClick={drillToCBTD}
-                chartType={stackedCBTDType}
-              />
-            </CardContent>
-          </Card>
-        )}
       </div>
 
       {/* Row 3: Time series + Donut */}

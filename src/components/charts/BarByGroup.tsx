@@ -52,6 +52,12 @@ interface Props {
   /** Map khóa → hex. Khi truyền vào, sẽ ghi đè mọi colorMode cho cell có key trong map.
    *  Dùng để đồng nhất màu giữa nhiều chart (VD cùng "Định Quán" trên 2 chart). */
   colorByKey?: Record<string, string>;
+  /** Chiều cao mỗi hàng (px) — tăng để bar dày & thưa hơn. Default 38. */
+  rowHeight?: number;
+  /** Cỡ chữ nhãn trục danh mục (tick). Default 10. */
+  tickFontSize?: number;
+  /** Cỡ chữ trục số. Default 11. */
+  axisFontSize?: number;
 }
 
 // Hex của các hue cho monochrome/sequential — Atlassian symmetry 700/400.
@@ -157,16 +163,16 @@ function splitTwoLines(s: string, perLine: number): string[] {
   return [line1, line2];
 }
 
-function makeMultiLineTick(perLine: number, fillColor = '#475569') {
+function makeMultiLineTick(perLine: number, fillColor = '#475569', fontSize = 10) {
   return function MultiLineTick(props: any) {
     const { x, y, payload } = props;
     const value = String(payload?.value ?? '');
     const lines = splitTwoLines(value, perLine);
-    const lineHeight = 11;
+    const lineHeight = fontSize + 1;
     const startDy = lines.length === 1 ? 4 : -1;
     return (
       <g transform={`translate(${x}, ${y})`}>
-        <text textAnchor="end" fontSize={10} fill={fillColor}>
+        <text textAnchor="end" fontSize={fontSize} fill={fillColor}>
           <title>{value}</title>
           {lines.map((ln, i) => (
             <tspan key={i} x={-6} dy={i === 0 ? startDy : lineHeight}>
@@ -193,13 +199,16 @@ export function BarByGroup({
   colorMode = 'rainbow',
   baseHue = 'blue',
   colorByKey,
+  rowHeight = 38,
+  tickFontSize = 10,
+  axisFontSize = 11,
 }: Props) {
   const cc = useChartColors();
   const palette = cc.palette;
   const highlightColor = cc.semantic.highlight;
   const trimmed = data.slice(0, limit);
   const isVertical = layout === 'vertical';
-  const h = Math.max(280, trimmed.length * 38 + 40);
+  const h = Math.max(280, trimmed.length * rowHeight + 40);
   const cursor = onClick ? 'pointer' : undefined;
 
   // Resolve màu cho từng cell theo colorMode.
@@ -460,21 +469,21 @@ export function BarByGroup({
         <CartesianGrid stroke={cc.grid} strokeDasharray="3 3" horizontal={!isVertical} vertical={isVertical} />
         {isVertical ? (
           <>
-            <XAxis type="number" tickFormatter={fmtCompact} fontSize={11} stroke={cc.axis} />
+            <XAxis type="number" tickFormatter={fmtCompact} fontSize={axisFontSize} stroke={cc.axis} />
             <YAxis
               type="category"
               dataKey="label"
               width={yAxisWidth}
-              fontSize={11}
+              fontSize={tickFontSize}
               stroke={cc.axis}
               interval={0}
-              tick={makeMultiLineTick(charsPerLine, cc.text)}
+              tick={makeMultiLineTick(charsPerLine, cc.text, tickFontSize)}
             />
           </>
         ) : (
           <>
-            <XAxis dataKey="label" fontSize={11} stroke={cc.axis} />
-            <YAxis tickFormatter={fmtCompact} fontSize={11} stroke={cc.axis} />
+            <XAxis dataKey="label" fontSize={axisFontSize} stroke={cc.axis} />
+            <YAxis tickFormatter={fmtCompact} fontSize={axisFontSize} stroke={cc.axis} />
           </>
         )}
         <Tooltip

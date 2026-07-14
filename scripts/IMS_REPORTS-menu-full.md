@@ -1,0 +1,1518 @@
+# IMS_REPORTS — Danh mục Menu & Báo cáo (4 cấp, đã sắp xếp)
+
+PGD Định Quán · NHCSXH · cập nhật: 2026-06-16
+
+> Cấp 4 = báo cáo bên trong mỗi mục. Mã BC trong `[ ]` (nếu có). Bao gồm KT740 (#106), Excel mẫu (#100), Báo cáo theo truy vấn (#60).
+
+## 1. Hệ thống
+- **Dữ liệu hệ thống**
+    - A. Kế toán đồ
+    - B. Biến của chi nhánh
+    - E. Thông tin bổ sung
+## 2. Báo cáo ngoại ngành
+- **Báo cáo theo thông tư 31/TT-NHNN**
+    - A. Giá trị chỉ tiêu
+    - B. Báo cáo mẫu biểu theo TT 31
+        - *Báo cáo theo chỉ tiêu NHNN*
+            - HN30A - Báo cáo cho vay theo nghị quyết 30A  `BC00010011`
+- **Báo cáo theo chế độ kế toán tài chính**
+    - *Báo cáo theo Quyết định 16 và Thông tư 49*
+        - B02-TCTD - Bảng cân đối kế toán   `BC00020002`
+        - B03-TCTD - Báo cáo kết quả hoạt động kinh doanh  `BC00020003`
+        - B04-TCTD - Báo cáo lưu chuyển tiền tệ  `BC00020004`
+- **Báo cáo theo thông tư 24**
+    - *Báo cáo theo Thông tư 24*
+        - (trống)
+- **Báo cáo khác**
+    - *Báo cáo khác*
+        - 01_NĐ 100 - Báo cáo tình hình huy động tiền gửi tiết kiệm để thực hiện cho vay chính sách nhà ở xã hội theo Nghị định số 100/2015/NĐ-CP  `BC00550008`
+        - 01_QĐ 167_QĐ 33 - Báo cáo kết quả cho vay Hộ nghèo về nhà ở theo QĐ167/2008/QĐ-TTG và quyết định số 33/2015/QĐ-TTG  `BC00550007`
+        - 02_NĐ 100 - Báo cáo kết quả cho vay Hộ nghèo về nhà ở theo QĐ167/2008/QĐ-TTG và quyết định số 33/2015/QĐ-TTG  `BC00550009`
+        - 05-TT45 - Báo cáo kết quả cho vay hỗ trợ tạo việc làm, duy trì và mở rộng việc làm từ Quỹ quốc gia về việc làm (chủ dự án)  `BC00550001`
+        - 06-TT45 - Báo cáo kết quả cho vay ưu đãi đối với người lao động đi làm việc ở nước ngoài theo hợp đồng (chi tiết)  `BC00550004`
+        - 07-TT45 - Báo cáo kết quả cho vay hỗ trợ tạo việc làm, duy trì và mở rộng việc làm từ Quỹ quốc gia về việc làm(theo huyện)  `BC00550002`
+        - 08-TT45 - Báo cáo kết quả cho vay ưu đãi đối với người lao động đi làm việc ở nước ngoài theo hợp đồng (theo huyện )  `BC00550005`
+        - 09-TT45 - Báo cáo kết quả cho vay hỗ trợ tạo việc làm, duy trì và mở rộng việc làm từ Quỹ quốc gia về việc làm(theo tỉnh,huyện, xã)  `BC00550003`
+        - 10-TT45 - Báo cáo kết quả cho vay ưu đãi đối với người lao động đi làm việc ở nước ngoài theo hợp đồng(theo tỉnh, huyện, xã)  `BC00550006`
+        - TT01-Mẫu 01 - Báo cáo kết quả cho vay hỗ trợ tạo việc làm, duy trì và mở rộng việc làm từ Quỹ quốc gia về việc làm  `BC00550021`
+        - TT01-Mẫu 02 - Báo cáo kết quả cho vay ưu đãi đối với người lao động đi làm việc ở nước ngoài theo hợp đồng từ quỹ quốc gia GQVL  `BC00550022`
+        - TT01-Mẫu 07 - Báo cáo kết quả cho vay hỗ trợ tạo việc làm, duy trì và mở rộng việc làm từ nguồn vốn huy động  `BC00550024`
+        - TT01-Mẫu 08 - Báo cáo kết quả cho vay ưu đãi đối với người lao động đi làm việc ở nước ngoài theo hợp đồng từ nguồn vốn huy động  `BC00550025`
+- **Báo cáo Thông tư số 11/2018/TT-NHNN**
+    - A. Nhập dữ liệu
+    - B. In báo cáo
+        - *Báo cáo NHNN theo TT35*
+            - 001-DBTK - Báo cáo dư nợ tín dụng theo ngành kinh tế  `BC00560003`
+            - 002-DBTK - Báo cáo dư nợ tín dụng theo nghành kinh tế  `BC00560004`
+            - 003-DBTK - Báo cáo dư nợ tín dụng theo loại hình tổ chức và cá nhân  `BC00560005`
+            - 004N-TD - Báo cáo tình hình cấp tín dụng đối với một số ngành thuộc lĩnh vực nông nghiệp, nông thôn  `BC00560037`
+            - 004_CSTT - Báo cáo dư nợ tín dụng theo phương thức đảm bảo  `BC00560006`
+            - 005-DBTK - Báo cáo doanh số cấp tín dụng, doanh số thu nợ tín dụng  `BC00560007`
+            - 006-DBTK - Báo cáo DNTD; đầu tư trái phiếu DN; cho vay, ĐT theo HĐ nhận UT và LSCV đối với các lĩnh vực hỗ trợ ưu tiên phát triển  `BC00560002`
+            - 009_TD - Báo cáo tình hình cấp tín dụng đối với lĩnh vực nông nghiệp, nông thôn  `BC00560008`
+            - 011-TD - Báo cáo tình hình cấp tín dụng đối với lĩnh vực công nghiệp và xây dựng  `BC00560009`
+            - 016-TTGS - Báo cáo dư nợ theo số ngày quá hạn  `BC00560010`
+            - 016N-TTGS - Báo cáo việc duy trì số dư tiền gửi của TCTD Nhà nước tại Ngân hàng Chính sách xã hội  `BC00560038`
+            - 017N-TTGS - Báo cáo phân loại nợ NHCSXH  `BC00560036`
+            - 041-DBTK - Báo cáo huy động vốn từ khách hàng theo ngành kinh tế  `BC00560031`
+            - 042-DBTK - Báo cáo huy động vốn từ khách hàng theo loại hình sản phầm  `BC00560033`
+            - 043-CSTT - Báo cáo dự kiến vốn khả dụng bằng đồng tiền Việt Nam tại tổ chức tín dụng  `BC00560035`
+            - 046-CSTT - Báo cáo lãi suất tiền gửi và cho vay bình quân  `BC00560032`
+            - 047-CSTT - Báo cáo lãi suất đối với nền kinh tế  `BC00560034`
+            - 065-PHKQ - Báo cáo thu chi các loại tiền thuộc quỹ nghiệp vụ  `BC00560039`
+            - 066-PHKQ - Báo cáo thu giữ tiền giả  `BC00560023`
+            - 085-SGD - Báo cáo giao dịch trên thị trường liên ngân hàng  `BC00560011`
+            - 086-SGD - Báo cáo dư nợ cho vay, gửi tiền trên thị trường liên ngân hàng  `BC00560012`
+            - 087-SGD - Báo cáo giao dịch quá hạn trên thị trường liên ngân hàng  `BC00560013`
+            - 088-SGD - Báo cáo tổng hợp các giao dịch gia hạn, điều chỉnh kỳ hạn trả nợ  `BC00560014`
+            - 128.3-TTGS - Báo cáo tình hình xử lý tài sản bảo đảm   `BC00560018`
+            - 25.1-TTGS - Báo cáo nợ xấu theo phân ngành kinh tế  `BC00560024`
+            - 25.2-TTGS - Báo cáo nợ xấu theo loại hình tở chức, cá nhân  `BC00560025`
+## 3. Báo cáo quản trị nội bộ
+- **Báo cáo từ chỉ tiêu NHCS**
+    - A. Giá trị chỉ tiêu
+    - B. Báo cáo từ chỉ tiêu
+- **Báo cáo Kế toán tài chính**
+    - A. Bảng cân đối tài khoản kế toán
+    - B. Nhập liệu Báo cáo quyết toán
+    - C. Báo cáo quyết toán
+        - *Báo cáo Kế toán tài chính*
+            - 01/QT - Báo cáo kiểm kê tiền mặt VNĐ thuộc quỹ nghiệp vụ  `BC00090026`
+            - 03/QT - Báo cáo tiền giả, tiền bị phá hoại  `BC00090025`
+            - 04/QT - Báo cáo thiếu, mất quỹ (Tiền VNĐ)  `BC00090024`
+            - 05/QT - Báo cáo tổng hợp kiểm kê tài sản cố định  `BC00090027`
+            - 05PL/QT - Báo cáo kiểm kê chi tiết tài sản cố định  `BC00090127`
+            - 06A/QT - Báo cáo tình hình tài sản cố định hữu hình  `BC00090028`
+            - 06B/QT - Báo cáo tình hình tài sản cố định vô hình  `BC00090029`
+            - 07/QT - Báo cáo thanh lý tài sản cố định  `BC00090032`
+            - 08/QT - Báo cáo tổng hợp kiểm kê công cụ, dụng cụ  `BC00090030`
+            - 09/QT - Báo cáo kiểm kê vật liệu trong kho  `BC00090031`
+            - 10A/QT - Báo cáo quyết toán mua sắm tài sản cố định  `BC00090033`
+            - 10B/QT - Báo cáo quyết toán vốn đầu tư XDCB  `BC00090034`
+            - 10C/QT - Báo cáo quyết toán sửa chữa tài sản cố định  `BC00090035`
+            - 11/QT - Sao kê chi tiết dư nợ cho vay và tiền gửi tổ viên tổ TK&VV  `BC00090038`
+            - 12/QT - Tổng hợp sao kê dư nợ cho vay  `BC00090023`
+            - 13ASK/QT - SAO KÊ CÁC HỘ VAY VỐN HSSV TRẢ NỢ TRƯỚC HẠN ĐƯỢC GIẢM LÃI  `BC00090039`
+            - 13TH/QT - Tổng hợp sao kê các hộ vay HSSV trả nợ, trả lãi trước hạn  `BC00090036`
+            - 16A/QT - SAO KÊ SỐ DƯ TIỀN GỬI TIẾT KIỆM, TIỀN GỬI CÓ KỲ HẠN  `BC00090013`
+            - 16B/QT - SAO KÊ TIỀN GỬI KHÔNG KỲ HẠN  `BC00090014`
+            - 17/QT - TỔNG HỢP SAO KÊ SỐ DƯ TIỀN GỬI KHÁCH HÀNG  `BC00090015`
+            - 18/QT - Sao kê các khoản phải thu  `BC00090016`
+            - 18A/QT - Sao kê chi tiết các khoảntạm ứng, tham ô chiếm dụng  `BC00090017`
+            - 19/QT - Tổng hợp sao kê các khoản phải trả  `BC00090040`
+            - 20/QT - Báo cáo tình hình tăng giảm vốn, quỹ  `BC00090018`
+            - 21/QT - Báo cáo trích lập và sử dụng dự phòng rủi ro  `BC00090019`
+            - 22/QT - Báo cáo tình hình nguồn vốn, sử dụng vốn nhận ủy thác, vốn góp của địa phương  `BC00090020`
+            - 23/QT - Tình hình thực tế doanh nghiệp  `BC00090021`
+            - 25/QT_2017 - Quyết toán cấp bù chênh lệch lãi suất của ngân sách địa phương đối với chương trình cho vay nhà ở giai đoạn 2 theo QĐ_33 năm 2017   `BC00090143`
+            - 26A/QT_2017 - Quyết toán quỹ tiền lương (Áp dụng đối với đơn vị nhận khoán tài chính)  `BC00090141`
+            - 26B/QT_2017 - Báo cáo kết quả thực hiện kế hoạch tài chính (Áp dụng đối với HSC, SGD, TTĐT, TTCNTT)  `BC00090142`
+            - GL_HSSV_TNTH - Bảng kê giảm lãi cho vay học sinh, sinh viên do trả nợ trước hạn  `BC00090162`
+            - PL01TL/QT - Báo cáo tình hình thực hiện tiền lương  `BC00090022`
+            - PL02TL/QT_2017 - Bảng tính phí huy động vốn - 2017  `BC00090138`
+            - PL03TL/QT_2017 - Bảng tính tồn ngân nguồn vốn ủy thác đầu tư địa phương - 2017  `BC00090139`
+            - PL04TL/QT_2017 - Bảng tính phí điều hòa vốn, chi phí hỗ trợ huyện nghèo - 2017  `BC00090140`
+            - PL05TL/QT - Bảng kê số dư tích số tài khoản tồn quỹ tiền mặt, tiền gửi, tạm ứng (GL910, 911, 976)  `BC00090137`
+            - PL06/QT - Biểu xác định dự phòng rủi ro tín dụng  `BC00090037`
+        - *Báo cáo Khoán tài chính*
+            - BC_KHOANTC - Báo cáo thực hiện/ kế hoạch khoán tài chính  `BC00090136`
+    - E. Báo cáo dịch vụ Mobile banking
+        - *Báo cáo dịch vụ Mobile banking*
+            - MB_01/MB-RS - Danh sách khách hàng sử dụng dịch vụ Mobile banking cần rà soát lại CMND  `BC88180020`
+- **Báo cáo Kế hoạch nguồn vốn**
+    - A. Xây dựng kế hoạch
+    - B. Giao kế hoạch
+    - C. Điều chỉnh kế hoạch
+    - D. Thông báo
+    - E. In báo cáo
+        - *Báo cáo Kế hoạch nguồn vốn*
+            - KHTD_XA - Báo cáo chất lượng tín dụng xã   `BC00070018`
+            - KHTD_XA - Tổng hợp dư nợ các chương trình và nguồn vốn ủy thác đầu tư địa phương  `BC00070019`
+            - KHTD_XA - Tổng hợp số liệu KHTD thôn  `BC00070021`
+            - KHTD_XA - Tổng hợp số liệu kế hoạch tín dụng xã phường  `BC00070020`
+            - KHTD_XA - Tổng hợp số liệu theo dõi dư nợ đến xã, phường  `BC00070022`
+            - KH_01 - Báo cáo kết quả thực hiện kế hoạch năm  `BC00070001`
+            - KH_03 - Báo cáo chất lượng tín dụng  `BC00070003`
+            - KH_04 - Tổng hợp dư nợ các chương trình và nguồn vốn UTĐT địa phương  `BC00070004`
+            - KH_05 - Báo cáo dư nợ theo đối tượng  `BC00070005`
+            - KH_06 - Biểu thực hiện quỹ an toàn chi trả  `BC00070006`
+            - KH_08 - BC thực hiện kế hoạch tín dụng tại CN  `BC00070008`
+            - KH_09 - Báo cáo nguồn vốn huy động tiết kiệm qua Tổ TK&VV  `BC00070009`
+            - KH_10 - Báo cáo nguồn huy động tiết kiệm của Tổ chức KT&CN  `BC00070013`
+            - KH_10 - Truy vấn - Báo cáo xây dựng kế hoạch  `BC00070010`
+            - KH_11 - Báo cáo tỷ lệ hoàn thành kế hoạch tăng trưởng dư nợ  `BC00070014`
+            - KH_11 - Truy vấn - Báo cáo giao điều chỉnh kế hoạch  `BC00070011`
+            - KH_12 - Báo cáo tình hình nhận nguồn vốn ủy thác đầu từ tại địa phương  `BC00070015`
+    - F. Chỉnh sửa danh mục chỉ tiêu xã
+- **Báo cáo điều hành tín dụng**
+    - BC kết quả CV HN-ĐTCS (mẫu TH)
+        - *BC kết quả CV HN-ĐTCS (mẫu TH)*
+            - 01.1/BCTD - Báo cáo kết quả cho vay hộ nghèo và các đối tượng chính sách (theo CN)  `BC00310011`
+            - 01.2/BCTD - Báo cáo kết quả cho vay hộ nghèo và các đối tượng chính sách (theo ch.trình)  `BC00310012`
+            - DS_CHTRINH - Doanh số PS theo chtrinh_dnai  `BC00310015`
+            - PS_DVUT - Doanh số PS theo DVUT_dnai  `BC00310014`
+            - PS_DVUT_CHTRINH - Doanh số theo dvut_chtrinh_dnai  `BC00310019`
+            - PS_DVUT_XA - Doanh số theo DVUT_Xa  `BC00310018`
+            - PS_XA - Doanh số theo xã_Dnai  `BC00310013`
+            - PS_XA_CHTRINH - Doanh số theo xã-chương trình_dnai  `BC00310017`
+            - PS_XA_DIEMGD_CT - Doanh số theo xã_điểm giao dịch_chương trình  `BC00310029`
+            - PS_XA_DIEMGD_HDT - Doanh số theo xã_điểm gd_hội  `BC00310028`
+            - PS_XA_DVUT_CHTRINH - Doanh số phát sinh theo xã-đvut-chương trình_dnai  `BC00310025`
+            - PS_XA_DVUT_DIEMGD - Doanh số theo xã_hội đoàn thể_điểm gd  `BC00310030`
+            - RPT_GQVL - Báo cáo Lũy kế giải quyết việc làm  `BC00310021`
+            - RPT_GQVL_CN - Tổng  hợp báo cáo GQVL_dnai  `BC00310022`
+            - THULAI - Tình hình thực hiện thu lãi  `BC00310027`
+            - ps_xa_dvut - Doanh số theo xa_dvut_dnai  `BC00310016`
+    - BC kết quả CV theo chương trình TD
+        - *BC kết quả CV theo chương trình TD*
+            - 02.1/BCTD - Báo cáo kết quả cho vay chương trình tín dụng theo đơn vị hành chính  `BC00320013`
+            - 02.2/BCTD - Báo cáo kết quả cho vay chương trình tín dụng theo đối tượng thụ hưởng  `BC00320023`
+    - BC kết quả CV theo nguồn vốn
+        - *BC phân loại CV theo nguồn vốn*
+            - 03.1/BCTD - Kết quả cho vay theo nguồn vốn Trung ương  `BC00390001`
+            - 03.2/BCTD - Kết quả cho vay theo nguồn vốn địa phương  `BC00390002`
+    - BC phân loại CV theo ph.thức vay
+        - *BC phân loại CV theo ph.thức vay*
+            - 04.1/BCTD - Báo cáo phân loại cho vay theo phương thức cho vay  `BC00340001`
+            - 04.2/BCTD - Báo cáo phân loại cho vay theo phương thức chi tiết  `BC00340002`
+    - BC kết quả CV tại vùng đặc biệt
+        - *BC kết quả CV tại vùng đặc biệt*
+            - 05.1/BCTD - BCKQCV Hộ nghèo và các ĐTCS tại huyện nghèo theo Nghị quyết 30a/2008/NQ-CP  `BC00350002`
+            - 05.2/BCTD - BCKQCV CT tín dụng chính sách tại huyện nghèo theo Nghị quyết 30a/2008/NQ-CP  `BC00350003`
+    - BC phân tích ng.nhân nợ quá hạn
+        - *BC phân tích ng.nhân nợ quá hạn*
+            - 06.1/BCTD - Báo cáo phân tích nguyên nhân nợ quá hạn  `BC00360037`
+            - 06.2/BCTD - Báo cáo phân tích nguyên nhân nợ quá hạn (theo chương trình cho vay)  `BC00360038`
+    - BC kết quả CV theo tiêu chí khác
+        - *BC kết quả CV theo tiêu chí khác*
+            - 01/ KQHQ - Danh sách nhận ký quỹ người LĐ đi làm việc tại HQ EPS  `BC00370030`
+            - 07.1/BCTD - Báo cáo kết quả cho vay HSSV theo phương thức cho vay   `BC00320001`
+            - 07.10/BCTD - Báo cáo hiệu quả đầu tư các chương trình tín dụng  `BC00320010`
+            - 07.11/BCTD - Báo cáo tình hình lãi tồn  `BC00370003`
+            - 07.12/BCTD - Báo cáo kết quả huy động tiết kiệm thông qua Tổ TK&VV  `BC00370010`
+            - 07.13/BCTD - Báo cáo hoạt động cho vay có tài sản đảm bảo của chương trình  `BC00370013`
+            - 07.14/BCTD - Báo cáo kết quả cho vay xuất khẩu lao động theo Nghị định số 61/2015/NĐ-CP từ nguồn vốn (theo đối tượng thụ hưởng)  `BC00370014`
+            - 07.15/BCTD - Báo cáo kết quả cho vay xuất khẩu lao động theo Nghị định số 61/2015/NĐ-CP từ nguồn vốn (theo tỉnh, huyện, xã)  `BC00370015`
+            - 07.16/BCTD - Báo cáo kết quả cho vay hỗ trợ tạo việc làm, duy trì và mở rộng việc làm (theo cấp quản lý vốn)  `BC00370016`
+            - 07.17/BCTD - Báo cáo kết quả cho vay hỗ trợ tạo việc làm, duy trì và mở rộng việc làm (theo đối tượng thụ hưởng)  `BC00370017`
+            - 07.18/BCTD - Báo cáo kết quả cho vay người lao động bị thu hồi đất theo QĐ 63/2015/QĐ-TTg (theo tỉnh, huyện, xã)  `BC00370018`
+            - 07.19/BCTD - Báo cáo kết quả cho vay người lao động bị thu hồi đất theo QĐ 63/2015/QĐ-TTg (theo chương trình)  `BC00370019`
+            - 07.2/BCTD - Báo cáo kết quả cho vay HSSV theo trình độ và nghành đào tạo   `BC00320002`
+            - 07.20/BCTD - Báo cáo kết quả cho vay người dân di cư từ Lào về nước (theo tỉnh, huyện, xã)  `BC00370020`
+            - 07.21/BCTD - Báo cáo kết quả cho vay người dân di cư từ Lào về nước (theo chương trình)  `BC00370021`
+            - 07.3/BCTD - Báo cáo chương trình cho vay HSSV theo một số chỉ tiêu khác  `BC00320003`
+            - 07.4/BCTD - Báo cáo kết quả cho vay hỗ trợ việc làm, duy trì và mở rộng việc làm  `BC00320004`
+            - 07.5/BCTD - Báo cáo kết quả  cho vay hỗ trợ việc làm, duy trì việc làm và mở rộng việc làm từ nguồn vốn  `BC00320005`
+            - 07.6/BCTD - Báo cáo kết quả cho vay hộ sản xuất kinh doanh vùng khó khăn  `BC00320006`
+            - 07.7/BCTD - Báo cáo kết quả cho vay nhà ở vùng thường xuyên ngập lũ vùng ĐB Sông Cửu Long và Tây Nguyên  `BC00320007`
+            - 07.8/BCTD - Báo cáo kết quả cho vay ký quỹ đi lao động có thời hạn ở Hàn Quốc(Tỉnh, huyện, xã)   `BC00320008`
+            - 07.9/BCTD - Báo cáo kết quả cho vay ký quỹ đi lao động có thời hạn ở Hàn Quốc(Theo quyết định)   `BC00320009`
+            - 7.25/BCTD - Báo cáo về việc trả nợ của người sử dụng lao động vay vốn theo QĐ 23/2021/QĐ-TTg  `BC00370031`
+    - BC CV người SDLĐ để CVTL
+        - *BC CV người SDLĐ để CVTL*
+            - 01.1/BC-CVTL - -Báo Cáo Kết Quả Cho Vay Người Sử Dụng Lao Động Để Trả Lương Ngừng Việc   `BC88030002`
+            - 01.2/BC-CVTL - -Báo Cáo Kết Quả Cho Vay Người Sủ Dụng Lao Động Để Trả Lương Phục Hồi Sản Suất Sau Khi Tạm Dừng Hoạt Động   `BC88030003`
+            - 01.3/BC-CVTL - -Báo Cáo Kết Quả Cho Vay Người Sủ Dụng Lao Động Để Trả Lương Phục Hồi Sản Suất Trong Lĩnh Vực Vận Tải, Hàng Không, Du Lịch Lưu Trú, Xuất Khẩu Lao Động   `BC88030004`
+            - 01/BC-CVTL - Báo Cáo Kết Quả Cho Vay Tổng Hợp Trả Lương Ngừng Việc, Trả Lương Phục Hồi Sản Xuất  `BC88030001`
+            - 02.1/BC-CVTL - Báo Cáo Kết Quả Cho Vay Người Sử Dụng Lao Động Đê Trả Lương Ngừng Việc - Theo Loại Hình Tổ Chức Cá Nhân  `BC88030007`
+            - 02.2/BC-CVTL - Báo Cáo Kết Quả Cho Vay Người Sử Dụng Lao Động Để Trả Lương phục hồi sản xuất sau khi tạm dừng hoạt động - Theo Loại Hình Tổ Chức Cá Nhân  `BC88030008`
+            - 02/BC-CVTL - Báo Cáo Kết Quả Cho Vay Tổng Hợp Trả Lương Ngừng Việc, Trả Lương Phục Hồi Sản Xuất - Theo Loại Hình Tổ Chức Cá Nhân  `BC88030005`
+            - 03.1/BC-CVTL - Báo Cáo Cho Vay Người Sử Dụng Lao Động Để Trả Lương Ngừng Việc, Trả Lương Phục Hồi Sản Xuất - Theo Lĩnh Vực Hoạt Động Chính   `BC88030009`
+            - 03.2/BC-CVTL - Báo Cáo Kết Quả Cho Vay Người Sử Dụng Lao Động Để Trả Lương Phục Hồi Sản Xuất Sau Khi Tạm Dừng Hoạt Động  - Theo Lĩnh Vực Hoạt Động Chính  `BC88030010`
+            - 03.3/BC-CVTL - Báo Cáo Kết Quả Cho Vay Trả lương Hồi Sản Xuất Trong Lĩnh Vực Vận Tải, Hàng Không, Du Lịch, Dịch Vụ Lưu Trú, Xuất Khẩu Lao Động - Theo Lĩnh Vực Hoạt Động Chính  `BC88030011`
+            - 03/BC-CVTL - Báo Cáo Kết Quả Chương Trình Tín Dụng Cho Vay Người Sử Dụng Lao Động Để Trả Lương Ngừng Việc, Trả Lương Phục Hồi Sản Xuất - Theo Lĩnh Vực Hoạt Động Chính   `BC88030006`
+            - 04/BC-CVTL - Báo Cáo Kết Quả Cho Vay Tổng Hợp Trả Lương Ngừng Việc, Trả Lương Phục Hồi Sản Xuất - Theo Vùng Miền Cho Vay   `BC88030012`
+    - Báo cáo KQ cho vay phục hồi kinh tế
+        - *Báo cáo KQ cho vay phục hồi kinh tế*
+            - BCTD_PHKT_CT_CHTRINH - Báo cáo kết quả cho vay phục hồi kinh tế - Biểu mẫu chi tiết theo chương trình  `BC88130005`
+            - BCTD_PHKT_TH_CH_TR - Báo cáo kết quả cho vay phục hồi kinh tế - Biểu mẫu tổng hợp chương trình  `BC88130004`
+- **Báo cáo Quản lý xử lý nợ rủi ro**
+    - C. Danh sách đề nghị xử lý rủi ro
+        - *Báo cáo Quản lý nợ rủi ro*
+            - 03/XLN - TH đề nghị gia hạn nợ với KH bị rủi ro do nguyên nhân khách quan  `BC00100001`
+            - 04/XL - Danh dách đề nghị xóa nợ các khoản nợ không có khả năng thu hồi(VB_4180)  `BC00100009`
+            - 04/XLN - TH đề nghị khoanh nợ với KH bị rủi ro do nguyên nhân khách quan  `BC00100002`
+            - 05/XLN - TH đề nghị xoá nợ với KH bị rủi ro do nguyên nhân khách quan  `BC00100003`
+        - *Báo cáo QLN rủi ro theo QĐ62*
+            - Mau04_XLN - Biểu tổng hợp đề nghị khoanh nợ đối với khách hàng vay vốn bị rủi ro do nguyên nhân khách quan  `BC88070002`
+            - Mau05_XLN - Biểu tổng hợp đề nghị xóa nợ đối với khách hàng vay vốn bị rủi ro do nguyên nhân khách quan   `BC88070003`
+    - D. Tổng hợp báo cáo xử lý rủi ro
+        - *Tổng hợp báo cáo rủi ro*
+            - 01/TT - Tổng hợp các khoản nợ bị rủi ro do nguyên nhân khách quan được xử lý (chi nhánh)  `BC00380014`
+            - 02/TT - Tổng hợp các khoản nợ bị rủi ro do nguyên nhân khách quan được xử lý (chương trình)  `BC00380015`
+            - 05/XL - Tổng hợp các khoản nợ không có khả năng thu hồi đề nghị xóa nợ (VB_4180)  `BC00380028`
+            - 05A/XL - Tổng hợp các khoản nợ không có khả năng thu hồi đề nghị xóa nợ (VB_4180)  `BC00380029`
+            - 06/XL - Danh sách xóa nợ các khoản nợ không có khả năng thu hồi(VB_4180)  `BC00380031`
+            - 06A/XL - Danh sách không được xóa nợ các khoản nợ không có khả năng thu hồi(VB_4180)  `BC00380030`
+            - 07/XL - Báo cáo các khoản nợ sau khi thực hiện hoạch toán xóa nợ(VB_4180)  `BC00380032`
+            - 07/XLN - Tổng hợp các khoản nợ bị rủi ro do nguyên nhân khách quan đề nghị khoanh nợ  `BC00100005`
+            - 07B/XLN - Tổng hợp các khoản nợ đề nghị khoanh nợ không được chấp thuận  `BC00380023`
+            - 10/XLN - Danh sách gia hạn nợ  `BC00380016`
+            - 10B/XNL - Danh sách không được gia hạn nợ  `BC00380017`
+            - 11/XLN - Danh sách khoanh nợ  `BC00380018`
+            - 11B/XLN - Danh sách không được khoanh nợ  `BC00380019`
+            - 12/XLN - Danh sách xóa nợ  `BC00100011`
+            - 12B/XLN - Danh sách không được xóa nợ  `BC00380024`
+            - 13/XLN - Báo cáo các khoản nợ sau khi đã thực hiện hạch toán khoanh nợ  `BC00100012`
+            - 14/XLN - Báo cáo các khoản nợ sau khi đã thực hiện hạch toán xóa nợ  `BC00380013`
+            - 17XLN - Các khoản nợ rủi ro được gia hạn nợ  `BC00380025`
+        - *Tổng hợp báo cáo RR theo QĐ62*
+            - Mau06_XLN - Tổng hợp báo cáo các khoản nợ bị rủi ro do nguyên nhân khách quan được gia hạn nợ  `BC88080006`
+            - Mau07_XLN - Tổng hợp báo cáo các khoản nợ bị rủi ro do nguyên nhân khách quan đề nghị khoanh nợ  `BC88080007`
+            - Mau08/XLN - Tổng hợp các khoản nợ bị rủi ro do nguyên nhân khách quan đề nghị xóa nợ - QD62  `BC88080008`
+            - Mau09/XLN - Biểu tổng hợp đề nghị xử lý các khoản nợ bị rủi ro do nguyên nhân khách quan - QD62  `BC88080009`
+            - Mau10/XLN - Danh sách gia hạn nợ - QD62  `BC88080010`
+            - Mau11/XLN - Danh sách khoanh nợ - QD62  `BC88080011`
+            - Mau12/XLN - Danh sách xóa nợ - QD62  `BC88080012`
+            - Mau13_XLN - Báo cáo các khoản nợ sau khi thực hiện hạch toán khoanh nợ  `BC88080001`
+            - Mau14_XLN - Báo cáo các khoản nợ sau khi thực hiện hoạch toán xóa nợ  `BC88080002`
+            - Mau15_XLN - Báo cáo các khoản nợ rủi ro được gia hạn nợ  `BC88080003`
+        - *Quản lý nợ khoanh và các báo cáo liên quan*
+            - M01_QLNK - PHIẾU KIỂM TRA NỢ KHOANH  `BC88930005`
+            - M03_QLNK - Danh sách món vay hết thời gian khoanh nợ  `BC88930001`
+            - M04_QLNK - Thông báo nợ hết thời gian khoanh nợ  `BC88930013`
+            - M08_QLNK - DANH SÁCH MÓN VAY CÓ DƯ NỢ KHOANH TRÊN 12 THÁNG CHƯA KIỂM TRA  `BC88930009`
+            - M09_QLNK - DANH SÁCH MÓN VAY CÓ DƯ NỢ KHOANH CÓ KHẢ NĂNG TRẢ NỢ  `BC88930010`
+            - M10_QLNK - DANH SÁCH MÓN VAY CHƯA NHẬP KẾT QUẢ KIỂM TRA  `BC88930011`
+            - QLNK_06 - Báo cáo kết quả kiểm tra nợ khoanh  `BC88930006`
+            - QLNK_07_HDT - Báo cáo tiến độ kiểm tra nợ khoanh (Tổ chức hội đoàn thể)  `BC88930007`
+            - QLNK_07_HDT_XA - Báo cáo tiến độ kiểm tra nợ khoanh (Hội - xã - tổ)  `BC88930008`
+            - QLNK_07_T - Báo cáo tiến độ kiểm tra nợ khoanh (Tổng hợp)  `BC88930012`
+- **Báo cáo Kiểm tra kiểm soát nội bộ**
+    - A. Nhập chỉ tiêu thủ công
+    - B. Xuất báo cáo
+        - *Báo cáo kiểm tra kiểm toán nội bộ*
+            - 01/KNTC - Tổng hợp kết quả tiếp công dân/khách hàng  `BC00230008`
+            - 01/KTNB - Báo cáo thống kê số lượt kiểm tra giám sát  `BC00230001`
+            - 01/PCTN - Tổng hợp kết quả về công tác phòng, chống tham nhũng  `BC00230073`
+            - 02/KNTC - Tổng hợp kết quả xử lý đơn thư khiếu nại, tố cáo  `BC00230009`
+            - 02/KTNB - Báo cáo kết quả kiểm tra Hồ sơ tín dụng và NQH chưa chuyển  `BC00230002`
+            - 02/PCTN - Danh sách các vụ tham nhũng được phát hiện trong kỳ  `BC00230074`
+            - 03/KNTC - Tổng hợp kết quả giải quyết đơn khiếu nại  `BC00230010`
+            - 03/KTNB - Báo cáo kết quả Đối chiếu công khai  `BC00230003`
+            - 03/PCTN - Kết quả phát hiện, khắc phục các văn bản còn sơ hở, dễ bị lợi dụng để tham nhũng  `BC00230075`
+            - 04/KNTC - Tổng hợp kết quả giải quyết đơn tố cáo  `BC00230011`
+            - 04/KTNB - Báo cáo kết quả kiểm tra chứng từ kế toán  `BC00230004`
+            - 04/PCTN - Thống kê số liệu chủ yếu về công tác phòng, chống tham nhũng của ngân hàng chính sách xã hội  `BC00230076`
+            - 05/KNTC - Công tác quản lý nhà nước về khiếu nại, tố cáo  `BC00230012`
+            - 05/KTNB - Báo cáo kết quả kiểm tra hoạt động của tổ tiết kiệm & vay vốn  `BC00230005`
+            - 06A/KTNB - BÁO CÁO CÁC VỤ VIỆC DO CHIẾM DỤNG, THAM Ô VÀ KẾT QUẢ THU HỒI  `BC00230061`
+            - 06A/KTNB-GS - BÁO CÁO CÁC VỤ VIỆC DO CHIẾM DỤNG, THAM Ô VÀ KẾT QUẢ THU HỒI - Giám sát  `BC00230071`
+            - 06B/KTNB - BÁO CÁO CÁC VỤ VIỆC SỬ DỤNG SAI MỤC ĐÍCH VÀ KẾT QUẢ THU HỒI  `BC00230062`
+            - 06B/KTNB-GS - BÁO CÁO CÁC VỤ VIỆC SỬ DỤNG SAI MỤC ĐÍCH VÀ KẾT QUẢ THU HỒI - Giám sát  `BC00230072`
+            - MAU_01_KQGQ - Tổng hợp kết quả giải quyết  thuộc thẩm quyền (Định kỳ)  `BC00230048`
+            - MAU_01_TCD - TỔNG HỢP KẾT QUẢ TIẾP CÔNG DÂN THƯỜNG XUYÊN, ĐỊNH KỲ  `BC00230015`
+            - MAU_02_TCD - TỔNG HỢP KẾT QUẢ PHÂN LOẠI, XỬ LÝ ĐƠN QUA TIẾP CÔNG DÂN(ĐỊNH KỲ)  `BC00230016`
+            - Mau_01_KQGQ - Tổng hợp kết quả giải quyết thuộc thẩm quyền  `BC00230017`
+            - Mau_01_TCD - TỔNG HỢP KẾT QUẢ TIẾP CÔNG DÂN ĐỘT XUẤT  `BC00230046`
+            - Mau_01_XLD - Tổng hợp kết quả xử lý đơn  `BC00230042`
+            - Mau_01_XLD - Tổng hợp kết quả xử lý đơn (Định kỳ)  `BC00230053`
+            - Mau_02_KQGQ - Tổng hợp kết quả thi hành quyết định giải quyết khiếu nại  `BC00230018`
+            - Mau_02_KQGQ - Tổng hợp kết quả thi hành quyết định giải quyết khiếu nại (Định kỳ)  `BC00230049`
+            - Mau_02_TCD - TỔNG HỢP KẾT QUẢ PHÂN LOẠI, XỬ LÝ ĐƠN QUA TIẾP CÔNG DÂN (ĐỘT XUẤT)  `BC00230047`
+            - Mau_03_KQGQ - Tổng hợp kết quả giải quyết tố cáo thuộc thẩm quyền  `BC00230019`
+            - Mau_03_KQGQ - Tổng hợp kết quả giải quyết tố cáo thuộc thẩm quyền (Định kỳ)  `BC00580030`
+            - Mau_03_QLNN - Tổng hợp công tác quản lý nhà nước về tiếp công dân, khiếu nại, tố cáo  `BC00230041`
+            - Mau_03_QLNN - Tổng hợp công tác quản lý nhà nước về tiếp công dân, khiếu nại, tố cáo (Định kỳ)  `BC00230052`
+            - Mau_04_KQGQ - Tổng hợp kết quả thực hiện kết luận nội dung tố cáo  `BC00230020`
+            - Mau_04_KQGQ - Tổng hợp kết quả thực hiện kết luận nội dung tố cáo (Định kỳ)  `BC00230051`
+            - Mau_2_XLD - Tổng hợp kết quả xử lý đơn khiếu nại  `BC00230043`
+            - Mau_2_XLD - Tổng hợp kết quả xử lý đơn khiếu nại (Định kỳ)  `BC00230054`
+            - Mau_3_XLD - Tổng hợp kết quả xử lý đơn tố cáo  `BC00230044`
+            - Mau_3_XLD - Tổng hợp kết quả xử lý đơn tố cáo (Định kỳ)  `BC00230055`
+            - Mau_4_XLD - Tổng hợp kết quả xử lý đơn kiến nghị, phản ánh  `BC00230045`
+            - Mau_4_XLD - Tổng hợp kết quả xử lý đơn kiến nghị, phản ánh(Định kỳ)  `BC00230056`
+        - *Báo cáo phòng chống tham nhũng*
+            - 01/PCTN - TỔNG HỢP KẾT QUẢ VỀ CÔNG TÁC PHÒNG, CHỐNG THAM NHŨNG  `BC88170083`
+            - 02/PCTN - DANH SÁCH CÁC VỤ THAM NHŨNG ĐƯỢC PHÁT HIỆN TRONG KỲ  `BC88170084`
+            - 03/PCTN - KẾT QUẢ PHÁT HIỆN, KHẮC PHỤC CÁC VĂN BẢN CÒN SƠ HỞ, DỄ BỊ LỢI DỤNG ĐỂ THAM NHŨNG  `BC00230079`
+            - 04/PCTN - THỐNG KÊ SỐ LIỆU CHỦ YẾU VỀ CÔNG TÁC PHÒNG, CHỐNG THAM NHŨNG CỦA NHCSXH  `BC88170080`
+        - *Báo cáo Xây dựng kế hoạch kiểm tra*
+            - 01_XD_HUYEN - Tổng hợp kế hoạch kiểm tra  `BC88220010`
+            - 02_DC_HUYEN - Tổng hợp kế hoạch kiểm tra năm sau điều chỉnh  `BC88220011`
+            - 03_THKH_HUYEN_CBCT - Tổng hợp kết quả kiểm tra (CBCT)  `BC88220001`
+            - 03_THKH_HUYEN_DOAN - Tổng hợp kết quả kiểm tra (Đoàn kiểm tra cấp huyện)  `BC88220002`
+    - D. Kế hoạch
+- **Báo cáo Đánh giá chất lượng tín dụng**
+    - 2. Đánh giá chất lượng tín dụng
+        - *2. Đánh giá chất lượng tín dụng*
+            - (trống)
+    - 8. Đánh giá CLHĐ TD (VB398x)
+        - *Báo cáo đánh giá chất lượng hoạt động ủy nhiệm của Tổ TKVV (VB3986)*
+            - CLT01_3986 - Biểu chấm điểm đánh giá chất lượng hoạt động của tổ TKVV  `BC00800001`
+            - CLT02_3986 - Biểu tổng hợp KQ đánh giá chất lượng hoạt động của tổ TKVV tại xã  `BC00800002`
+            - CLT03_3986 - Biểu tổng hợp KQ đánh giá chất lượng hoạt động của tổ TKVV tại PGD  `BC00800003`
+        - *Báo cáo đánh giá chất lượng, hiệu quả hoạt động GDX (VB3987)*
+            - 02/CĐGDX - Biểu đánh giá chất lượng, hiệu quả hoạt động giao dịch xã  `BC00810001`
+            - 03/CĐGDX - Biểu tổng hợp đánh giá chất lượng, hiệu quả hoạt động giao dịch xã  `BC00810002`
+        - *Báo cáo đánh giá chất lượng hoạt động tín dụng chính sách tại cấp xã (VB3988)*
+            - CDX01 - Biểu chấm điểm hoạt động tin dụng chính sách tại cấp xã  `BC00820001`
+            - CDX02 - Biểu chấm điểm đánh giá chất lượng hoạt động tín dụng chính sách tại xã(phường, thị trấn)  `BC00820002`
+            - CDX03 - Tổng hợp kết quả đánh giá hoạt động tín dụng chính sách tại cấp xã  `BC00820003`
+        - *Báo cáo đánh giá chất lượng hoạt động tín dụng chính sách tại cấp huyện, tỉnh (VB3989)*
+            - CDTD01 - BIỂU CHẤM ĐIỂM ĐÁNH GIÁ CHẤT LƯỢNG HOẠT ĐỘNG TÍN DỤNG CHÍNH SÁCH  `BC00830001`
+        - *So sánh chỉ tiêu VB398x/NHCS-TDNN*
+            - 3987/TQ - Biểu tổng hợp đánh giá chất lượng, hiệu quả hoạt động giao dịch xã  `BC00850003`
+        - *398x củng cố nâng cao CLTD TNB*
+            - (trống)
+- **Đối chiếu, phân tích nợ**
+    - A. Nhập số liệu đối chiếu
+    - B. Nhập số liệu phân tích
+    - D. In báo cáo
+        - *Báo cáo đối chiếu, phân tích nợ*
+            - CL_MS01 - Biểu tổng hợp chênh lệch số dư tiền vay và tiền gửi qua đối chiếu tại xã  `BC00490002`
+            - DC_MS01 - Danh sách đối chiếu số dư tiền vay và tiền gửi  `BC00490001`
+            - DC_MS02 - Biểu tổng hợp đối chiếu số dư tiền vay và tiền gửi tại xã  `BC00490003`
+            - DC_MS03 - Biểu tổng hợp đối chiếu số dư tiền vay và tiền gửi tại huyện  `BC00490004`
+            - PT_MS01 - Biểu phân tích nợ khách hàng vay vốn  `BC00490010`
+            - PT_MS02 - Biểu phân tích nợ khách hàng tại xã theo đơn vị ủy thác, tổ chức hội  `BC00490011`
+            - PT_MS03 - Biểu phân tích nợ của khách hàng tại huyện theo đơn vị ủy thác, xã  `BC00490012`
+- **Đối chiếu, phân loại nợ**
+    - A. Nhập số liệu
+    - C. In báo cáo
+        - *01 - Phan loại nợ theo chỉ tiêu (báo cáo tháng)*
+            - PLN_MS01 - Báo cáo Phân loại nợ theo Chương trình cho vay và trạng thái nợ  `BC00520001`
+            - PLN_MS02 - Báo cáo Phân loại nợ theo Thời hạn cho vay  `BC00520002`
+            - PLN_MS03 - Báo cáo Phân loại nợ theo Hình thức đảm bảo tiền vay  `BC00520003`
+            - PLN_MS04 - Báo cáo Phân loại nợ theo Nguồn vốn cho vay  `BC00520004`
+            - PLN_MS05 - Báo cáo Phân loại nợ theo Hình thức cho vay và Đơn vị nhận ủy thác
+  `BC00520005`
+            - PLN_MS06 - Báo cáo Phân loại nợ theo Khu vực cho vay  `BC00520006`
+            - PLN_MS07 - Báo cáo Phân loại nợ theo Dân tộc  `BC00520007`
+        - *02 - Phân loại khả năng trả nợ khách hàng (3 năm/lần)*
+            - Mau01_DSDCCL - Danh sách đối chiếu phát sinh chênh lệch  `BC00840042`
+            - Mau02_KHKNN - Danh sách món vay khách hàng không nhận nợ  `BC00840039`
+            - Mau03_KCNNN - Danh sách món vay không có người nhận nợ  `BC00840040`
+            - Mau04_SXKDTL - Danh sách món vay nguyên nhân sản xuất kinh doanh thua lỗ  `BC00840041`
+            - Mau_05NNK - Danh sách món vay nguyên nhân khác  `BC00840045`
+            - Mau_06PLNKXLRR - Danh sách món vay đủ điều kiện xử lý nợ rủi ro  `BC00840043`
+            - Mau_07KDC - Danh sách món vay không đối chiếu được  `BC00840044`
+            - PLN_MS09 - Báo cáo Phân loại nợ theo Khả năng trả nợ của khách hàng
+  `BC00520009`
+            - PLN_MS09_01 - Báo cáo Phân loại nợ theo Khả năng trả nợ của khách hàng
+  `BC00840099`
+            - PLN_MS10 - Báo cáo Phân tích nguyên nhân khách hàng không có khả năng trả nợ  `BC00840036`
+            - PLN_MS10 - Báo cáo Phân tích nguyên nhân khách hàng không có khả năng trả nợ (Dừng từ 2021)  `BC00520010`
+            - PL_M01_BCTH - Tổng hợp tiến độ đối chiếu phân loại nợ_theo địa phương  `BC00840037`
+            - PL_M01_BCTH - Tổng hợp tiến độ đối chiếu phân loại nợ_theo địa phương (Dừng từ 2021)  `BC00520018`
+            - PL_M02_BCTH - Tổng hợp tiến độ đối chiếu phân loại nợ_theo khách hàng  `BC00840038`
+            - PL_M02_BCTH - Tổng hợp tiến độ đối chiếu phân loại nợ_theo khách hàng (Dừng từ 2021)  `BC00520026`
+            - PL_MS01 - Danh sách phân loại nợ theo khả năng trả nợ của khách hàng  `BC00840033`
+            - PL_MS01 - Danh sách phân loại nợ theo khả năng trả nợ của khách hàng (Dừng từ 2021)  `BC00520011`
+            - PL_MS02 - Tổng hợp kết quả phân loại nợ theo khả năng trả nợ của khách hàng
+  `BC00520012`
+            - PL_MS03 - Tổng hợp nguyên nhân khách hàng không có khả năng trả nợ  `BC00840034`
+            - PL_MS03 - Tổng hợp nguyên nhân khách hàng không có khả năng trả nợ (Dừng từ 2021)  `BC00520013`
+            - PL_MS04 - Danh sách chênh lệch nợ vay NHCSXH qua đối chiếu tại xã
+  `BC00520014`
+            - PL_MS05 - Tổng hợp kết quả phân loại nợ theo khả năng trả nợ của khách hàng
+  `BC00520015`
+            - PL_MS06 - Tổng hợp nguyên nhân khách hàng không có khả năng trả nợ  `BC00840035`
+            - PL_MS06 - Tổng hợp nguyên nhân khách hàng không có khả năng trả nợ (Dừng từ 2021)  `BC00520016`
+            - PL_MS07 - Tổng hợp chênh lệch nợ vay NHCSXH qua đối chiếu tại xã
+  `BC00520017`
+        - *Phân loại nợ 2025*
+            - PLN_2025_01TD - BÁO CÁO TIẾN ĐỘ ĐỐI CHIẾU, PHÂN LOẠI NỢ   `BC88290011`
+            - PLN_2025_02TD - BÁO CÁO TIẾN ĐỘ ĐỐI CHIẾU, PHÂN LOẠI NỢ   `BC88290012`
+            - PLN_2025_M01 - DANH SÁCH PHÂN LOẠI NỢ THEO KHẢ NĂNG TRẢ NỢ CỦA KHÁCH HÀNG   `BC88290005`
+            - PLN_2025_M01A - DANH SÁCH PLN THEO KHẢ NĂNG TRẢ NỢ CỦA KHÁCH HÀNG ĐI KHỎI NƠI CƯ TRÚ  `BC88290006`
+            - PLN_2025_M02 - TỔNG HỢP KẾT QUẢ PHÂN LOẠI NỢ THEO KHẢ NĂNG TRẢ NỢ CỦA KHÁCH HÀNG  `BC88290007`
+            - PLN_2025_M03 - TỔNG HỢP NGUYÊN NHÂN KHÁCH HÀNG KHÔNG CÓ KHẢ NĂNG TRẢ NỢ  `BC88290008`
+            - PLN_2025_M04 - DANH SÁCH CHÊNH LỆCH NỢ VAY NHCSXH QUA ĐỐI CHIẾU TẠI XÃ  `BC88290009`
+            - PLN_2025_M05 - TỔNG HỢP KẾT QUẢ PHÂN LOẠI NỢ THEO KHẢ NĂNG TRẢ NỢ CỦA KHÁCH HÀNG  `BC88290001`
+            - PLN_2025_M06 - TỔNG HỢP NGUYÊN NHÂN KHÁCH HÀNG KHÔNG CÓ KHẢ NĂNG TRẢ NỢ  `BC88290002`
+            - PLN_2025_M07 - BÁO CÁO TỔNG HỢP CHÊNH LỆCH NỢ VAY NHCSXH QUA ĐỐI CHIẾU  `BC88290010`
+            - PLN_2025_M09 - BÁO CÁO PHÂN LOẠI NỢ THEO KHẢ NĂNG TRẢ NỢ CỦA KHÁCH HÀNG  `BC88290003`
+            - PLN_2025_M10 - BÁO CÁO PHÂN TÍCH NGUYÊN NHÂN KHÁCH HÀNG KHÔNG CÓ KHẢ NĂNG TRẢ NỢ  `BC88290004`
+- **Báo cáo kiểm tra, giám sát**
+    - B. In báo cáo
+        - *Báo cáo kiểm tra giám sát*
+            - 01/BĐD - Báo cáo kết quả hoạt động của ban đại diện HĐQT các cấp  `BC00580003`
+            - 01/KTNB - Báo cáo tình hình hoạt động tài chính  `BC00580001`
+            - 02/KTNB - Báo cáo kiểm toán hoạt động tín dụng  `BC00580002`
+            - 03A/BDD - BC KQ hoạt động của BĐD HĐQT NHCSXH cấp huyện(áp dụng từ 2019)  `BC00580004`
+            - 03B/BDD - BC KQ kiểm tra, giám sát của BĐD HĐQT NHCSXH cấp huyện(áp dụng từ 2019)  `BC00580007`
+            - 03C/BDD - Danh sách thành viên BĐD huyện(áp dụng từ 2019)  `BC00580011`
+        - *Báo cáo giám sát BĐD cấp tỉnh*
+            - 02A/BDD-KTGS - Kết quả thực hiện kế hoạch tín dụng  `BC00960001`
+            - 03A_KTGS - Biểu tổng hợp dư nợ tín dụng chính sách phân theo địa bàn hành chính cấp huyện  `BC00960002`
+        - *Báo cáo giám sát BĐD cấp huyện*
+            - 02B/BDD-KTGS - Kết quả thực hiện kế hoạch tín dụng  `BC00970001`
+            - 03B/KTGS - Biểu tổng hợp dư nợ tín dụng chính sách phân theo địa bàn hành chính cấp xã  `BC00970002`
+        - *Báo cáo giám sát BĐD cấp xã*
+            - 01/TDCS - Biểu tổng hợp dư nợ tổ TK&VV xã  `BC00980001`
+            - 02/TDCS - Danh sách tổng hợp món vay nợ quá hạn và phân tích nguyên nhân nợ quá han xã  `BC00980002`
+        - *Báo cáo KTGS hoạt động ủy thác*
+            - KTGS2023_M11 - BÁO CÁO CHI TIẾT KẾT QUẢ KIỂM TRA SỬ DỤNG VỐN VAY TRONG VÒNG 30 NGÀY SAU GIẢI NGÂN  `BC88140018`
+            - KTGS2023_M12 - BÁO CÁO CHI TIẾT KẾT QUẢ KIỂM TRA SỬ DỤNG VỐN VAY THEO KẾ HOẠCH, ĐỘT XUẤT  `BC88140019`
+            - KTGS2023_M13 - BÁO CÁO CHI TIẾT KẾT QUẢ ĐỐI CHIẾU  `BC88140020`
+            - KTGS2023_M14 - BÁO CÁO CHI TIẾT KẾT QUẢ KIỂM TRA TỔ TIẾT KIỆM VÀ VAY VỐN  `BC88140012`
+            - KTGS2023_M15 - BÁO CÁO CHI TIẾT KẾT QUẢ KIỂM TRA ĐƠN VỊ NHẬN ỦY THÁC  `BC88140013`
+            - KTGS2023_M21 - BÁO CÁO TỔNG HỢP KẾT QUẢ KIỂM TRA SỬ DỤNG VỐN VAY TRONG VÒNG 30 NGÀY SAU GIẢI NGÂN  `BC88140014`
+            - KTGS2023_M22 - BÁO CÁO TỔNG HỢP KẾT QUẢ KIỂM TRA SỬ DỤNG VỐN VAY THEO KẾ HOẠCH, ĐỘT XUẤT  `BC88140015`
+            - KTGS2023_M23 - BÁO CÁO TỔNG HỢP KẾT QUẢ ĐỐI CHIẾU  `BC88140016`
+            - KTGS2023_M24 - BÁO CÁO TỔNG HỢP KẾT QUẢ KIỂM TRA HOẠT ĐỘNG ỦY THÁC  `BC88140017`
+            - KTGS2023_M3 - BÁO CÁO TỔNG HỢP KẾT QUẢ KIỂM TRA  `BC88140021`
+- **Đánh giá, xếp loại HTNV**
+    - A. Chuẩn bị số liệu
+    - B. In báo cáo
+        - *Báo cáo chấm điểm  tập thể*
+            - PL05/ĐGXL - 01-Báo cáo kết quả đánh giá, xếp loại mức độ HTNV PGD (Đơn vị tự đánh giá)  `BC00880001`
+            - PL05/ĐGXL - 02-Báo cáo kết quả đánh giá, xếp loại mức độ HTNV PGD (Phòng CMNV/HĐTĐ CN đánh giá)  `BC00880002`
+            - PL05_TH - 03-Biểu tổng hợp kết quả chấm điểm đánh giá mức độ hoàn thành nhiệm vụ PGD theo 9759  `BC00880013`
+## 4. Tiện ích
+- **Hỗ trợ in báo cáo**
+    - A. Báo cáo EOD
+        - *Báo cáo EOD*
+            - CORE-BC01 - Liệt kê giao dịch phát sinh  `BC00120029`
+            - CORE-BC02A - Liệt kê giao dịch phát sinh tổng hợp nội bảng  `BC00120001`
+            - CORE-BC02B - Liệt kê giao dịch phát sinh tổng hợp ngoại bảng  `BC00120002`
+            - CORE-BC03A - Bảng cân đối tài khoản phát sinh – nội bảng  `BC00120003`
+            - CORE-BC03B - Bảng cân đối tài khoản phát sinh – ngoại bảng  `BC00120004`
+            - CORE-BC04 - Nhật ký quỹ  `BC00120030`
+            - LEND_15_FREEEZE - Bảng kê dư nợ sang tài khoản Khoanh  `BC00120021`
+            - LEND_15_NORMAL - 'Bảng kê dư nợ sang tài khoản TH  `BC00120022`
+            - LEND_15_OVERDUE - Bảng kê dư nợ sang tài khoản QH  `BC00120023`
+            - LEND_30 - Danh sách món vay có thay đổi dư nợ gốc trong ngày  `BC00120025`
+            - LEND_31_CHTRINH - Tổng hợp số liệu tín dụng theo chương trình  `BC00120035`
+            - LEND_31_DVUT - Tổng hợp số liệu tín dụng theo đơn vị ủy thác  `BC00120033`
+            - LEND_31_TO - Tổng hợp số liệu tín dụng theo tổ  `BC00120032`
+            - LEND_31_XAPHUONG - Tổng hợp số liệu tín dụng theo xã phường  `BC00120034`
+    - B. Báo cáo EOM
+        - *Báo cáo EOM*
+            - CORE-BC20A - Sao kê dư nợ  `BC00130026`
+            - CORE-BC20B - Sao kê dư nợ  `BC00130027`
+            - CORE-BC20C - Sao kê dư nợ  `BC00130028`
+            - CORE_BC21 - Sao kê lãi dự thu  `BC00130032`
+            - CORE_BC23 - Sao kê chi tiết tài sản đảm bảo  `BC00130033`
+            - LEND_01 - Bảng tổng hợp các bút toán chi phí ủy thác  `BC00130006`
+            - LEND_04 - Bảng tổng hợp các bút toán chi phí hoa hồng  `BC00130011`
+            - LEND_06 - Bảng kê chi hoa hồng theo dư nợ   `BC00130012`
+            - LEND_07 - Bảng kê chi hoa hồng tiết kiệm   `BC00130013`
+            - LEND_08 - Bảng kê phân bổ lãi nguồn vốn nhận ủy thác  `BC00130014`
+            - LEND_09 - Bảng kê trích kinh phí cho vay vốn tài trợ ủy thác đầu tư địa phương  `BC00130015`
+            - LEND_22 - Bảng kê chi hoa hồng theo dư nợ chi tiết  `BC00130034`
+            - LEND_23 - Bảng kê hoa hồng tiết kiệm chi tiết  `BC00130023`
+    - C. Báo cáo Online
+        - *Báo cáo Online*
+            - 06A/KTNB - Phiếu kiểm tra vốn vay  `BC00460061`
+            - BC06A_KTNB - Phiếu kiểm tra sử dụng vốn vay và trả nợ của khách hàng  `BC00140062`
+            - MAU01/TV - Danh sách tổ viên Tổ Tiết kiệm và vay vốn  `BC00140047`
+            - MAU02/TV - Danh sách tổ viên không còn dư nợ (gốc, lãi)  `BC00140048`
+            - MAU03/TV - Danh sách theo dõi biến động tổ viên Tổ TKVV  `BC00140049`
+            - NOXH_NDH_PGD - Biểu tổng hợp phòng giao dich theo dõi nợ gốc đến hạn chương trình nhà ở xã hội theo nghị định 100/NĐ-CP  `BC00140050`
+            - ON_BKDC - Bảng kê đối chiếu dư nợ vay  `BC00140021`
+            - ON_BKKT - Phiếu kiểm tra sử dụng vốn vay  `BC00140022`
+            - ON_TBCNQH - Thông báo chuyển nợ quá hạn - Mẫu 14/TD  `BC00140024`
+            - ON_TBNDH - Thông báo nợ đến hạn  `BC00140025`
+            - TGTV_MAU_01 - Danh sách khách hàng có số dư tiền gửi tổ viên lớn hơn hoặc bằng nợ gốc phân kỳ đến hạn  `BC00140164`
+            - TGTV_MAU_02 - Danh sách khách hàng chưa trả nợ gốc phân kỳ đến hạn từ tiền gửi tổ viên theo thông báo  `BC00140163`
+    - D. Báo cáo khác
+        - *Báo cáo khác*
+            - Chitieu_PGD - theo dõi chỉ tiêu giao tại PGD_dnai  `BC00480059`
+            - Chitieu_PGD_2021 - Thực hiện kế hoạch tăng trưởng theo chỉ tiêu giao cấp PGD  `BC00480073`
+            - Chitieu_xa - Theo dõi kế hoạch tăng trưởng theo chỉ tiêu giao  `BC00480058`
+            - Chitieu_xa_2021 - Chỉ tiêu kế hoạch tăng trưởng theo chỉ tiêu giao  `BC00480072`
+            - DS3TKPS_XA - DS tổ TK&VV có tổ viên 3 tháng không hoạt động theo xã  `BC00480063`
+            - DSTKVV - DS tổ viên tổ TK&VV (hỗ trợ theo dõi, quản lý tổ viên)  `BC00460051`
+            - DS_TT_GHV - Danh sách phát sinh tiếp tục thực hiện nợ gia hạn_dnai  `BC00480056`
+            - GHANSAI_PS - Danh sách phát sinh gia vượt theo tháng năm  `BC00480061`
+            - GHSAI - Gia hạn sai qui định  `BC00480046`
+            - GHSAI_XA - Gia hạn sai qui định theo từng xã_dnai  `BC00480054`
+            - HOTRO_KKTS - HỖ TRỢ IN TEM KIỂM KÊ TÀI SẢN  `BC00460053`
+            - KHTD_xa - Thực hiện chỉ tiêu tín dụng theo xã  `BC00480057`
+            - KH_GN_TN_M - Tổng hợp Kế hoạch giải ngân - thu nợ theo tháng_PGD  `BC00480068`
+            - KH_GN_TN_W - Tổng hợp Kế hoạch giải ngân - thu nợ theo tuần_PGD  `BC00480071`
+            - PKY_DGTNKC_CTR - Đánh giá thực hiên thu nợ kỳ cuối theo kế hoạch_Chương trình vay  `BC00480066`
+            - PKY_DGTNKC_PGD_XA - Đánh giá thực hiện thu nợ kỳ cuối theo kế hoạch_PGD_Xã  `BC00480065`
+            - PKY_TNO - Thực hiện kế hoạch thu nợ_dnai  `BC00480049`
+            - PKY_TNO_XA - Kế hoạch giao thu nợ phân kỳ theo xã_dnai  `BC00480053`
+            - PKY_TNO_XA_TO - Thực hiện kế hoạch thu nợ theo xã_tổ_dnai  `BC00480051`
+            - RSGH - Rà soát gia hạn  `BC00480047`
+            - SK_GHAN - Sao kê gia hạn trong năm  `BC00480048`
+            - SK_GQVL_CT - Bảng kê chi tiết cho vay từ quỹ quốc gia về việc làm  `BC00460047`
+            - SK_NQH - Sao kê nợ quá hạn đến thời điểm báo cáo  `BC00460046`
+            - TBSV - Thông báo về tình hình vay vốn ưu đãi của HSSV mồ côi  `BC00140045`
+            - VB866_M01 - Báo cáo các món vay trên 50 triệu đồng cho vay theo văn bản số 866/NHCS-TDNN( Chi tiết)
+  `BC00460054`
+            - VB866_M03 - Báo cáo các món vay trên 50 triệu đồng cho vay theo văn bản số 866/NHCS-TDNN( Tổng hợp 04 chương trình)  `BC00460056`
+    - E. Cặp lá yêu thương
+        - *Quỹ thiện tâm*
+            - 01/QTT - DANH SÁCH  ĐÃ MỞ TÀI KHOẢN CHO CÁC ĐTTH  `BC00680001`
+            - 05/QTT - DANH SÁCH ĐỐI TƯỢNG THỤ HƯỞNG ĐỀ NGHỊ MỞ TÀI KHOẢN  `BC00680005`
+    - F. Cán bộ huy động tiền gửi
+        - (Màn hình cán bộ huy động tiền gửi — không có danh sách báo cáo)
+- **Báo cáo nhanh**
+    - A. Báo cáo từ HSTD
+        - (Builder: tạo báo cáo nhanh từ Hồ sơ tín dụng — không có mẫu cố định)
+    - B. Báo cáo theo công thức
+        - (Builder: tạo báo cáo theo công thức — không có mẫu cố định)
+    - C. Báo cáo theo truy vấn
+        - *Nhóm BC-Kế toán và Quản lý tài chính*
+            - SAO KÊ TÀI KHOẢN 102 CỦA KHÁCH HÀNG CÓ VAY VỐN NHÀ Ở XÃ HỘI
+            - Sao kê báo cáo về việc điều chỉnh, đánh giá quyền sử dụng đất năm 2023
+            - Danh sách món vay giải quyết việc làm cần rà soát thông tin 2024
+        - *Nhóm báo cáo thông tin tài chính khoản vay*
+            - dnbq_ctrinh_ndhoat
+            - Dư nợ bình quân-Lãi phải thu
+            - 01-KTNN.Sao kê phục vụ công tác Kiểm toán
+            - Danh sách Tổ TK&VV không có NQH (kỳ dữ liệu tháng)
+            - Danh sách xã không có NQH (kỳ dữ liệu tháng)
+            - HSKU_CN
+            - ĐỐI CHIẾU DƯ NỢ_KU VÀ GL THEO TÀI KHOẢN - NGUỒN VỐN
+            - Dư nợ_Lãi đã thu_KH A - B - tỉnh - huyện
+            - HSKU
+            - HSTDCT_kỳ ngày_hỗ trợ in HD GQVL
+            - Lãi phải thu - QT14 (kỳ tháng)
+            - DS các khách hàng in HĐ GQVL nhập dữ liệu thủ công
+            - Xuất dữ liệu hỗ trợ đối chiếu danh sách đối tượng vay vốn theo chương trình
+            - DSHN_CN46_Danh sách đối tượng CSXH đã upload
+            - DSHN_CN46_Danh sách đối tượng CSXH cần rà soát (không cmt, trùng tên, xã với hộ vay..- kỳ ngày)
+            - DSHN_CN46_Danh sách đối tượng CSXH đã upload (kèm kết quả rà soát ĐTCS có CMT đang vay vốn - kỳ ngày)
+            - Sao kê các khoản vay Doanh nghiệp
+            - TEST_HSKU
+            - DSHN_CN46_Danh sách đối tượng CSXH đang vay GQVL (kỳ ngày)
+            - Lãi phải thu - M13TD - kỳ ngày (trong vòng 10 ngày đầu tháng)
+            - DSHN_CN46_Rà soát hộ thoát nghèo từ DS năm X so với năm_2 (không còn tên trong DS năm 2) - kèm kết quả rà soát vay vốn
+            - Danh sách Giải Ngân Giải quyết việc làm_Định Quán
+            - ttt
+            - BG01-Mẫu số 01 - Biểu tổng kết quả hoạt động tin dụng chính sách
+            - BG02-Mẫu số 02 - Biểu tổng họp số liệu bàn giao hoạt động ủy thác theo tổ
+            - BG03-Mẫu số 03 - Biểu tổng họp số liệu bàn giao hoạt động ủy thác theo xã
+            - SAO KE
+            - SAO KE
+            - SAO KE
+            - SAO KE
+            - TỔNG HỢP DƯ NỢ THEO TỔ-CHI TIẾT
+            - SK01 - Các khoản vay có lãi suất cho vay ≤ 6%/năm, gắn thông tin HTLS.
+            - SK02 - Các khoản vay có lãi suất trên 6%/năm, đủ điều kiện được HTLS nhưng không gắn thông tin HTLS.
+            - SK03 - Các khoản vay CT xuất khẩu lao động EPS, gắn thông tin HTLS.
+            - SK04 - Các khoản vay gắn thông tin HTLS, sai lãi suất chương trình cho vay.
+            - SK05 - Các khoản vay gắn thông tin HTLS nhưng có ngày giải ngân trước thời gian được HTLS (01/01/2022).
+            - SK06 - Các khoản vay có ngày bắt đầu HTLS khác ngày giải ngân.
+            - SK07 - Các khoản vay có ngày bắt đầu HTLS trước thời gian được HTLS (01/01/2022).
+            - SK08 - Các khoản vay có ngày đến hạn sau 31/12/2023 nhưng đăng ký ngày kết thúc HTLS khác ngày 31/12/2023.
+            - SK09 - Các khoản vay đến hạn trước ngày 31/12/2023 nhưng ngày kết thúc HTLS khác ngày đến hạn.
+            - Sao kê thông tin khoản vay được HTLS của 05 KH có số tiền HTLS lũy kế lớn nhất và 05 KH có số tiền HTLS nhỏ nhất
+        - *Nhóm báo cáo Tài khoản casa*
+            - Kiểm tra tổ TK&VV
+            - Rút casa 105 bằng tiền mặt CN Đồng Nai
+            - CASA_PGD_KỲ NGÀY
+            - SỐ DƯ TÀI KHOẢN MAX_PGD (kỳ ngày)
+            - Sao kê tiết kiệm dân cư (kỳ ngày)
+            - Sao kê tiết kiệm dân cư (kỳ tháng)
+            - Danh sách tài khoản casa nguồn vốn
+            - TON RPA
+            - CAP NHAT CCCD
+            - KHACH HANG VAY VUOT
+            - CHO VAY THU NO TRONG NGAY
+            - TK CHUA CAP NHAT CCCD
+            - DANH SACH KHACH HANG CO TK 105 LON HON 10%
+            - DANH SACH DIEM GDX
+            - DU NỢ THEO XÃ PHƯỜNG
+            - DƯ NỢ THEO XÃ PHƯỜNG - DVUT
+            - SAO KE MON VAY NOXH
+            - DS TO TRUONG
+            - Theo dõi KH đăng ký mobibanking
+            - Theo dõi Tình trạng Tổ TK&VV đăng ký mobibanking
+            - KH Chưa có TK 105 đã trừ NOXH
+            - BÁO CÁO DƯ NỢ THEO ĐƠN VỊ ỦY THÁC
+            - 11/NHCS-KH - Báo cáo kết quả thực hiện kế hoạch tín dụng năm 2023
+            - Sao kê dữ liệu đối chiếu dư nợ mẫu 01C upload (5 năm)
+            - Sao kê dữ liệu (đến thôn) đối chiếu dư nợ mẫu 01C upload (5 năm)
+            - KHNV_TONGHOP_5NAM_P1
+            - KHNV_TONGHOP_5NAM_P2
+        - *Nhóm BC tín dụng*
+            - Hồ sơ cho vay hàng ngày
+            - Hồ sơ casa hàng ngày
+            - Hồ sơ TMP_HSTO
+            - Hồ sơ TMP_HSTG
+            - Hồ sơ khách hàng (kỳ dữ liệu ngày)
+            - Tra cứu số điện thoại khách hàng
+            - KT740_Hồ sơ tín dụng chi tiết (kỳ ngày)
+            - KT740_DS khách hàng vay chồng chéo nhiều chương trình (Mẫu 05B)
+            - KT740_DS khách hàng vay chồng chéo nhiều chương trình (Mẫu 05A)
+            - KT740_DS khách hàng thuộc 2 Tổ TK&VV (Mẫu 17)
+            - KT740_DS Tổ trưởng vay vốn tại Tổ khác (Mẫu 18)
+            - KT740_DS vừa thừa kế vừa vay vốn (Mẫu 20)
+            - KT740_DS Tổ có số tổ viên ko đạt yêu cầu (Mẫu 01)
+            - KT740_DS khách hàng vay nhiều món cùng CT (Mẫu 04)
+            - KT740_DS món vay trên N tháng ko hoạt động (Mẫu 08)
+            - KT740_DS món vay phát sinh gia hạn nợ (Mẫu 23)
+            - KT740_DS giải ngân thu nợ trong N ngày (Mẫu 30)
+            - KT740_DS hộ gia đình vay vượt mức quy định
+            - KT740_DS món vay gia hạn nợ vượt quy định TW (Mẫu 11)
+            - KT740_Tỷ lệ GDXA tại Điểm giao dịch xã - Từ đầu năm (Mẫu 07.2)
+            - KT740_Tỷ lệ GDXA tại Điểm giao dịch xã trong tháng (Mẫu 07.1)
+            - 01-Danh sách khách hàng chưa thu thập số điện thoại di động
+            - Rà soát, bổ sung tài khoản CASA 105 cho khách hàng
+            - RS_SODT_DS khách hàng cần thu thập số điện thoại di động
+            - RS_SODT_DS khách hàng trùng số điện thoại di động
+            - RS_SODT_DS khách hàng có số điện thoại di động sai định dạng
+            - Rà soát cán bộ tham gia Tổ GĐLĐ tại xã
+            - Rà soát món vay đã tất toán còn tồn RPA
+            - Danh sách Tổ TK&VV không có NQH (kỳ dữ liệu tháng)
+            - Danh sách xã không có NQH (kỳ dữ liệu tháng)
+            - Rà soát giao dịch đổi ngày đến hạn món vay ko do CB kế toán thực hiện
+            - 1_Tra cứu tình trạng dữ liệu HSTD kỳ ngày
+            - Số món, số dư huy động vốn (kỳ tháng)
+            - Số món, số dư huy động vốn (kỳ ngày)
+            - Rà soát khách hàng có casa 105 chưa gắn mã tổ (kỳ ngày)
+            - Tình hình đối chiếu, phân loại nợ năm 2018 (theo xã)
+            - Tình hình đối chiếu, phân loại nợ năm 2018 (theo đơn vị)
+            - Tình hình đối chiếu, phân loại nợ năm 2018 (theo Tổ)
+            - Sao kê món vay có lịch giải ngân từ ngày...đến ngày...
+            - Danh sách khách hàng có số dư tiết kiệm lớn (kỳ tháng)
+            - Danh sách khách hàng có số dư tiết kiệm lớn (kỳ ngày)
+            - Tỷ trọng tiền gửi tổ viên trên tổng dư nợ theo xã (kỳ tháng)
+            - Tỷ trọng tiền gửi tổ viên trên tổng dư nợ theo Tổ TKVV (kỳ tháng)
+            - Chấm điểm Tổ TK&VV - Kỳ tháng (VB3986)
+            - Chấm điểm hoạt động xã theo VB3988
+            - RS_khách hàng thuộc 2 tổ (kỳ ngày)
+            - Rà soát món vay trên N triệu đồng(kỳ tháng)
+            - Rà soát món vay trên N triệu đồng (kỳ ngày)
+            - Xuất dữ liệu thông tin khách hàng vay vốn_kỳ ngày
+            - Danh sách khách hàng còn dư nợ_CMND ngày cấp quá 15 năm (kỳ ngày)
+            - DS khoản vay đã đăng ký và chưa giải ngân trên 3 tháng (kỳ ngày)
+            - DS khoản vay HSSV chưa giải ngân đủ kỳ theo phân kỳ giải ngân (kỳ ngày)
+            - Rà soát mã nhà đầu tư (kỳ ngày)
+            - Sao kê khế ước theo chương trình và phân ngành kinh tế
+            - Thông tin tổ TKVV theo số thành viên, tổng dư nợ, tổng tiền gửi TK (kỳ ngày)
+            - Rà soát_CASA 104 -105_HƠN 1TK/1KH (kỳ ngày)
+            - Tổng hợp Dư nợ theo xã, thôn, chương trình, nguồn vốn
+            - RS chấm điểm PL05_Chỉ tiêu 11 Thực hiện công tác tự kiểm tra
+            - TỔNG HỢP DƯ NỢ, TIẾT KIỆM THEO THÔN/ẤP/KP
+            - Danh sách tổ viên tổ TK&VV (kỳ ngày)
+            - Chấm điểm Tổ TK&VV - Định kỳ (VB3986)
+            - Danh sách cán bộ quản lý địa bàn, quản lý hồ sơ
+            - Danh sách xuất file điểm GDX
+            - Danh sách khách hàng có số dư tiền gửi thấp (kỳ ngày)
+            - TỔNG HỢP DƯ NỢ THEO CẤP QUẢN LÝ VỐN CHƯƠNG TRÌNH GIẢI QUYẾT VIỆC LÀM (kỳ tháng)
+            - Tổng hợp dư nợ theo PGD, chương trình, nguồn vốn (kỳ ngày)
+            - dữ liệu xuất báo cáo mẫu giao ban (kỳ tháng)
+            - dữ liệu xuất báo cáo mẫu giao ban (kỳ ngày)
+            - Xuất dữ liệu theo dõi dư nợ, dư tiết kiệm 105, tổng tiền gửi 105
+            - Rà soát khách hàng trùng CMT cùng POS cần đóng CIF (kỳ ngày)
+            - Sao kê khế ước xử lý nợ rủi ro
+            - Danh sách khách hàng tất toán nợ vay, casa 105 còn số dư chưa xử lý ra khỏi tổ
+            - PLN_Tỉ lệ thực hiện đối chiếu phân loại nợ theo PGD
+            - PLN_Tỉ lệ thực hiện đối chiếu phân loại nợ theo Phường/Xã
+            - Tổng hợp nợ đến hạn kỳ cuối theo PGD, chương trình
+            - Tổng hợp Dư nợ theo xã và cấp quản lý vốn chương trình giải quyết việc làm
+            - Rà soát khách hàng vay có dư tiết kiệm có kỳ hạn từ 10 triệu đồng
+            - Theo dõi xử lý tiền gửi tổ viên trên 5 triệu và có tỷ trong >10
+            - Tổng hợp thu lãi cấp PGD theo tháng, xã (kỳ tháng)
+            - Tổng hợp thu lãi cấp xã theo tháng, chương trình vay (kỳ tháng)
+            - Danh sách khách hàng có số dư tiền gửi thấp (kỳ tháng)
+            - Sao kê nợ đến hạn kỳ con theo chương trình vay (kỳ ngày)
+            - Rà soát tỷ trọng tiền gửi <7 hoặc tỷ lệ tiền gửi tổ <=90
+            - Sao kê khế ước có kế hoạch giải ngân từ ngày.. đến ngày... theo chương trình (kỳ ngày)
+            - Rà soát gán TSBĐ cho món vay NOXH (kỳ ngày)
+            - SAO KÊ DANH SÁCH KHÁCH HÀNG (DL Ngày)
+            - LEND 30_Danh sách món vay có thay đổi dư nợ gốc trong tháng
+            - Số liệu hàng ngày
+            - 4606_DSGQVL
+            - Danh sách tổ trưởng
+            - Dư nợ hàng ngày các chương trình vay vốn đến cấp thôn_kỳ ngày (PGD Phú Riềng)
+            - pgd Phú Riềng_Dư nợ hàng ngày các chương trình vay vốn đến cấp thôn_kỳ ngày
+            - Phú Riềng DS NQH
+            - Kiểm tra cập nhật Dữ liệu hàng ngày
+            - Sao ke so lieu hang ngay_PGD
+            - CN46 - Sao ke mon vay den han tu ngay den ngay_ky ngay
+            - CN46 - Sao ke mon vay con du no_ky ngay
+            - Ktra saoke
+            - CN46 - RS_Mon vay GQVL nguon NHCS huy dong gan MANDT_Nguon TW_ky ngay
+            - CN46 - RS_Mon vay GQVL thieu MANDT_Nguon TW_ky ngay
+            - Luot KH VV
+            - SL ngày PGD
+            - Danh sách điểm GDX
+            - Danh sách TSBĐ (kỳ ngày)
+            - CN46 - Sao ke KH giai ngan tu ngay den ngay_ky ngay
+            - CN46 - Sao ke KH có CCCD CMND chưa logic với thực tế_kỳ tháng
+            - PL_Kiểm tra đăng ký sai CCCD hoặc năm sinh_Kỳ ngày
+            - CN46 - Ra soat mon vay sai thoi han cho vay_ky ngay
+            - CN46 - Sao ke Khach hang giai ngan tu ngay den ngay_ky thang
+            - Sao kê khế ước xử lý rủi ro
+            - CN46 - Sao ke Hskh_tttk_25052026
+            - CN46 - Danh sach KH gia han_trong thang_denngayktra_ky ngay
+            - CN46 - Sao ke KH gia han no ky thang
+            - CN46 - SAo ke KH gia han no tu ngay den ngay_ky thang
+            - CN46 - Ra soat DS to vien ra khoi to_ky thang
+            - CN46 - Sao ke mon vay qua han_ky ngay
+            - CN46 - Sao ke KH Qua han_ky thang
+            - CN46 - Sao kê Khách hàng vay vốn theo kỳ tháng
+            - CN46 - Sao kê chi tiết Tổ TK&VV_kỳ ngày
+            - CN46_01 - Dư nợ các chương trình vay vốn đến cấp thôn_kỳ tháng
+            - CN46_02 - Dư nợ hàng ngày các chương trình vay vốn đến cấp thôn_kỳ ngày
+            - CN46_03 - Sao kê chi tiết thông tin Tổ TK&VV_kỳ tháng
+            - CN46_03 - Sao kê chi tiết thông tin Tổ TK&VV_kỳ tháng
+            - CN46_05 - Lãi tồn theo chương trình, xã phường_kỳ tháng
+            - CN46_06 - Danh sach khach hang gia han no trong thang_den ngay kiem tra_ky ngay
+            - CN46_07 - Sao kê Khách hàng gửi tiết kiệm (trừ CASA 105) kỳ tháng
+            - CN46_08 - Sao kê Khách hàng gửi tiết kiệm (trừ CASA 105)_Kỳ ngày
+            - CN46_09 - Nợ đến hạn từ ngày đến ngày các chương trình theo xã phường_kỳ ngày
+            - CN46_10 - Sao kê khách hàng có nợ đến hạn từ ngày đến ngày_kỳ ngày
+            - CN46_11 - Ra roat DS KH vay 02 Chtrinh NSVSMT_kỳ ngày
+            - CN46_12 - Sao kê Khách hàng vay vốn HN + HTN + HCN từ ngày đến ngày_kỳ tháng
+            - CN46_13 - Sao kê KH vay vốn không có CASA 102 hoặc 105_kỳ ngày
+            - CN46_14 - Danh sach KH vay von co CMT qua 15 nam hoac CCCD het han_ky ngay
+            - CN46 - 15_Sao ke KH con du no nhung CCCD het han_ky ngay
+            - CN46 - 16_KH có CCCD CMND chưa logic với thực tế (kỳ ngày)
+            - CN46_Sao ke KH qua han cac nam
+            - CN46 - 20_Sao kê Khách hàng vay vốn HN + HTN + HCN từ ngày đến ngày_kỳ tháng
+            - SAO KÊ TÀI KHOẢN 101 102 106
+            - THỐNG KÊ DƯ NỢ THEO XÃ (QUA TỔ TK&VV)
+            - BÁO CÁO DƯ NỢ TIẾT KIỆM THEO XÃ-ĐƠN VỊ ỦY THÁC
+            - BÁO CÁO DƯ NỢ THEO ĐƠN VỊ ỦY THÁC
+            - Thống kê dư nợ theo qua tổ TK&VV the từng xã
+            - BÁO CÁO TỔNG HỢP THEO ĐƠN VỊ ỦY THÁC-XÃ
+            - TỔNG HỢP DƯ NỢ THEO CẤP QUẢN LÝ VỐN CHƯƠNG TRÌNH GIẢI QUYẾT VIỆC LÀM (kỳ ngày)
+            - TỔNG HỢP BÁO CÁO THEO CHƯƠNG TRÌNH VAY VỐN
+            - 15-Xuất số liệu báo cáo chi tiết tại đơn vị
+            - DS khách hàng đã rời tổ quá 90 ngày cần đóng CASA
+            - Danh sách HSSV đi nghĩa vụ quân sự còn dư nợ
+            - Sao kê tiền gửi tiết kiệm tại điểm GDXA (từ CASA_DAILY và TMP_HSTG)
+            - KHLT_01 - DANH SÁCH KHÁCH HÀNG LOẠI TRỪ CHẤM ĐIỂM DO NGUYÊN NHÂN KHÁCH QUAN
+            - KHLT_02 - BIỂU TỔNG HỢP KHÁCH HÀNG ẢNH HƯỞNG CƠN BÃO SỐ 3 (YAGI)
+        - *Nhóm BC Kế toán tài chính*
+            - DNBQ_GL
+            - ĐNai_Xuất bút toán thủ công mẫu 13A lãi giảm HSSV
+            - Tích số dư hàng ngày GL
+            - Sao kê tiền gửi tiết kiệm(kỳ tháng)
+            - Số dư tài khoản chi lương
+            - Bảng kê trích DPRR GQVL ĐP TỈNH
+            - Bảng kê Trích DPRR GQVL đào tào nghề ĐP tỉnh
+            - Bảng kê trích DPRR HN,HCN,HMTN ĐP tỉnh
+            - Bảng kê trích DPRR ĐB DTTS nghèo ĐP tỉnh
+            - Bảng kê trích phí DPRR CV khuyết tập DP tỉnh
+            - Bảng kê trích DPRR GQVL ngân sách huyện
+            - Bảng kê trích DPRR HN ngân sách huyện
+            - Xuất bút toán ghi giảm thu nhập TK lãi HSSV_năm
+            - Bảng kê trích DPRR ngheo_986
+            - Bảng kê trích DPRR GQVL_986
+            - Số khách hàng, tổng dư nợ cho vay (kỳ tháng)
+            - Cập nhật lãi giảm đã hạch toán trong năm
+            - Báo cáo kết cấu dư nợ mẫu 14/QT ( từ năm 2017) (PGD)
+            - Báo cáo kết cấu dư nợ mẫu 14A/QT ( từ năm 2017) (PGD)
+            - Tích số dư hàng ngày GL Huy động vốn
+            - Rà soát đăng ký mã nhà tư sai nguồn đp theo chương trình
+            - Bảng kê trích DPRR NOXH ĐP
+            - Bảng kê trích DPRR SAPT ĐP tỉnh
+            - BÁO CÁO DƯ NỢ THEO ĐƠN VỊ ỦY THÁC
+            - Sao kê tài khoản CASA có tên cần được chuẩn hóa
+        - *Kiểm tra theo văn bản 1138-KHNV*
+            - 02-Kiểm tra đăng ký cấp quản lý vốn chương trình GQVL
+            - 04-Kiểm tra đăng ký mã ĐVUT
+            - 05-Kiểm tra HSSV vay nhiều POS khác nhau
+            - 07-Kiểm tra món vay HSSV chưa đăng ký thông tin HSSV
+            - 09-Kiểm tra món vay chưa nhập mã quyết định
+            - 11-Món vay chương trình XKLĐ chưa đăng ký thông tin người xuất khẩu
+            - 12-Rà soát khách hàng nhiều mã trong hồ sơ tiền gửi
+            - 13-Kiểm tra danh sách khách hàng cùng CMT, ngày cấp có nhiều CIF khác nhau
+            - Hồ sơ khách hàng (kỳ dữ liệu ngày)
+            - Rà soát, bổ sung tài khoản CASA 105 cho khách hàng
+            - RS_SODT_DS khách hàng cần thu thập số điện thoại di động
+            - RS_SODT_DS khách hàng có số điện thoại di động sai định dạng
+            - Rà soát món vay xử lý nợ đến hạn chậm
+            - Rà soát cán bộ tham gia Tổ GĐLĐ tại xã
+            - Rà soát món vay đã tất toán còn tồn RPA
+            - Rà soát giao dịch đổi ngày đến hạn món vay ko do CB kế toán thực hiện
+            - Rà soát vay chồng chéo nhiều chương trình (dữ liệu ngày - Mẫu 05B/KTNB)
+            - Rà soát khách hàng có casa 105 chưa gắn mã tổ (kỳ ngày)
+            - TR07-2017.1-SAO KÊ KHÁCH HÀNG ĐỀ NGHỊ XÓA (KHOANH)  NỢ_TRUNG ƯƠNG
+        - *Nhóm BC-Tín dụng người nghèo*
+            - Sao kê khách hàng có ngày sinh 01 tháng 01, ngày cấp 01 tháng 01
+            - DANH SÁCH KHÁCH HÀNG CẬP NHẬT NGÀY HẾT HẠN THẺ CĂN CƯỚC
+        - *Nhóm BC-Quản lý và Xử lý nợ*
+            - Biểu sao kê món vay khách hàng vắng mặt tại nơi cú trú
+            - Danh sách khách hàng đề nghị cung cấp thông tin
+            - Danh sách khách hàng đề nghị NHCSXH nơi hộ vay chuyển đến hỗ trợ
+            - Danh sách khách hàng nhcsxh nơi hộ vay chuyển đến nhận đề nghị hỗ trợ của nhcsxh nơi cho vay
+        - *Xuất sao kê dữ liệu chuyển đổi UBS sang IDC*
+            - 000 Mẫu Tổng hợp số liệu
+            - 001_Cif có địa chỉ chính (địa chỉ 1) không nằm trong danh mục địa chỉ
+            - 002_Cif có địa chỉ phụ( địa chỉ 2) không nằm trong danh mục địa chỉ
+            - 003_Cif có địa cơ quan chủ quản (địa chỉ 3) không nằm trong danh mục địa chỉ
+            - 004_Tài khoản có địa chỉ không nằm trong danh mục địa chỉ
+            - 005_Cif cá nhân không xác định loại giây tờ định danh(chi nhánh xách nhận)
+            - 006_Cif có mã BUSINESS không nằm trong cấu hình danh mục (chi nhánh xác nhận)
+            - 007_Cif có tên công ty quản lý độ dài bao gồm cả dấu vượt quá 100
+            - 009_Cif có First name độ dài bao gồm cả dấu vượt quá 24
+            - 010_Cif có tên đệm độ dài bao gồm cả dấu vượt quá 24
+            - 011_Cif có Last Name độ dài bao gồm cả dấu vượt quá 24
+            - 012_Tài khoản có tên độ dài bao gồm cả dấu vượt quá 100
+            - 013_Cif có địa chỉ cơ quan chủ quản độ dài bao gồm cả dấu vượt quá 35
+            - 014_Cif có địa chỉ cụ thể (địa chỉ 1) độ dài bao gồm cả dấu vượt quá 35
+            - 015_Cif có địa chỉ phụ cụ thể (địa chỉ 2) độ dài bao gồm cả dấu vượt quá 35
+            - 016_Tài khoản có địa chỉ cụ thể (địa chỉ 1) độ dài bao gồm cả dấu vượt quá 35
+            - 017_Cif khai báo nơi cấp định danh pháp lý độ dài bao gồm cả dấu vượt quá 50
+            - 018_Cif có số điện thoại không đúng định dạng
+            - 019_Cif có số FAX không đúng định dạng
+            - 020_Cif có số điện thoại cá nhân không đúng định dạng
+            - 021_Cif có số điện thoại phụ không đúng định dạng
+            - 022_Cif có số điện thoại cá nhân 2 không đúng định dạng
+            - 023_Cif có số điện thoại phụ 2 không đúng định dạng
+            - 024_Cif có mô tả ngánh nghề kinh doanh độ dài bao gồm cả dấu vướt quá 150
+            - 025_Cif cá nhân không có CMT/CCCD
+            - 026_Cif có CMT/CCCD trùng nhau
+            - 027_Cif doanh nghiệp không có mã số thuế
+            - 030_Các điểm giao dịch xã với tài khoản 350 chưa đúng (với địa chỉ xã phải thiết lập 00)
+            - 033_Sổ tiết kiệm ngày nhận lãi không đúng phân kỳ (chi nhánh xác nhận)
+            - 034_Chữ ký tài khoản( ban nv đang chốt)
+            - Tài khoản 350 kg gắn địa chỉ xã ( rà soát đóng tài khoản / mail về CNTT cập nhật)
+            - Cif không có chữ ký hình ảnh
+            - Cif có năm sinh dưới 1900
+            - Cif khách hàng là công ty có mối liên hệ là công ty
+            - Tài khoản có số dư tài khoản làm số âm
+            - Cif khách hàng có mối liên hệ chình bản thân khách hàng
+        - *Nhóm BC-Quyết toán tài chính*
+            - Báo cáo kết cấu dư nợ mẫu 14/QT ( từ năm 2017)
+            - Báo cáo kết cấu dư nợ mẫu 14A/QT ( từ năm 2017)
+            - KT14/QTDN - Kiểm tra mẫu 14QT,14AQT và GL (Đồng Nai)
+            - sao kê mẫu 14QT (Đồng Nai)
+            - Sao kê mẫu 14A/QT ( Đồng Nai)
+            - Báo cáo kết cấu dư nợ mẫu 14A/QT ( Đồng Nai-từ năm 2026)
+            - Xuất bút toán thủ công mẫu 13A lãi giảm HSSV
+            - MẪU 14/QT-BÁO CÁO KẾT CẤU DƯ NỢ (GL 913) VÀ LÃI PHẢI THU
+            - MẪU 14A/QT-BÁO CÁO KẾT CẤU DƯ NỢ (GL 914, GL 915, GL 916) VÀ LÃI PHẢI THU
+            - PL02/TL-BẢNG XÁC ĐỊNH SỐ DƯ SỬ DỤNG VỐN TRUNG ƯƠNG
+            - PL03/TL-BẢNG XÁC ĐỊNH SỐ DƯ NGUỒN VỐN HUY ĐỘNG
+            - PL04/TL-BẢNG XÁC ĐỊNH LÃI TĂNG, GIẢM CỘNG (TRỪ) NGOẠI BẢNG KHI QUYẾT TOÁN KHOÁN TÀI CHÍNH
+            - PL05/TL-BẢNG KÊ SỐ DƯ TÍCH SỐ TÀI KHOẢN (GL910;911)
+            - KT14/QT-KIỂM TRA MẪU 14,14A/QT VÀ GL
+            - KT11/QT-KIỂM TRA SỐ LIỆU MẪU 11/QT VÀ GL
+            - KT12/QT-KIỂM TRA SỐ LIỆU MẪU 12/QT VÀ GL
+            - KT PHỤ LỤC 04/TL VÀ MẪU 14/QT- DƯ NỢ BÌNH QUÂN VÀ LÃI SUẤT BÌNH QUÂN
+            - KT13/QT-KIỂM TRA LÃI ĐÃ HẠCH TOÁN VỚI TÀI KHOẢN 9753217044
+            - KT16A/QT-KIỂM TRA SỐ DƯ TIỀN GỬ TIẾT KIỆM TRÊN SAO KÊ VÀ GL
+            - KT16B/QT-KIỂM TRA SỐ DƯ TIỀN GỬI KKH VÀ GL
+            - KT17/QT- KIỂM TRA SAO KÊ TIỀN GƯI VÀ GL
+            - KT18A/QT-KIỂM TRA SỐ DƯ TRÊN SAO KÊ VÀ GL
+            - KT18/QT-KIỂM TRA SÔ DƯ TRÊN MÂU VÀ GL
+            - KT01/03QT-KIỂM TRA MẪU 01 -03 VỚI GL
+            - KT09/QT-KIỂM TRA VẬT LIỆU TRONG KHO VÀ GL
+            - KT10C-KIỂM TRA TỔNG CHI PHÍ VÀ GL
+            - KT19/QT-KIỂM TRA CÁC KHOẢN PHẢI TRẢ VÀ GL
+            - EX_12/QT - Tổng hợp sao kê dư nợ tiền vay
+            - EX_01/QT - Báo cáo kiểm kê tiền mặt VNĐ thuộc quỹ nghiệp vụ
+            - EX_03/QT - Báo cáo tiền giả, tiền bị phá hoại
+            - EX_04/QT- Báo cáo thiếu, mất quỹ (Tiền VNĐ)
+            - EX_05/QT - Báo cáo tổng hợp kiểm kê tài sản cố định
+            - EX_06A/QT - Báo cáo tình hình tài sản cố định hữu hình
+            - EX_06A/QT- Thuyết minh 1.1
+            - EX_06A/QT-Thuyết minh 1.2
+            - EX_06B/QT - Báo cáo tình hình tài sản cố định vô hình
+            - EX_06B/QT-Thuyết minh 1.1
+            - EX_06B/QT-Thuyế minh 1.2
+            - EX_07/QT - Báo cáo thanh lý tài sản cố định
+            - EX_08/QT - Báo cáo tổng hợp kiểm kê công cụ, dụng cụ
+            - EX_09/QT-Báo áo kiểm kê vật liệu trong kho
+            - EX_10A/QT-Báo cáo quyết toán mua sắm tài sản cố định
+            - EX_10B/QT-Báo cáo quyết toán vốn
+            - EX_10C/QT- Báo cáo quyết toán sửa chữa tài sản cố định
+            - EX_13/QT-Tổng hợp sao kê các hộ vay HSSV trả nợ trước hạn
+            - EX_17/QT-Tổng hợp sao kê số dư tiền gửi khách hàng
+            - EX_18/QT-Tổng hợp sao kê các khoản phải thu
+            - EX_19/QT-Tổng hợp sao kê các khoản phải trả
+            - EX_20/QT-Báo cáo tình hình tăng giảm vốn quỹ
+            - EX_20/QT-Báo cáo tình hình tăng giảm vốn quỹ
+            - EX_21/QT-Báo cáo trích lập và dự phòng rủi ro
+            - EX_22/QT-Báo cáo tình hình nguồn vốn, sử dụng vốn nhận ủy thác địa phương
+            - EX_01/TL-Báo cáo tình hình thực hiện tiền lương
+            - EX_05PL/QT - Báo cáo kiểm kê chi tiết tài sản cố định
+            - EX_PL05/PL-Báo cáo kiểm kê chi tiết tài sản cố định
+            - EX_12/QT_CT-Tổng hợp sao kê dư nợ tiền vay-CT
+            - EX_25QT_Cấp bù lãi xuất cho vay hộ nghèo nhà ở giai đoạn 2 (QĐ33)
+            - KHOAN1218- 1.Bảng kê số dư tích số tài khoản - Cấp PGD
+            - KHOAN1218- 2.Bảng kê số dư tích số tài khoản - Toàn tỉnh
+            - 2017-EX_PL02- Bảng tính phí huy động vốn năm
+            - 2017-EX_PL03- Bảng tính tồn ngân nguồn vốn ủy thác địa phương năm
+            - 2017-EX_PL04- Bảng tính phí điều hòa vốn, chi phí hỗ trợ huyện nghèo năm
+            - 2017-EX_PL05- Bảng kê số dư tích số tài khoản tồn quỹ tiền mặt, tiền gửi, tạm ứng (GL910/911/976) năm
+            - Sao kê mẫu 14/QT(Tính theo tích số dư nợ)
+            - Sao kê mẫu 14A/QT(Tính theo tích số dư nợ)
+            - Sao kê bút toán/món vay xóa nợ hạch toán ngoại bảng từ năm 2016 đến ngày báo cáo
+            - Sao kê chi tiết bút toán xóa nợ hạch toán ngoại bảng (từ thời điểm chuyển đổi hệ thống Intellect đến ngày báo cáo)
+            - Sao kê bút toán hạch toán xâm tiêu, chiếm dụng chờ xử lý
+        - *Kiểm soát số liệu kế toán sau khóa sổ*
+            - KTSL-01.Tính chất tài khoản,số dư TK trung gian, lệnh thanh toán,tiền mặt quỹ GD lưu động Offline
+            - KTSL-02.Chênh lệch điều chuyển vốn CASA291 (TW-CN)
+            - KTSL-03.Chênh lệch điều chuyển vốn CASA 292 (CN-PGD)
+        - *Nhóm BC rà soát, thu thập số ĐTDĐ*
+            - Cham HS mo TK tu ngày den ngay BC
+            - tscc
+            - DS TO TRUONG
+            - SKE
+            - tgdc
+            - LAI PT XA
+            - SL TỔ TKVV KỲ NGÀY
+            - Chi phí
+            - KHVV chưa co CCCD
+            - Casa 105 có CCCD hết hạn
+            - GH nợ daily
+            - LAI PT
+            - CS 105 den 3105
+            - DN theo CT
+            - casa 105
+            - Cham HSPL
+            - ds vay nha o
+            - CHI_CT CU
+            - ps theo tk
+            - Danh sách khách hàng đăng ký VBSP Smart Banking
+            - CASA 105 TU NGAY
+            - GL8
+            - vuot_tv
+            - DS nợ QH
+            - CASA 101_102_106 CO TEN TO
+            - Danh sách khách hàng cần thu thập số điện thoại di động
+            - Danh sách khách hàng trùng số điện thoại cùng POS
+            - Truy vấn số điện thoại di động sai định dạng
+            - Thống kê kết quả thu thập số điện thoại di động của khách hàng
+            - Danh sách khách hàng trùng số điện thoại khác POS
+            - Báo cáo kết quả gửi tin nhắn SMS
+- **Báo cáo đặc thù địa phương**
+    - *Báo cáo địa phương*
+        - 04/BC - Báo cáo tình hình cho vay phát triển nông nghiệp, nông thôn  `BC00250004`
+        - 05/BC - Báo cáo tình hình cho vay không có tài sản đảm bảo ngân hàng nhà nước tỉnh  `BC00250005`
+        - 06/BC - Báo cáo tình hình xây dựng nông thôn mới trên địa bàn  `BC00250006`
+        - 07/BC - Bảng tổng hợp số liệu theo mã nhà đầu tư  `BC00250007`
+        - 08/BC - Sao kê món vay có gia hạn  `BC00250008`
+        - 09/BC - Thông báo dư nợ hàng tháng  `BC00250009`
+        - 10/BC - Kế hoạch thu nợ (cả phân kỳ)  `BC00250010`
+        - 11/BC - Bảng kê tổng hợp hoa hồng của tổ TKVV theo hội đoàn thể  `BC00250011`
+        - 12/BC - Biểu tổng hợp phí uỷ thác  `BC00250012`
+        - 13/BC - Kết quả hoạt động tín dụng tháng (KHA,KHB)  `BC00250013`
+        - 14/BC - Dư nợ ủy thác qua Hội đoàn thể (KHA,KHB)  `BC00250014`
+        - 15/BC - BC tình hình cho vay XKLĐ vốn Trung ương - địa phương  `BC00250015`
+        - 16/BC - Chất lượng hoạt động của tổ TK&VV  `BC00250016`
+        - 17/BC - Bảng kê danh sách nợ đến hạn  `BC00250017`
+        - 18/BC - Báo cáo dư nợ tín dụng phân theo ngành kinh tế, loại hình khách hàng  `BC00280052`
+        - 19/BC - Thông tin chất lượng tín dụng trên địa bàn xã  `BC00280019`
+        - 20/BC - Tỷ lệ thu lãi theo chương trình tín dụng  `BC00280020`
+        - 21/BC - Tỷ lệ giao dịch xã  `BC00280053`
+        - 22/BC - Kết quả cho vay theo đối tượng đầu tư huyện  `BC00250022`
+- **Hỗ trợ xuất Text/Excel**
+- **Hỗ trợ kiểm tra BC chỉ tiêu**
+    - *Hỗ trợ kiểm tra BC chỉ tiêu*
+        - (trống)
+- **Báo cáo Giám sát từ xa**
+    - 2. Sao kê chi tiết
+        - *Sao kê chi tiết GSTX-Kỳ tháng*
+            - 01 - DANH SÁCH TỔ CÓ SỐ THÀNH VIÊN KHÔNG ĐẠT YÊU CẦU (MẪU 01/KTNB)  `TWKT7400000000178`
+            - 02 - DANH SÁCH TỔ TK&VV CÓ THÀNH VIÊN LIÊN THÔN (MẪU 02/KTNB)  `TWKT7400000000179`
+            - 03-DS người được ủy quyền và người ủy quyền  `TWKT7400112021497`
+            - 04 - DS khách hàng vay nhiều món cùng chương trình (mẫu 04/KTNB)  `TWKT7400000000181`
+            - 04. DANH SÁCH KHÁCH HÀNG VAY NHIỀU MÓN CÙNG CHƯƠNG TRÌNH (MẪU 04/KTNB)  `KT7400112021167`
+            - 05 - DS KHÁCH HÀNG VAY NHIỀU QUYẾT ĐỊNH CỦA CHƯƠNG TRÌNH 10/11 (MẪU 05C/KTNB)  `TWKT7400000000185`
+            - 05 - DS khách hàng là công chức, viên chức vay GQVL (mẫu 05/KTNB)  `TWKT7400112021125`
+            - 05 - DS khách hàng vay chồng chéo nhiều chương trình (05A/KTNB)  `TWKT7400000000375`
+            - 05 - DS khách hàng vay chồng chéo nhiều chương trình (mẫu 05B/KTNB)  `TWKT7400000000182`
+            - 05-Vay chồng chéo nhiều chương trình  `KT7400112021158`
+            - 06 - DANH SÁCH KHÁCH HÀNG VAY TRỰC TIẾP CÓ DƯ NỢ TRÊN N TRIỆU (MẪU 06/KTNB)  `TWKT7400000000186`
+            - 06 - DS khách hàng vay trực tiếp mang đi GDX (mẫu 06/KTNB)  `TWKT7400112021081`
+            - 07 thôn - DS khoản vay đăng ký sai lãi suất (mẫu 07/KTNB)  `TWKT7400112021186`
+            - 07 xã - DS khoản vay đăng ký sai lãi suất (mẫu 07/KTNB)  `TWKT7400112021185`
+            - 07.1 - TỶ LỆ GDXA THEO ĐIỂM GIAO DỊCH - TRONG THÁNG (MẪU 07.1/KTNB)  `TWKT7400000000201`
+            - 07.2 - TỶ LỆ GDXA TẠI ĐIỂM GIAO DỊCH XÃ - TỪ ĐẦU NĂM (MẪU 07.2/KTNB)  `TWKT7400000000202`
+            - 07A thôn - Khách hàng vay chương trình GQVL là người dân tộc thiểu số (thôn) thuộc vùng 3 không được giảm 50% lãi suất  `TWKT7400112021095`
+            - 07A xã - Khách hàng vay chương trình GQVL là người dân tộc thiểu số (xã) thuộc vùng 3 không được giảm 50% lãi suất  `TWKT7400112021076`
+            - 07B thôn - Khách hàng vay chương trình GQVL là người dân tộc Kinh (thôn) thuộc vùng 3 được giảm 50% lãi suất  `TWKT7400112021096`
+            - 07B xã -  Khách hàng vay chương trình GQVL là người dân tộc Kinh (xã) thuộc vùng 3 được giảm 50% lãi suất  `TWKT7400112021077`
+            - 07C thôn - Khách hàng vay chương trình GQVL (thôn) không thuộc vùng 3 được giảm 50% lãi suất  `TWKT7400112021097`
+            - 07C xã - Khách hàng vay chương trình GQVL (xã) không thuộc vùng 3 được giảm 50% lãi suất  `TWKT7400112021078`
+            - 07D - Khách hàng vay chương trình Dân tộc thiểu số và miền núi - vay hỗ trợ đất ở, nhà ở đăng ký sai lãi suất (3%)  `TWKT7400112021079`
+            - 07E - Khách hàng vay chương trình Dân tộc thiểu số và miền núi - vay hỗ trợ sản xuất, chuyển đổi nghề và hỗ trợ phát triển sản xuất theo chuỗi giá trị  `TWKT7400112021080`
+            - 08 - DS khoản vay trên N tháng không hoạt động (mẫu 08/KTNB)  `TWKT7400000000177`
+            - 09 - SAO KÊ CHI TIẾT HỘ VAY THEO TỔ (MẪU 09/KTNB)  `TWKT7400000000205`
+            - 10 - DS khoản vay nợ đến hạn phân kỳ chưa trả (mẫu 10/KTNB)  `TWKT7400000000187`
+            - 11 - DS khoản vay gia hạn vượt quy định (mẫu 11/KTNB)  `TWKT7400000000188`
+            - 12.1 - Liệt kê PS theo tài khoản GL - Ban Tài vụ  `TWKT7400000001014`
+            - 12.1 - Liệt kê phát sinh tài khoản theo tk-gl (mẫu 12.1/KTNB)  `TWKT7400000000200`
+            - 12.2 - Liệt kê phát sinh tài khoản theo tk-nhnn (mẫu 12.2/KTNB)  `TWKT7400000000225`
+            - 13 - THỐNG KÊ MỘT SỐ CHỈ TIÊU TÍN DỤNG (MẪU 13/KTNB)  `TWKT7400000000189`
+            - 14 - Tổng hợp kết quả thu nợ, xử lý đến hạn theo tháng (mẫu 14/KTNB)  `TWKT7400000000190`
+            - 15 - Thống kê lãi tồn các đơn vị trực thuộc (mẫu 15/KTNB)  `TWKT7400000000191`
+            - 16 (CN) - Thực hiện định mức an toàn chi trả (mẫu 16/KTNB)  `TWKT7400112021113`
+            - 16 - Thực hiện định mức an toàn chi trả (mẫu 16/KTNB)  `TWKT7400000000192`
+            - 17 - DS khách hàng thuộc 2 tổ tk&vv (mẫu 17/KTNB)  `TWKT7400000000193`
+            - 18 - DS tổ trưởng vay vốn tại tổ khác (mẫu 18/KTNB)  `TWKT7400000000194`
+            - 19.1 - DS HSSV đã ra trường cần rà soát hạn trả nợ cuối cùng (mẫu 19.1/KTNB)  `TWKT7400000000197`
+            - 20 - DS vừa thừa kế vừa vay vốn - kiểm tra theo tên vợ chồng (mẫu 20/KTNB)  `TWKT7400000000198`
+            - 21 - DS cán bộ có thực hiện gdxa phục vụ đối chiếu với lịch phân công (mẫu 21/KTNBb)  `TWKT7400000000208`
+            - 22 - DS món vay trung-dài hạn có phân kỳ trả gốc 1 lần khi đến hạn (mẫu 22/KTNB)  `TWKT7400000000209`
+            - 23 - DS món vay có phát sinh gia hạn nợ (mẫu 23/KTNB)  `TWKT7400000000210`
+            - 24 - DS món vay phát sinh lưu vụ (mẫu 24/KTNB)  `TWKT7400000000211`
+            - 25 - DS khách hàng có nhiều mã cùng pos (mẫu 25.1/KTNB)  `TWKT7400000000212`
+            - 25 - DS khách hàng có nhiều mã khác pos cùng chi nhánh (mẫu 25.2/KTNB)  `TWKT7400000000215`
+            - 26 - SAO KÊ CHI TIẾT THÔNG TIN TỔ (THEO XÃ) (MẪU 26/KTNB)  `TWKT7400000000219`
+            - 27-DANH SÁCH MÓN VAY CHUYỂN NỢ QUÁ HẠN KỲ CUỐI VỚI SẢN PHẨM CHUYỂN NỢ QH KỲ CON (MẪU 27/KTNB)  `TWKT7400000000226`
+            - 28-TỶ LỆ THU LÃI THEO CHƯƠNG TRÌNH TỪ ĐẦU NĂM (MẪU 28/KTNB)  `TWKT7400000000371`
+            - 29-TỶ LỆ THU LÃI THEO THÁNG (MẪU 29/KTNB)  `TWKT7400000000372`
+            - 30.1 - DS giải ngân thu nợ trong N ngày cùng chương trình (mẫu 30A/KTNB)  `TWKT7400000000394`
+            - 30.2 - DS giải ngân thu nợ trong N ngày khác chương trình (mẫu 30B/KTNB)  `TWKT7400000000395`
+            - 31 - Tạo hồ sơ tín dụng chi tiết theo kỳ số liệu  `TWKT7400000000373`
+            - 33 - DS món vay đảo khoản chuyển NQH vào trong hạn trong tháng  `TWKT7400000000510`
+            - 34 - DS hộ gia đình vay vượt mức quy định  `TWKT7400000000574`
+            - 35- Danh sách xã có tỷ lệ nợ quá hạn từ X% trở lên  `TWKT7400000000682`
+            - 36-Danh sách Tổ có tỷ lệ nợ quá hạn từ X% trở lên  `TWKT7400000000683`
+            - 38.1-DS món vay gia hạn nợ đối với khách hàng rủi ro nguyên nhân chết, mất tích-Cùng chương trình  `TWKT7400000000707`
+            - 38.2-DS món vay gia hạn nợ đối với khách hàng rủi ro nguyên nhân chết, mất tích-Khác chương trình  `TWKT7400000000708`
+            - 38.3-DS món vay gia hạn nợ đối với khách hàng rủi ro nguyên nhân chết, mất tích đã được TW phê duyệt  `TWKT7400000000760`
+            - 39 - Danh sách tổ trưởng không đến giao dịch theo lịch giao dịch cố định  `TWKT7400000000748`
+            - 4.1-DSKH tiếp tục được vay sau khi chưa trả món vay xoá nợ cũ đang treo ngoại bảng  `TWKT7400000000228`
+            - 4.2 (CN) - DSKH tiếp tục đóng BHXH sau khi được đề nghị xử lý xóa nợ - nguyên nhân người vay chết  `TWKT7400112021109`
+            - 4.2 (TQ) - DSKH tiếp tục đóng BHXH sau khi được đề nghị xử lý xóa nợ - nguyên nhân người vay chết  `TWKT7400112021111`
+            - 4.3 - DSKH tiếp tục được vay sau khi được đề nghị xử lý xóa nợ (TW đã phê duyệt)  `TWKT7400112021099`
+            - 40 - Danh sách Tổ trưởng không đến giao dịch từ ngày đến ngày  `TWKT7400000000713`
+            - 41 - Danh sách Tổ được củng cố kiện toàn  `TWKT7400000000767`
+            - 41 - Danh sách khách hàng có số dư tiền gửi lớn hơn Tỷ lệ Dư nợ (theo tỷ lệ nhập)  `TWKT7400000000762`
+            - 42 - DS Tổ TK&VV phát sinh củng cố kiện toàn nhiều lần trong khoảng thời gian lựa chọn  `TWKT7400000000769`
+            - 42 - Danh sách món vay phát sinh thu nợ quá hạn sau đó tiếp tục giải ngân  `TWKT7400000000764`
+            - 43 - Danh sách khách hàng giải ngân các chương trình SXKD khi trên 70 tuổi  `TWKT7400000000768`
+            - 43 - Danh sách món vay phát sinh thu nợ quá hạn sau đó tiếp tục giải ngân trong vòng 1 tháng  `TWKT7400000000765`
+            - 44 - Danh sách món vay có dư nợ từ X năm trở lên  `TWKT7400000000726`
+            - 44 - Danh sách những hộ được chuyển Tổ trên 1 lần trong kỳ  `TWKT7400000000773`
+            - 45 - Danh sách khác hàng vay ở nhiều tổ, xã khác nhau  `TWKT7400000000774`
+            - 45 - Danh sách khách hàng vay vốn có tuổi từ X năm trở lên  `TWKT7400000000722`
+            - 46 - DS món vay trong hạn/quá hạn còn tồn trên N tháng lãi (lãi tạm tính theo Dư nợ x Lãi suất)  `TWKT7400000000794`
+            - 46 - Danh sách khách hàng giải ngân, gửi tiết kiệm Tổ trong ngày (PS giao dịch TK trong ngày từ 500.000 trở lên)  `TWKT7400000000771`
+            - 47 - DS món vay quá hạn chỉ thu gốc không thu lãi khi chưa quá hạn 360 ngày  `TWKT7400000000795`
+            - 47 - Danh sách món vay gia hạn trước thời điểm đến hạn hợp đồng thời gian dài  `TWKT7400000000761`
+        - *Sao kê chi tiết GSTX-Kỳ ngày*
+            - 01-DS tổ có số thành viên không đạt yêu cầu (mẫu 01/KTNB)  `TWKT7400000000628`
+            - 02 - DS tổ tk&vv có thành viên liên thôn (mẫu 02/KTNB)  `TWKT7400000000629`
+            - 03 - DS Người được ủy quyền và người ủy quyền cùng vay vốn cùng PGD (mẫu 03/KTNB)  `TWKT7400112021477`
+            - 03.1 - DS Người được ủy quyền và người ủy quyền cùng vay vốn cùng chi nhánh (mẫu 03/KTNB)  `TWKT7400112021476`
+            - 05 - DS khách hàng là công chức, viên chức vay GQVL (mẫu 05/KTNB)  `TWKT7400112021128`
+            - 05 - DS khách hàng vay chồng chéo nhiều chương trình (05A/KTNB)  `TWKT7400000000631`
+            - 05 - DS khách hàng vay chồng chéo nhiều chương trình (mẫu 05B/KTNB)  `TWKT7400000000632`
+            - 05 - DS khách hàng vay nhiều quyết định của chương trình 10/11 (mẫu 05C/KTNB)  `TWKT7400000000633`
+            - 06 - DS khách hàng vay trực tiếp có dư nợ trên n triệu (mẫu 06/KTNB)  `TWKT7400000000634`
+            - 06 - DS khách hàng vay trực tiếp mang đi GDX (mẫu 06/KTNB)  `TWKT7400112021072`
+            - 07 thôn - DS khoản vay đăng ký sai lãi suất (mẫu 07/KTNB)  `TWKT7400112021190`
+            - 07 xã - DS khoản vay đăng ký sai lãi suất (mẫu 07/KTNB)  `TWKT7400112021189`
+            - 07A thôn - Khách hàng vay chương trình GQVL là người dân tộc thiểu số (thôn) thuộc vùng 3 không được giảm 50% lãi suất  `TWKT7400112021104`
+            - 07A xã - Khách hàng vay chương trình GQVL là người dân tộc thiểu số (xã) thuộc vùng 3 không được giảm 50% lãi suất  `TWKT7400112021101`
+            - 07B thôn - Khách hàng vay chương trình GQVL là người dân tộc Kinh (thôn) thuộc vùng 3 được giảm 50% lãi suất  `TWKT7400112021105`
+            - 07B xã -  Khách hàng vay chương trình GQVL là người dân tộc Kinh (xã) thuộc vùng 3 được giảm 50% lãi suất  `TWKT7400112021102`
+            - 07C thôn - Khách hàng vay chương trình GQVL (thôn) không thuộc vùng 3 được giảm 50% lãi suất  `TWKT7400112021106`
+            - 07C xã - Khách hàng vay chương trình GQVL (xã) không thuộc vùng 3 được giảm 50% lãi suất  `TWKT7400112021103`
+            - 07D - Khách hàng vay chương trình Dân tộc thiểu số và miền núi - vay hỗ trợ đất ở, nhà ở đăng ký sai lãi suất (3%)  `TWKT7400112021107`
+            - 07E - Khách hàng vay chương trình Dân tộc thiểu số và miền núi - vay hỗ trợ sản xuất, chuyển đổi nghề và hỗ trợ phát triển sản xuất theo chuỗi giá trị  `TWKT7400112021108`
+            - 08 - DS khoản vay trên N tháng không hoạt động (mẫu 08/KTNB)  `TWKT7400000000635`
+            - 09 -  DS khoản vay Nhà ở xã hội cho vay vượt tỷ lệ giá trị Tài sản bảo đảm (mẫu 09/KTNB)  `TWKT7400000000636`
+            - 10-DS khoản vay phân kỳ hạn trả nợ sai(mẫu 10/KTNB)  `TWKT7400000000227`
+            - 11 - DS khoản vay gia hạn vượt quy định (mẫu 11/KTNB)  `TWKT7400000000637`
+            - 12- Sao kê món vay đăng ký trên 31 ngày chưa thực hiện giải ngân  `TWKT7400112021100`
+            - 13 - Thống kê một số chỉ tiêu tín dụng (mẫu 13/KTNB)  `TWKT7400000000638`
+            - số liệu ngày  `KT7400112021107`
+            - vuot_tv  `KT7400112021130`
+        - *Sao kê chi tiết KT1138-KHNV-Kỳ Tháng*
+            - 01-Khách hàng khai báo sai mã loại hình tổ chức cá nhân  `TWKT7400000000700`
+            - 02-Danh sách món vay sai mã chương trình, quyết định  `TWKT7400000000901`
+            - 03-Danh sách món vay khai báo sai mã phân ngành kinh tế  `TWKT7400000000902`
+            - 04-Danh sách món vay khai báo sai mã đối tượng thụ hưởng  `TWKT7400000000904`
+            - 05-Danh sách món vay khai báo sai mã hình thức vay  `TWKT7400000000903`
+            - 06-Danh sách khai báo sai mã đơn vị ủy thác  `TWKT7400000000906`
+            - 07-Danh sách khai báo sao mã thống kê giải quyết việc làm  `TWKT7400000000907`
+            - 08-Danh sách khai báo sai mã thống kê học sinh sinh viên  `TWKT7400000000908`
+            - 09-Danh sách khai báo sai mã hiệu quả đầu tư  `TWKT7400000000909`
+            - 10-Danh sách khai báo sai mã nguyên nhân nợ quá hạn  `TWKT7400000000910`
+            - 11-Các tiêu chí khác  `TWKT7400000000911`
+            - 12-Danh sách món vay chương trình cho vay XKLĐ chưa gắn cờ "ký quỹ"  `TWKT7400000001106`
+        - *Sao kê chi tiết KT1138-KHNV-Kỳ Ngày*
+            - 01-Khách hàng khai báo sai mã loại hình tổ chức cá nhân  `TWKT7400000000921`
+            - 02-Danh sách món vay sai mã chương trình, quyết định  `TWKT7400000000922`
+            - 03-Danh sách món vay khai báo sai mã phân ngành kinh tế  `TWKT7400000000923`
+            - 04-Danh sách món vay khai báo sai mã đối tượng thụ hưởng  `TWKT7400000000924`
+            - 05-Danh sách món vay khai báo sai mã hình thức vay  `TWKT7400000000925`
+            - 06-Danh sách khai báo sai mã đơn vị ủy thác  `TWKT7400000000926`
+            - 07-Danh sách khai báo sao mã thống kê giải quyết việc làm  `TWKT7400000000927`
+            - 08-Danh sách khai báo sai mã thống kê học sinh sinh viên  `TWKT7400000000928`
+            - 09-Danh sách khai báo sai mã hiệu quả đầu tư  `TWKT7400000000929`
+            - 10-Danh sách khai báo sai mã nguyên nhân nợ quá hạn  `TWKT7400000000930`
+            - 11-Các tiêu chí khác  `TWKT7400000000931`
+            - 12-Danh sách món vay chương trình cho vay XKLĐ chưa gắn cờ "ký quỹ"  `TWKT7400000001107`
+            - 13-Danh sách món vay cần rà soát thông tin lãi suất  `TWKT7400000001126`
+        - *Sao kê chi tiết KT-KT&QLTC*
+            - 01 - Kiểm tra lỗi Tài khoản sai tính chất  `TWKT7400000000610`
+            - 02 - Kiểm tra lỗi Tài khoản trung gian còn số dư  `TWKT7400000000611`
+            - 03 - Kiểm tra lỗi Lệnh thanh toán còn số dư  `TWKT7400000000612`
+            - 04 - Kiểm tra lỗi Tiền mặt offline còn số dư  `TWKT7400000000613`
+            - 05 - Chênh lệch điều chuyển vốn HSC và chi nhánh  `TWKT7400000000614`
+            - 06 - Chênh lệch Điều chuyển vốn CN - PGD  `TWKT7400000000615`
+        - *Sao kê chi tiết - Rà soát món vay trước khi giải ngân*
+            - 01 - DS món vay sắp GN cho KH đã có dư nợ tại ngân hàng  `TWKT7400000000783`
+            - 02 - DS món vay sắp GN đăng ký không đúng mã thống kê  `TWKT7400000000784`
+            - 03 - DS món vay sắp GN cho KH đã gia hạn nợ  `TWKT7400000000785`
+            - 04 - DS món vay sắp GN cho KH đã chuyển nợ quá hạn  `TWKT7400000000786`
+            - 05 - DS món vay sắp GN cho KH đã quá hạn trên N ngày  `TWKT7400000000787`
+            - 06 - DS món vay sắp GN cho KH đã khoanh nợ  `TWKT7400000000789`
+            - 07 - DS món vay sắp GN cho KH đã xóa nợ  `TWKT7400000000790`
+            - 08 - DS món vay sắp GN cho KH đang đề nghị XLRR  `TWKT7400000000791`
+            - 09 - DS món vay sắp GN cho KH đã phát sinh lưu vụ  `TWKT7400000000792`
+            - 10 - DS món vay sắp GN cho KH còn tồn trên N tháng lãi  `TWKT7400000000793`
+        - *Sao kê phục vụ công tác kiểm tra toàn diện chi nhánh*
+            - Kế toán - 05. Kiểm tra lỗi Tài khoản sai tính chất  `TWKT7400112021171`
+            - NOXH - 01. Sao kê chi tiết các món vay NOXH  `TWKT7400112021163`
+            - NOXH - 02. Số dư tiền gửi tiết kiệm lũy kế đến thời điểm kiểm tra không đúng theo QĐ  `TWKT7400112021164`
+            - NOXH - 03. Chưa đủ 12 tháng từ ngày gửi TK đầu tiên đã trích tiền gửi TK 537 để thu nợ  `TWKT7400112021165`
+            - NOXH - 05. Mở nhiều tài khoản tiền gửi tiết kiệm cho khách hàng vay món vay NOXH  `TWKT7400112021166`
+            - NOXH - 05. Tài khoản 145 và tài khoản 537 kể từ ngày gửi món vay đầu tiên, quá 12 tháng vẫn còn số dư  `TWKT7400112021162`
+            - NOXH - 06. TK thanh toán 102 có số dư tiền gửi nhưng không trích để thu lãi món vay NOXH  `TWKT7400112021174`
+            - NOXH - 07. SK món vay giải ngân 01 lần duy nhất, số tiền GN = mức vay (đối với món vay đăng ký PNKT là mua, thuê mua NOXH)  `TWKT7400112021170`
+            - NOXH - 11.Tài khoản 537 hoặc102 mở sau ngày giải ngân theo VB 2526  `TWKT7400112021169`
+            - NOXH - 11.Tài khoản 537 hoặc102 mở sau ngày giải ngân theo VB 8586  `TWKT7400112021168`
+            - NOXH - 13. Ngày đến hạn cuối cùng của món vay NOXH không đúng  `TWKT7400112021161`
+            - Nội dung khác - 01. Giải ngân khi chứng minh thư hết hạn 15 năm  `TWKT7400112021143`
+            - Nội dung khác - 02. Sao kê tài khoản Casa có số dư dưới 100 nghìn đồng đã ra khỏi tổ trên 90 ngày  `TWKT7400112021144`
+            - Nội dung khác - 04. Danh sách khách hàng đang vay vốn nhưng chưa mở tài khoản 105 ( lấy khách hàng ủy thác )  `TWKT7400112021145`
+            - Nội dung khác - 06. Sao kê món vay Tài sản đảm bảo  `TWKT7400112021147`
+            - Nội dung khác - 07. Sao kê vay bổ sung chương trình NSVSMT  `TWKT7400112021148`
+            - Nội dung khác - 08. Sao kê tỷ lệ thành viên tham gia gửi tiết kiệm tổ  `TWKT7400112021149`
+            - Nội dung khác - 09. Liệt kê nguyên nhân nợ quá hạn  `TWKT7400112021150`
+            - Nội dung khác - 10. Chất lượng tín dụng theo sản phẩm của từng Phòng giao dịch  `TWKT7400112021151`
+            - Nội dung khác - 11. Tổ viên Tổ TK&VV có số dư tiền gửi từ 10% trở lên so với dư nợ  `TWKT7400112021152`
+            - Nội dung khác - 12. Sao kê nguồn vốn phân giao đến xã  `TWKT7400112021153`
+            - Nội dung khác - 13. Sao kê cho vay Thoát nghèo đã vay trong 3 năm trước tính từ thời điểm giải ngân món vay  `TWKT7400112021154`
+            - Nội dung khác - 15. Sao kê món vay đăng ký trên 31 ngày chưa thực hiện giải ngân  `TWKT7400112021155`
+            - Nội dung khác - 16. Sao kê món vay gia hạn nợ vượt thời gian qui định  `TWKT7400112021156`
+            - Nội dung khác - 17. Sao kê khách hàng có tiền gửi tiết kiệm dân cư, gửi từ 50 triệu đồng trở lên đang có dư nợ chương trình HN,HCN,HTN  `TWKT7400112021157`
+            - Nội dung khác - 18. Sao kê các món vay giải ngân  `TWKT7400112021158`
+            - Nội dung khác - 20. Sao kê các món vay trực tiếp đăng ký trên hệ thống theo lịch Giao dịch xã.  `TWKT7400112021159`
+            - Nội dung khác - 21. Sao kê các món vay trực tiếp có ngày mở tài khoản casa 102 bằng hoặc sau ngày giải ngân  `TWKT7400112021160`
+        - *Sao kê chi tiết KTKSNB-Kỳ ngày*
+            - 14 - Tổng hợp kết quả thu nợ, xử lý đến hạn theo tháng (mẫu 14/KTNB)  `TWKT7400000000658`
+            - 15 - Thống kê lãi tồn các đơn vị trực thuộc (mẫu 15/KTNB)  `TWKT7400000000639`
+            - 16 - Thực hiện định mức an toàn chi trả (mẫu 16/KTNB)  `TWKT7400000000640`
+            - 17 - DS khách hàng thuộc 2 tổ tk&vv (mẫu 17/KTNB)  `TWKT7400000000641`
+            - 18 - DS tổ trưởng vay vốn tại tổ khác (mẫu 18/KTNB)  `TWKT7400000000642`
+            - 19.1 - DS HSSV đã ra trường cần rà soát hạn trả nợ cuối cùng (mẫu 19.1/KTNB)  `TWKT7400000000659`
+            - 19.2- DANH SÁCH HSSV ĐÃ RA TRƯỜNG VAY KHÔNG ĐỦ KỲ CẦN RA SOÁT HẠN TRẢ NỢ CUỐI CÙNG (MẪU 19.2/KTNB)  `TWKT7400000000660`
+            - 20 - DS vừa thừa kế vừa vay vốn - kiểm tra theo tên vợ chồng (mẫu 20/KTNB)  `TWKT7400000000643`
+            - 21 - DS cán bộ có thực hiện gdxa phục vụ đối chiếu với lịch phân công (mẫu 21/KTNB)  `TWKT7400000000644`
+            - 22 - DS món vay trung-dài hạn có phân kỳ trả gốc 1 lần khi đến hạn (mẫu 22/KTNB)  `TWKT7400000000645`
+            - 23 - DS món vay có phát sinh gia hạn nợ (mẫu 23/KTNB)  `TWKT7400000000646`
+            - 25 - DS khách hàng có nhiều mã cùng pos (mẫu 25.1/KTNB)  `TWKT7400000000648`
+            - 25 - DS khách hàng có nhiều mã khác pos cùng chi nhánh (mẫu 25.2/KTNB)  `TWKT7400000000649`
+            - 26 - Sao kê chi tiết thông tin tổ (theo xã) (mẫu 26/KTNB)  `TWKT7400000000650`
+            - 27 - DS món vay chuyển nợ quá hạn kỳ cuối với sản phẩm chuyển nợ QH kỳ con (mẫu 27/KTNB  `TWKT7400000000651`
+            - 30A - DS giải ngân thu nợ trong N ngày cùng chương trình (mẫu 30A/KTNB)  `TWKT7400000000652`
+            - 30B - DS giải ngân thu nợ trong N ngày khác chương trình (mẫu 30B/KTNB)  `TWKT7400000000798`
+            - 31 - Tạo hồ sơ tín dụng chi tiết theo ngày  `TWKT7400000000653`
+            - 32-LIỆT KÊ BÚT TOÁN ĐIỀU TIỀN TỪ OFFLINE VỀ ONLINE  `TWKT7400000000654`
+            - 33. Danh sách món vay đảo khoản chuyển NQH vào trong hạn trong tháng  `TWKT7400000000655`
+            - 34 - DS hộ gia đình vay vượt mức quy định  `TWKT7400000000656`
+            - 35- Danh sách xã có tỷ lệ nợ quá hạn từ X% trở lên  `TWKT7400000000661`
+            - 36-Danh sách Tổ có tỷ lệ nợ quá hạn từ X% trở lên  `TWKT7400000000662`
+- **Báo cáo excel mẫu**
+    - *Báo cáo excel mẫu*
+        - Báo cáo cho vay theo dân tộc - cấp chi nhánh  `BC_CV_DANTOC.xlsx`
+        - Báo cáo cho vay theo dân tộc - cấp PGD  `BC_CV_DANTOC_PGD.xlsx`
+        - Hỗ trợ Báo cáo giám sát Ban đại diện cấp xã (kỳ tháng)  `BC_GS_BDD_XA.xlsx`
+        - DS tài khoản tiền gửi cho vay Nhà ở xã hội  `CASA_NOXH.xlsx`
+        - Mẫu BCTC cho doanh nghiệp (CIC)  `CIC_MAU_QD48.xlsx`
+        - Chi tiết chấm điểm Tổ TK&VV  `CT_CDTO.xlsx`
+        - Dư nợ CT vay theo địa bàn nông thôn, thành thị  `DN_DIABAN.xlsx`
+        - Danh sách khách hàng hêt dư nơ và dư tiêt kiêm  `DSKH_HETNOTK.xlsx`
+        - DS Khách hàng chưa gửi tiết kiệm  `DSKH_KO105.xlsx`
+        - DS món vay phân tích nợ ko có khả năng thu hồi  `DSPTN_KOTHUHOI.xlsx`
+        - Danh sách Tổ viên Tổ TK&VV  `DSTOVIEN.xlsx`
+        - DS Tổ TK&VV có tổng dư nợ dưới 500trđ  `DSTO_D500.xlsx`
+        - DS Tổ TK&VV có Nợ quá hạn  `DSTO_NQH.xlsx`
+        - Danh sách xã có Nợ quá hạn  `DSXA_NQH.xlsx`
+        - Thống kê dư nợ, tổ viên theo ĐVUT - Xã - Tổ  `DUNO_DVUT_XA_TO.xlsx`
+        - Thống kê dư nợ theo ĐVUT Xã Tổ (hàng ngày)  `DUNO_DVUT_XA_TO_NGAY.xlsx`
+        - Số dư tiền gửi tiết kiệm tại Điểm GDX  `DUTKXA.xlsx`
+        - Số liệu tài khoản chi lương  `GL_LUONG.xlsx`
+        - Hồ sơ cho vay hàng ngày  `HSCV.xlsx`
+        - Danh sách Hộ vay HSSV khó khăn tài chính tiếp tục đề nghị vay vốn  `HSSV_VAYBS_HOAT.xlsx`
+        - Rà soát khách hàng chưa mở casa 105  `KHCASA105_HOAT.xlsx`
+        - Kiểm tra khách hàng là vợ/chồng vay vốn?  `KHVAYVON.xlsx`
+        - Báo cáo một số chỉ tiêu hoạt động chính (theo đơn vị)  `P46_BIEU01.xlsx`
+        - Báo cáo một số chỉ tiêu hoạt động chính (theo xã)  `P46_BIEU01_XA.xlsx`
+        - Báo cáo một số chỉ tiêu hoạt động chính (theo chương trình)  `P46_BIEU02.xlsx`
+        - Báo cáo thực hiện chỉ tiêu kế hoạch Huy động vốn  `P46_BIEU03.xlsx`
+        - Phân bổ tiền gửi TKVV hàng tháng theo dư nợ trong hạn  `PBO_TG105.xlsx`
+        - Rà soát tổ TK&VV không đủ điêu kiên hoạt đông  `RSTOKOHD.xlsx`
+        - Rà soát Cấp QLV chương trình GQVL  `RS_CAPQLV.xlsx`
+        - Rà soát khách hàng hết dư nợ có TK105 dưới 100.000  `RS_CASAKH_0_DN.xlsx`
+        - Rà soát món vay chậm xử lý nợ đến hạn  `RS_CHAMXLNDH.xlsx`
+        - DS khách hàng thuộc Tổ TKVV có số thành viên ko đạt yc  `RS_DS_TOVV.xlsx`
+        - Rà soát đăng ký đối tượng thụ hưởng  `RS_DTTH1.xlsx`
+        - Rà soát đăng ký Hiệu quả đầu tư  `RS_HQDT.xlsx`
+        - Rà soát định lại ngày đến hạn HSSV  `RS_HSSV.xlsx`
+        - Rà soát HSSV ở nhiều POS  `RS_HSSV_POS.xlsx`
+        - Rà soát casa 105 của khách hàng rời Tổ TKVV quá 90N  `RS_KHROITO.xlsx`
+        - Rà soát khách hàng nhiều casa 104/105  `RS_KH_N_CASA.xlsx`
+        - Rà soát khách hàng có nhiều CIF trong HSKU  `RS_KH_N_CIF.xlsx`
+        - Rà soát khách hàng có nhiều CIF trong HSTG  `RS_KH_N_TK.xlsx`
+        - Rà soát món vay chưa giải ngân lần nào  `RS_KUKOGN.xlsx`
+        - Rà soát mã nhà đầu tư  `RS_MANDT.xlsx`
+        - Rà soát đăng ký Mã Quyết định  `RS_MAQD.xlsx`
+        - Rà soát ngày bắt đầu trả lãi HSSV  `RS_NGAYTLAI_HSSV.xlsx`
+        - Rà soát chưa đăng ký Nguyên nhân NQH  `RS_NGNHANQH.xlsx`
+        - Rà soát đăng ký phân ngành kinh tế  `RS_PNKT.xlsx`
+        - Rà soát mã PNKT chương trình NSVSMT  `RS_PNKT_CT06.xlsx`
+        - Rà soát số tháng cho vay  `RS_THVAY.xlsx`
+        - Rà soát món vay XKLĐ chưa có TT XKLĐ  `RS_TTXKLD.xlsx`
+        - DS khách hàng chưa nhập hoặc nhập sai số điện thoại  `SAISODT.xlsx`
+        - Sao kê số dư tài khoản  `SK_CASA.xlsx`
+        - Sao kê dư nợ chi tiết (kỳ tháng)  `SK_CHITIET.xlsx`
+        - Sao kê dư nợ GQVL  `SK_GQVL.xlsx`
+        - Sao kê HSSV trong hạn theo ngày ra trường  `SK_HSSV_RT.xlsx`
+        - Sao kê món vay nguồn vốn Địa phương  `SK_NGUONVONDP.xlsx`
+        - Sao kê nợ đến hạn kỳ cuối  `SK_NODH_KCUOI.xlsx`
+        - Sao kê nợ đến hạn kỳ con  `SK_NODH_KYCON.xlsx`
+        - Sao kê dư nợ khoanh  `SK_NOKHOANH.xlsx`
+        - Sao kê nợ quá hạn  `SK_NOQH.xlsx`
+        - Sao kê tài khoản tiền gửi tổ chức cá nhân (kỳ ngày)  `SK_TG_TCCN.xlsx`
+        - Xuất số liệu hồ sơ bút toán  `SL_HSBT.xlsx`
+        - Tình hình thực hiện dư nợ theo CT -Nguồn vốn  `THDN_CT_NV.xlsx`
+        - Tình hình thực hiện dư nợ theo Hội ĐT- CT  `THDN_HDT_CT.xlsx`
+        - Tình hình thực hiện dư nợ theo Xã - CT - Nguồn vốn  `THDN_XA_CT_NV.xlsx`
+        - Tình hình thực hiện dư nợ theo Xã - Hội ĐT  `THDN_XA_HDT.xlsx`
+        - Tình hình thực hiện dư nợ theo Xã - Hội ĐT- CT  `THDN_XA_HDT_CT.xlsx`
+        - Tình hình thực hiện dư nợ theo Xã-Hội ĐT-CT-NV  `THDN_XA_HDT_CT_NV.xlsx`
+        - Thống kê chi tiết giao dịch_xã_tổ (kỳ ngày)  `THONGKE_PSTO_DINHKY.xls`
+        - Tổng hợp dư nợ theo cấp quản lý vốn chương trình GQVL  `TH_DN_CAPQLV_GQVL_tmp.xlsx`
+        - Lấy phát sinh tài khoản chi phí  `TKCHIPHI.xlsx`
+        - Tình hình TN-CP  `TN_CP_PGD.xlsx`
+        - Tình hình thu thập số điện thoại của khách hàng  `TT_SODT.xlsx`
+        - Điện báo ngày  `dienbaongay.xlsx`
+        - Họp giao ban GDX - Biên bản - Nội dung họp (kỳ tháng)  `hopgiaoban.xlsx`
+        - Kết quả thực hiện huy động vốn tw cấp bù lãi suất  `huydongtietkiem.xlsx`
+- **Hỗ trợ upload file excel**
+- **Chi nhánh khai báo**
+    - A. Chuẩn bị số liệu
+    - B. Báo cáo
+        - *Báo cáo chi nhánh khai báo*
+            -  01/SN - Danh sách đơn vị sát nhập địa giới hành chính xã trong cùng đơn vị  `BC00630013`
+            - 01/CT - Danh sách đơn vị chia tách địa giới hành chính xã trong cùng đơn vị  `BC00630012`
+            - 01/THTĐGD - Danh sách đơn vị thay đổi lịch giao dịch do nguyên nhân khách quan  `BC00630010`
+            - 02/BG - Bảng đối chiếu và bàn giao dư nợ, số dư tiền gửi tiết kiệm  `BC00630005`
+            - BCNTM_01 - Báo cáo nông thôn mới mẫu 01  `BC00630003`
+            - BCNTM_02 - Báo cáo nông thôn mới mẫu 02  `BC00630004`
+            - GQVL_M01 - Báo cáo 10% số tiền lãi thu được để bổ sung vào nguồn vốn quỹ quốc gia về việc làm  `BC00630043`
+            - KQ/04 - KQ rà soát KH nhận TB tất toán tiền gửi ký quỹ  `BC00630006`
+            - KQ/05 - KQ rà soát KH tất toán khi chưa nhận TB tất toán KQ  `BC00630007`
+            - M01A - Danh sách khách hàng rà soát thông tin  `BC00630046`
+            - M01B - Danh sách khách hàng rà soát đóng cif     `BC00630047`
+            - M02 - Thông báo danh sách khách hàng đối chiếu thông tin căn cước công dân  `BC00630048`
+            - M03 - Danh sách khách hàng đối chiếu thông tin căn cước công dân  `BC00630049`
+            - M05A - Báo cáo kết quả rà soát thông tin khách hàng với hồ sơ vay vốn  `BC00630050`
+            - M05B - Báo cáo kết quả đối chiếu căn cước công dân của khách hàng  `BC00630051`
+            - M05C - Báo cáo tổng hợp kết quả rà soát, cập nhật thông tin khách hàng  `BC00630052`
+            - Mau01Vung_BCTK - Báo Cáo Tổng Hợp Kết Quả Thực Hiện Nghị Quyết Số 68/Nq-Cp Và Quyết Định Số 23/2021/QĐ-TTG (Chi nhánh)  `BC00630026`
+            - Mau01_BCTK - Báo Cáo Tổng Hợp Kết Quả Thực Hiện Nghị Quyết Số 68/Nq-Cp Và Quyết Định Số 23/2021/QĐ-TTG  `BC00630025`
+            - Mau02_BCTK - Báo Cáo Tổng Hợp Kết Quả Thực Hiện Nghị Quyết Số 68/Nq-Cp Và Quyết Định Số 23/2021/QĐ-TTG  `BC00630031`
+            - Mau04_BCTK - Báo Cáo Tổng Hợp Yêu Cầu Rà Soát Chương Trình Cho Vay Trả Lương Ngừng Việc, Trả Lương Phục Hồi Sản Xuất  `BC00630029`
+            - Mau04_BCTK - Báo Cáo Tổng Hợp Yêu Cầu Rà Soát Chương Trình Cho Vay Trả Lương Ngừng Việc, Trả Lương Phục Hồi Sản Xuất  `BC00630027`
+            - Mau05_BCTK - Báo Cáo Thống Kê Các Phòng Giao Dịch Chưa Duyệt Gửi Số Liệu Trên Thông Tin Báo Cáo Chương Trình Cho Vay Trả Lương Ngừng Việc, Trả Lương Phục Hồi Sản Xuất  `BC00630030`
+            - Mẫu số 04/TH - TỔNG HỢP BÁO CÁO VỀ VIỆC TRẢ NỢ CỦA NGƯỜI SỬ DỤNG LAO ĐỘNG VAY VỐN THEO QUYẾT ĐỊNH SỐ 23/2021/QĐ-TTg  `BC00630034`
+            - Mẫu số 05/TH - THEO DÕI CHỈ TIÊU KẾ HOẠCH DƯ NỢ CHO VAY NGƯỜI SỬ DỤNG LAO ĐỘNG THEO QUYẾT ĐỊNH SỐ 23/2021/QĐ-TTg  `BC00630035`
+            - NQ11_M06HTLS - Báo cáo theo dõi thực hiện hỗ trợ lãi suất các đơn vị  `BC00630045`
+        - *BC KT sau cho vay QD23*
+            - Mau01_RS_CVTL - Báo cáo kết quả rà soát và nắm bắt nhu cầu vay vốn để trả lương ngừng việc, trả lương phục hồi sản xuất  `BC88060001`
+            - Mau02_KT_CVTL - Báo cáo kết quả kiểm tra việc sử dụng vốn vay của khách hàng trong vòng 30 ngày kể từ ngày giải ngân  `BC88060002`
+            - Mau03_KT_CVTL - Báo cáo kết quả kiểm tra trực tiếp việc sử dụng vốn vay của khách hàng sau 30 ngày kể từ ngày giải ngân do không cung cấp đủ chứng từ sử dụng vốn vay  `BC88060003`
+            - Mau04_KT_CVTL - Báo cáo kết quả kiểm tra lại việc sử dụng vốn vay của khách hàng  `BC88060004`
+        - *Báo cáo giảm lãi theo QĐ số 1990/QĐ-TTg*
+            - Mau_01A_GL - Bảng tổng hợp số tiền giảm lãi cho vay các chương trình tín dụng chính sách theo quyết định 1990/QĐ-TTg của Thủ tướng Chính phủ  `BC88110001`
+            - Mau_01_GL - Bảng tổng hợp số tiền giảm lãi cho vay các chương trình tín dụng chính sách theo quyết định 1990/QĐ-TTg của Thủ tướng Chính phủ  `BC88110002`
+            - Mau_02_GL - Báo cáo các khoản giảm lãi cho vay các chương trình tín dụng chính sách theo quyết định 1990/QĐ-TTg của Thủ tướng Chính phủ (còn phải trả khách hàng)  `BC88110003`
+            - Mau_03A_GL - Danh sách món vay không giảm lãi theo QĐ 1990/QĐ-TTg  `BC88110005`
+            - Mau_03_GL - Báo cáo giảm lãi cho vay các chương trình tín dụng chính sách theo quyết định 1990/QĐ-TTg của Thủ tướng Chính phủ  `BC88110004`
+            - Mau_04S_GL - Số tiền giảm lãi cho vay nguồn ủy thác địa phương theo QĐ1990 (Sau xác nhận)  `BC88110007`
+            - Mau_04T_GL - Số tiền giảm lãi cho vay nguồn ủy thác địa phương theo QĐ1990 (Trước xác nhận)  `BC88110006`
+        - *Báo cáo Hộ vay bỏ đi khỏi nơi cư trú*
+            - M11_DKNCT - Bảng tổng hợp kết quả thu nợ  của khách hàng đi khỏi nơi cư trú đề nghị hỗ trợ  `BC88900003`
+            - MS_01THĐKNCT - Tổng hợp báo cáo thực trạng khách hàng đi khỏi nơi cư trú - vai trò chi nhánh nơi thực hiện cho vay (năm)  `BC88900006`
+            - MS_02_DKNCT - Danh sách khách hàng đi khỏi nơi cư trú từ 03 tháng trở lên  `BC88900001`
+            - MS_08_DKNCT - Danh sách khách hàng đề nghị hỗ trợ xử lý nợ có địa chỉ cụ thể  `BC88900002`
+    - C. Báo cáo API
+- **Tra cứu thông tin**
+- **Đánh giá, xếp loại HTNV cá nhân**
+    - A. Chuẩn bị số liệu
+    - B. In báo cáo
+        - *Báo cáo chấm điểm cá nhân*
+            - (trống)
+    - D. Upload danh mục
+- **Cảnh báo sai sót thông tin**
+    - A. Chuẩn bị số liệu
+    - B. In báo cáo
+        - *Cảnh báo sai sót*
+            - CBSS_DVHC - TỔNG HỢP CẢNH BÁO SAI SÓT THÔNG TIN TÍN DỤNG THEO ĐƠN VỊ HÀNH CHÍNH  `BC00860002`
+            - CBSS_MALOI - TỔNG HỢP CẢNH BÁO SAI SÓT THÔNG TIN TÍN DỤNG THEO LỖI CẢNH BÁO  `BC00860001`
+- **Triển khai Nghi quyết 11/NQ-CP**
+    - A. Chuẩn bị số liêu
+    - B. In báo cáo
+        - *Báo cáo HTLS theo Nghị quyết 11/NQ-CP*
+            - Mau01HTLS_NQ11 - Kế hoạch hỗ trợ lãi suất cho khách hàng vay vốn  `BC88120001`
+            - Mau02HTLS_NQ11 - Sao kê khoản vay được hỗ trợ lãi suất  `BC88120002`
+            - Mau02HTLS_NQ11_TD - Sao kê khoản vay được hỗ trợ lãi suất theo Nghị quyết số 43/2022/QH15 (Tự động)  `BC88120010`
+            - Mau03HTLS_NQ11 - Báo cáo tình hình thực hiện hỗ trợ lãi suất  `BC88120003`
+            - Mau03HTLS_NQ11_TD - Báo cáo tình hình thực hiện hỗ trợ lãi suất theo Nghị quyết số 43/2022/QH15 (tự động)  `BC88120011`
+            - Mau04HTLS_NQ11 - Sao kê khoản vay được hỗ trợ lãi suất phải thu hồi  `BC88120012`
+            - Mau05HTLS_NQ11 - Báo cáo quyết toán hỗ trợ lãi suất theo nghị quyết số 43/2022/QH15  `BC88120013`
+        - *HSSV có hoàn cảnh khó khăn mua máy tính, thiết bị học tập*
+            - KHNV_M01_QD09 - Báo cáo cho vay HSSV có hoàn cảnh khó khăn mua máy tính, thiết bị học tập theo đối tượng thụ hưởng  `BC88150001`
+            - KHNV_M02_QD09 - Báo cáo cho vay HSSV có hoàn cảnh khó khăn mua máy tính, thiết bị học tập theo cấp học, trình độ đào tạo  `BC88150002`
+## 5. Trợ giúp
+- **Giới thiệu**
+- **Hướng dẫn sử dụng**
+- **Hỏi đáp nhanh**
+## 6. Báo cáo nhập tay
+- **Chuẩn bị số liệu và phê duyệt**
+- **In báo cáo**
+- **Khai báo mẫu biểu thủ công**
+    - B. Nhập dữ liệu mẫu biểu
+    - C. In báo cáo
+        - *Báo cáo Công đoàn*
+            - (trống)
+## 7. Bao cáo chi nhánh
+- **Các mẫu về gia hạn,kế hoạch thu nợ**
+    - *Báo cáo khác*
+        - Chitieu_PGD - theo dõi chỉ tiêu giao tại PGD_dnai  `BC00480059`
+        - Chitieu_PGD_2021 - Thực hiện kế hoạch tăng trưởng theo chỉ tiêu giao cấp PGD  `BC00480073`
+        - Chitieu_xa - Theo dõi kế hoạch tăng trưởng theo chỉ tiêu giao  `BC00480058`
+        - Chitieu_xa_2021 - Chỉ tiêu kế hoạch tăng trưởng theo chỉ tiêu giao  `BC00480072`
+        - DS3TKPS_XA - DS tổ TK&VV có tổ viên 3 tháng không hoạt động theo xã  `BC00480063`
+        - DSTKVV - DS tổ viên tổ TK&VV (hỗ trợ theo dõi, quản lý tổ viên)  `BC00460051`
+        - DS_TT_GHV - Danh sách phát sinh tiếp tục thực hiện nợ gia hạn_dnai  `BC00480056`
+        - GHANSAI_PS - Danh sách phát sinh gia vượt theo tháng năm  `BC00480061`
+        - GHSAI - Gia hạn sai qui định  `BC00480046`
+        - GHSAI_XA - Gia hạn sai qui định theo từng xã_dnai  `BC00480054`
+        - HOTRO_KKTS - HỖ TRỢ IN TEM KIỂM KÊ TÀI SẢN  `BC00460053`
+        - KHTD_xa - Thực hiện chỉ tiêu tín dụng theo xã  `BC00480057`
+        - KH_GN_TN_M - Tổng hợp Kế hoạch giải ngân - thu nợ theo tháng_PGD  `BC00480068`
+        - KH_GN_TN_W - Tổng hợp Kế hoạch giải ngân - thu nợ theo tuần_PGD  `BC00480071`
+        - PKY_DGTNKC_CTR - Đánh giá thực hiên thu nợ kỳ cuối theo kế hoạch_Chương trình vay  `BC00480066`
+        - PKY_DGTNKC_PGD_XA - Đánh giá thực hiện thu nợ kỳ cuối theo kế hoạch_PGD_Xã  `BC00480065`
+        - PKY_TNO - Thực hiện kế hoạch thu nợ_dnai  `BC00480049`
+        - PKY_TNO_XA - Kế hoạch giao thu nợ phân kỳ theo xã_dnai  `BC00480053`
+        - PKY_TNO_XA_TO - Thực hiện kế hoạch thu nợ theo xã_tổ_dnai  `BC00480051`
+        - RSGH - Rà soát gia hạn  `BC00480047`
+        - SK_GHAN - Sao kê gia hạn trong năm  `BC00480048`
+        - SK_GQVL_CT - Bảng kê chi tiết cho vay từ quỹ quốc gia về việc làm  `BC00460047`
+        - SK_NQH - Sao kê nợ quá hạn đến thời điểm báo cáo  `BC00460046`
+        - TBSV - Thông báo về tình hình vay vốn ưu đãi của HSSV mồ côi  `BC00140045`
+        - VB866_M01 - Báo cáo các món vay trên 50 triệu đồng cho vay theo văn bản số 866/NHCS-TDNN( Chi tiết)
+  `BC00460054`
+        - VB866_M03 - Báo cáo các món vay trên 50 triệu đồng cho vay theo văn bản số 866/NHCS-TDNN( Tổng hợp 04 chương trình)  `BC00460056`
+- **Doanh số phát sinh theo các tiêu chí**
+    - *BC kết quả CV HN-ĐTCS (mẫu TH)*
+        - 01.1/BCTD - Báo cáo kết quả cho vay hộ nghèo và các đối tượng chính sách (theo CN)  `BC00310011`
+        - 01.2/BCTD - Báo cáo kết quả cho vay hộ nghèo và các đối tượng chính sách (theo ch.trình)  `BC00310012`
+        - DS_CHTRINH - Doanh số PS theo chtrinh_dnai  `BC00310015`
+        - PS_DVUT - Doanh số PS theo DVUT_dnai  `BC00310014`
+        - PS_DVUT_CHTRINH - Doanh số theo dvut_chtrinh_dnai  `BC00310019`
+        - PS_DVUT_XA - Doanh số theo DVUT_Xa  `BC00310018`
+        - PS_XA - Doanh số theo xã_Dnai  `BC00310013`
+        - PS_XA_CHTRINH - Doanh số theo xã-chương trình_dnai  `BC00310017`
+        - PS_XA_DIEMGD_CT - Doanh số theo xã_điểm giao dịch_chương trình  `BC00310029`
+        - PS_XA_DIEMGD_HDT - Doanh số theo xã_điểm gd_hội  `BC00310028`
+        - PS_XA_DVUT_CHTRINH - Doanh số phát sinh theo xã-đvut-chương trình_dnai  `BC00310025`
+        - PS_XA_DVUT_DIEMGD - Doanh số theo xã_hội đoàn thể_điểm gd  `BC00310030`
+        - RPT_GQVL - Báo cáo Lũy kế giải quyết việc làm  `BC00310021`
+        - RPT_GQVL_CN - Tổng  hợp báo cáo GQVL_dnai  `BC00310022`
+        - THULAI - Tình hình thực hiện thu lãi  `BC00310027`
+        - ps_xa_dvut - Doanh số theo xa_dvut_dnai  `BC00310016`
+- **Dư nợ theo các tiêu chí**
+    - *Báo cáo kết quả cho vay HN-ĐTCS*
+        - DNO_XA_CHTRINH - Dư nợ theo xã_chtrinh_dnai  `BC00160003`
+        - GL910_911_976 - Số dư tích số tài khoản theo Phòng giao dịch GL_910_911_976  `BC00210021`
+        - HDNO_CT46_CT - Tổng hợp dư nợ chương trình vay vốn theo PGD - Đ.Nai  `BC00160016`
+        - HDNO_GQVL_PGD - Tổng dư nợ GQVL theo Phòng giao dịch  `BC00160029`
+        - TDNO_CBTD_CHTRINH - Dư nợ theo xã_chtrinh do CBTD quản lý  `BC00160024`
+        - TDNO_DIEMGD - Dư nơ theo điểm giao dịch  `BC00160031`
+        - TDNO_DVUT - Dư nợ theo đơn vị ủy thác_dnai  `BC00160006`
+        - TDNO_DVUT_CHTRINH - Dư nợ theo đơn vị ủy thác-chương trình_dnai  `BC00160008`
+        - TDNO_DVUT_XA - Dư nợ theo đơn vị ủy thác-xã_dnai  `BC00160007`
+        - TDNO_NDT - Dư nợ nguồn vốn địa phương theo chủ đầu tư_dnai  `BC00160009`
+        - TDNO_NDT_XA - Tổng hợp dư nợ UTĐP theo mã nhà đầu tư - xã/phường  `BC00160030`
+        - TDNO_XA - Tổng hợp dư nợ_xã_dnai  `BC00160001`
+        - TDNO_XA_DGD_THON_CT - Dư nơ theo xã_đGD _thôn_CT  `BC00160035`
+        - TDNO_XA_DIEMGD - Dư nợ theo xã-điểm giao dịch  `BC00160033`
+        - TDNO_XA_DIEMGD_CT - Dư nợ theo xã-điểm giao dịch-chương trình  `BC00160032`
+        - TDNO_XA_DIEMGD_TO - Dư nợ xã_điểm gd_dvut_tổ  `BC00160034`
+        - TDNO_XA_DVUT - Dư nợ theo xã_dvut_dnai  `BC00160002`
+        - TDNO_XA_DVUT_CHTRINH - Tổng dư nợ theo xã-Hội đoàn thể-Chương trình vay_dnai  `BC00160011`
+        - TDNO_XA_DVUT_DIEMGD - Dư nơ theo xã_HỘI_ điểm giao dịch  `BC00160036`
+        - TDNO_XA_DVUT_TO - Dư nợ theo xã_DVUT_Tổ  `BC00160022`
+        - TDNO_XA_THON_CHTRINH - Tổng dư nợ xã_thôn_chương trình  `BC00160023`
+        - TDNO_XA_TO - Dư nợ theo xã_tổ_dnai  `BC00160004`
+        - TH_GQVL_HDT_QLY - Tổng hợp dư nợ GQVL HĐT quản lý (QQGVVL)  `BC00160028`
+- **Mẫu biểu khác**
+    - *Báo cáo khác*
+        - BIASOVV - Bìa sổ vay vốn (lưu ngân hàng)  `BC00210042`
+        - DOI_TK_TOVIEN - Thay đổi số hiệu tài khoản tổ viên  `BC00210061`
+        - DSPD_GHNO - DS người vay đủ điều kiện gia hạn nợ  `BC00210015`
+        - DS_NDH_KCON - Danh sách nợ đến hạn kỳ con  `BC00210041`
+        - DS_NDH_KCUOI - Danh sách nợ đến hạn kỳ cuối theo Phường xã  `BC00210036`
+        - DS_NDH_KCUOI_HOI - Danh sách nợ đến hạn kỳ cuối theo HĐT  `BC00210044`
+        - DS_NDH_KCUOI_TO - Danh sách nợ đến hạn kỳ cuối theo tổ  `BC00210045`
+        - DS_NKD - Danh sách Nợ cần chú ý  `BC00210011`
+        - DS_NQH - Danh sách nợ quá hạn theo xã  `BC00210038`
+        - DS_TKTO_THAP - Danh sách khách hàng vay vốn gửi tiết kiệm tổ thấp (kỳ ngày)  `BC00210037`
+        - DS_TNKD - Danh sách thu hồi các khoản nợ cần chú ý trong tháng  `BC00210012`
+        - GBNQH - Giây báo nơ quá hạn  `BC00210003`
+        - GL922 - Sô dư nguồn vốn huy động theo ngày  `BC00210023`
+        - GM_DCN - Giấy mời đối chiếu, phân loại nợ  `BC00210028`
+        - GM_DCN_PGD - Giấy mời đối chiếu, phân loại nợ (Giám đốc PGD mời)  `BC00210029`
+        - HDV - huy động vốn tiền gửi tiết kiệm  `BC00210025`
+        - HD_GQVL - Hợp đồng GQVL 07b (kỳ ngày)  `BC00210047`
+        - HD_GQVL_TC - Hợp đồng GQVL 07B - Dữ liệu nhập TC  `BC00210055`
+        - MAU01TG - Mẫu 01TG của KH lần đầu vay vốn  `BC00210002`
+        - MAU01TG_CHUAGN - Mẫu 01TG_in trước khi giải ngân  `BC00210058`
+        - MAU01_TGTV - MẪU 01/TGTV theo văn bản 4147  `BC00210060`
+        - MAU01_TV_CN46 - Mẫu 01/TV - Danh sách tổ viên tổ tiết kiệm và vay vốn (thêm địa chỉ, khổ giấy ngang)  `BC00210053`
+        - MAU06KTNB - Mẫu 06KTNB  `BC00210056`
+        - MAU06TD - Mẫu 06/TD  `BC00210001`
+        - MAU06TD_CT - Mẫu 06TD theo chương trình vay  `BC00210005`
+        - MAU06TD_TO - Phiếu kiểm tra sử dụng vốn vay cả Tổ  `BC00210019`
+        - MAU06_KHTN - Phiếu kiểm tra sử dụng vốn vay theo phân kỳ trả nợ  `BC00210026`
+        - MAU15TD - Mâu 15TD-Bảng kê đôi chiêu tiên vay, tiên gửi  `BC00210004`
+        - Mau15TD_1 - Mẫu theo dõi đối chiếu có ngày đến hạn  `BC00210050`
+        - SK03 - Sao Kê hỗ trợ chấm DS03  `BC00210039`
+        - SKDS03_1 - Sao Kê hỗ trợ chấm DS03  `BC00210020`
+        - SKHDVXA - Sao kê huy động tiết kiệm tại điểm giao dịch xã  `BC00210018`
+        - SKNQHHDT - Sao kê nợ quá hạn theo hội đoàn thể  `BC00210057`
+        - SKNQHXA - Sao kê nợ quá hạn theo xã - CN Đ.Nai  `BC00210014`
+        - SKNQH_DN - Sao kê nợ quá hạn theo PGD - CN Đ.Nai  `BC00210013`
+        - SK_CHUADC - Sao kê món vay chưa đối chiếu, phân loại nợ năm 2018  `BC00210035`
+        - SK_TG105 - Danh sách khách hàng có số dư tiền gửi tổ viên lớn  `BC00210031`
+        - SK_TK105_Pos - Tỷ trọng số dư tiền gửi tổ viên trên dư nợ  – Theo đơn vị  `BC00210034`
+        - SK_TK105_To - Tỷ trọng số dư tiền gửi tổ viên trên dư nợ - Theo Tổ TK&VV  `BC00210032`
+        - SK_TK105_XA_TO - Tỷ trọng số dư tiền gửi tổ viên chi tiết theo xã-tổ  `BC00210051`
+        - SK_TK105_Xa - Tỷ trọng số dư tiền gửi tổ viên trên dư nợ - Theo Xã/Phường  `BC00210033`
+        - SL_DCNO - Dữ liệu đối chiếu nợ năm 2018  `BC00210030`
+        - TBCNQH - Thông báo chuyển NQH Tổ  `BC00210008`
+        - TBNDH_KC - Thông báo Nợ đến hạn cá nhân - Kỳ cuối  `BC00210009`
+        - TBNDH_KCON - Thư báo Nợ đến hạn cá nhân - Kỳ con  `BC00210010`
+        - TBNDH_KCON_CT - Thư báo nợ đến hạn kỳ con theo chương trình vay  `BC00210052`
+        - TBNQH - Thông báo thu hồi Nợ quá hạn  `BC00210007`
+        - TBPD_GHNO - Thông báo kết quả phê duyệt gia hạn nợ  `BC00210016`
+        - TBTHNQH - Thông báo thu hồi nợ quá hạn (kỳ dữ liệu ngày) do UBND ký  `BC00210024`
+        - TB_04TD - Thông báo kết quả phê duyệt cho vay  `BC00210043`
+        - TCCBTD - Tiêu chí theo dõi cán bộ tín dụng theo địa bàn quản lý  `BC00210027`
+        - THHDVXA - Tình hình huy động vốn tại Điểm giao dịch xã  `BC00210017`
+        - TN_CP - Tình hình thu nhập chi phí  `BC00210049`
+        - theluu - theo dõi lịch sử giao dịch cho vay  `BC00210046`
+- **Phân tích dư nợ,doanh số, tiền gửi**
+    - *Theo dõi dư nợ, cho vay, tiết kiệm*
+        - PTICH_HDV_XA_DIEMGD - Huy động vốn tổ chức cá nhân tại điểm giao dịch xã  `BC99990012`
+        - PTICH_NO_HOI_XA_CT - Tổng hợp phân tích nợ theo ĐVUT, Xã/Phường chi tiết  `BC99990009`
+        - PTICH_NO_XA - Tổng hợp phân tích nợ theo đơn vị xã (phường)  `BC99990001`
+        - PTICH_NO_XA_DVUT - Tổng hợp phân tích nợ theo xã - đơn vị ủy thác  `BC99990002`
+        - PTICH_TGTK_XA - Tổng hợp phân tích tiền gửi tiết kiệm theo đơn vị xã (phường)  `BC99990003`
+        - TK105_HT_HDTPGD - Đánh giá thực hiện tỷ lệ gửi tiết kiệm 105 hội đoàn thể của PGD  `BC99990011`
+        - TK105_HT_PGD_XA - Đánh giá thực hiện tỷ lệ gửi tiết kiệm 105 hàng tháng_pgd  `BC99990007`
+- **Báo cáo từ dữ liệu Offline**
+    - *Báo cáo dữ liệu Offline*
+        - LAICT - lãi tháng, lãi tồn theo chương trinh vay cấp PGD  `BC99980002`
+        - laikh_xa_ct - Lãi tháng, lãi tồn tháng sau   `BC99980001`
+        - laitoncao - theo dõi lãi tồn cao  `BC99980003`
+
+---
+Tổng dòng: 1335 · báo cáo có mã: 881.
