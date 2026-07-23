@@ -11,9 +11,66 @@ import { ExportMenu } from '@/components/export/ExportMenu';
 import { DeltaCard, DualDeltaCard, FlowCard } from '@/components/period/DeltaCard';
 import { PeriodGrowthStacked, type GrowthDimension } from '@/components/charts/PeriodGrowthStacked';
 import { usePeriodFilterStore } from '@/store/usePeriodFilterStore';
+import { usePeriodStore, PERIOD_SLOT_LABEL, type PeriodSlotKey } from '@/store/usePeriodStore';
 import { usePeriodCompare } from './usePeriodCompare';
+import { computeKpi, groupBy } from '@/lib/metrics';
+import { MultiSeriesBar, type BarSeries, type MultiSeriesRow } from '@/components/charts/MultiSeriesBar';
+import type { LoanRecord } from '@/lib/types';
 import { fmtCompact, fmtCurrency, fmtDate, fmtNguonVon, fmtNumber, fmtPercent } from '@/lib/format';
 import { cn } from '@/lib/utils';
+
+// ─── Dữ liệu "diễn biến qua các kỳ" cho biểu đồ cột nhóm xuất PDF ────────────
+// Mỗi category (Hội/CT/chỉ tiêu) một hàng; mỗi kỳ (lastYear → lastMonth → now)
+// một thanh trong nhóm. Dùng RAW rows (không áp bộ lọc period — báo cáo nhìn
+// toàn danh mục).
+
+interface PeriodCol {
+  key: string;
+  name: string;
+  rows: LoanRecord[];
+}
+
+/** Grouped bar: mỗi category (Hội/CT) một hàng, mỗi kỳ một thanh (dư nợ).
+ *  Chỉ giữ `limit` category có dư nợ lớn nhất ở kỳ mới nhất. */
+function acrossByField(
+  periods: PeriodCol[],
+  field: 'tenDVUT' | 'tenChuongTrinh',
+  limit = 8
+): MultiSeriesRow[] {
+  const maps = periods.map(
+    (p) => new Map(groupBy(p.rows, field).map((g) => [g.label, g.tongDuNo]))
+  );
+  const lastMap = maps[maps.length - 1] ?? new Map<string, number>();
+  const allLabels = new Set<string>();
+  maps.forEach((m) => m.forEach((_, k) => allLabels.add(k)));
+  const ranked = Array.from(allLabels)
+    .sort((a, b) => (lastMap.get(b) ?? 0) - (lastMap.get(a) ?? 0))
+    .slice(0, limit);
+  return ranked.map((label) => {
+    const row: MultiSeriesRow = { label };
+    periods.forEach((p, i) => {
+      row[p.key] = maps[i].get(label) ?? 0;
+    });
+    return row;
+  });
+}
+
+/** Grouped bar: mỗi chỉ tiêu chất lượng một hàng, mỗi kỳ một thanh. */
+function qualityAcross(periods: PeriodCol[]): MultiSeriesRow[] {
+  const kpis = periods.map((p) => computeKpi(p.rows));
+  const metrics: Array<[string, 'duNoQuaHan' | 'duNoKhoanh' | 'laiTonTH']> = [
+    ['Nợ quá hạn', 'duNoQuaHan'],
+    ['Nợ khoanh', 'duNoKhoanh'],
+    ['Lãi tồn trong hạn', 'laiTonTH'],
+  ];
+  return metrics.map(([label, mk]) => {
+    const row: MultiSeriesRow = { label };
+    periods.forEach((p, i) => {
+      row[p.key] = kpis[i][mk];
+    });
+    return row;
+  });
+}
 
 /**
  * Trang đầu của ứng dụng so sánh — "Diễn biến". Tập trung vào các chỉ
@@ -42,6 +99,36 @@ export function PeriodOverviewPage() {
 
   const [growthDim, setGrowthDim] = useState<GrowthDimension>('tenChuongTrinh');
   const [growthFocus, setGrowthFocus] = useState<string>('');
+
+  // 3 slot thời gian (lastYear → lastMonth → now) cho biểu đồ "diễn biến qua
+  // các kỳ" trong bản xuất PDF. Chỉ lấy các slot đã có dữ liệu.
+  const slotLastYear = usePeriodStore((s) => s.lastYear);
+  const slotLastMonth = usePeriodStore((s) => s.lastMonth);
+  const slotNow = usePeriodStore((s) => s.now);
+  const periodCols = useMemo<PeriodCol[]>(() => {
+    const raw: Array<{ key: PeriodSlotKey; snap: typeof slotNow }> = [
+      { key: 'lastYear', snap: slotLastYear },
+      { key: 'lastMonth', snap: slotLastMonth },
+      { key: 'now', snap: slotNow },
+    ];
+    return raw
+      .filter((r) => r.snap && r.snap.rows.length > 0)
+      .map((r) => ({
+        key: r.key,
+        name: r.snap!.ngaySoLieu ? fmtDate(r.snap!.ngaySoLieu) : PERIOD_SLOT_LABEL[r.key],
+        rows: r.snap!.rows,
+      }));
+  }, [slotLastYear, slotLastMonth, slotNow]);
+  const periodSeries = useMemo<BarSeries[]>(
+    () => periodCols.map((p) => ({ key: p.key, name: p.name })),
+    [periodCols]
+  );
+  const qualityAcrossData = useMemo(() => qualityAcross(periodCols), [periodCols]);
+  const dvutAcrossData = useMemo(() => acrossByField(periodCols, 'tenDVUT'), [periodCols]);
+  const programAcrossData = useMemo(
+    () => acrossByField(periodCols, 'tenChuongTrinh', 6),
+    [periodCols]
+  );
 
   const focusOptions = useMemo(() => {
     const set = new Set<string>();
@@ -108,6 +195,11 @@ export function PeriodOverviewPage() {
             subtitle={`${fmtDate(prevDate)} → ${fmtDate(currDate)} · ${fmtNumber(currRows.length)} khế ước kỳ sau`}
             rows={currRows}
             kpi={kpiDelta.curr}
+            chartSelectors={[
+              '#chart-period-quality-export',
+              '#chart-period-dvut-export',
+              '#chart-period-program-export',
+            ]}
             size="sm"
           />
         </div>
@@ -398,6 +490,34 @@ export function PeriodOverviewPage() {
           <QualityStackedBars prev={qualityPrev} curr={qualityCurr} prevDate={prevDate} currDate={currDate} />
         </CardContent>
       </Card>
+
+      {/* Biểu đồ ẩn CHỈ để xuất PDF — diễn biến qua 3 kỳ thời gian
+          (lastYear → lastMonth → now), bám theo báo cáo BĐD-HĐQT. */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          left: -99999,
+          top: 0,
+          width: 900,
+          background: '#ffffff',
+        }}
+      >
+        <h3>Diễn biến chất lượng tín dụng qua các kỳ</h3>
+        <div id="chart-period-quality-export">
+          <MultiSeriesBar data={qualityAcrossData} series={periodSeries} />
+        </div>
+
+        <h3>Dư nợ theo Hội đoàn thể qua các kỳ</h3>
+        <div id="chart-period-dvut-export">
+          <MultiSeriesBar data={dvutAcrossData} series={periodSeries} />
+        </div>
+
+        <h3>Cơ cấu dư nợ theo chương trình tín dụng qua các kỳ</h3>
+        <div id="chart-period-program-export">
+          <MultiSeriesBar data={programAcrossData} series={periodSeries} />
+        </div>
+      </div>
     </div>
   );
 }

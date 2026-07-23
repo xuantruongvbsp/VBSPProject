@@ -163,6 +163,22 @@ function splitTwoLines(s: string, perLine: number): string[] {
   return [line1, line2];
 }
 
+/**
+ * Tick nhiều dòng cho trục Y (tên xã/nhóm dài).
+ *
+ * LƯU Ý FIDELITY KHI XUẤT PDF: bản cũ dùng `<g transform="translate(x,y)">`
+ * bọc `<text textAnchor="end">` + `<tspan dy=...>` tương đối — html2canvas
+ * (dùng để rasterize chart sang PNG khi xuất PDF) thường bỏ qua
+ * `text-anchor` khai báo dạng thuộc tính SVG và tính sai vị trí dòng khi
+ * dựa vào `dy` tương đối/`transform` trên `<g>`, khiến tên xã bị đẩy lệch
+ * phải, đè lên cột và chồng lên nhau. Trên trình duyệt (SVG native) thì vẫn
+ * hiển thị đúng nên lỗi chỉ lộ ra trong ảnh xuất.
+ *
+ * Fix: bỏ hẳn `<g transform>`, tính sẵn toạ độ `x`/`y` TUYỆT ĐỐI cho từng
+ * `<tspan>` (không dùng `dy` tương đối), và khai báo neo văn bản ở CẢ hai
+ * nơi — thuộc tính `textAnchor` (React/SVG) lẫn inline `style={{ textAnchor }}`
+ * (html2canvas đọc style tin cậy hơn attribute).
+ */
 function makeMultiLineTick(perLine: number, fillColor = '#475569', fontSize = 10) {
   return function MultiLineTick(props: any) {
     const { x, y, payload } = props;
@@ -170,17 +186,18 @@ function makeMultiLineTick(perLine: number, fillColor = '#475569', fontSize = 10
     const lines = splitTwoLines(value, perLine);
     const lineHeight = fontSize + 1;
     const startDy = lines.length === 1 ? 4 : -1;
+    const startY = y + startDy; // baseline dòng đầu, quy về toạ độ tuyệt đối
+    const tspanX = x - 6;
+    const anchorStyle = { textAnchor: 'end' as const };
     return (
-      <g transform={`translate(${x}, ${y})`}>
-        <text textAnchor="end" fontSize={fontSize} fill={fillColor}>
-          <title>{value}</title>
-          {lines.map((ln, i) => (
-            <tspan key={i} x={-6} dy={i === 0 ? startDy : lineHeight}>
-              {ln}
-            </tspan>
-          ))}
-        </text>
-      </g>
+      <text x={tspanX} y={startY} textAnchor="end" style={anchorStyle} fontSize={fontSize} fill={fillColor}>
+        <title>{value}</title>
+        {lines.map((ln, i) => (
+          <tspan key={i} x={tspanX} y={startY + i * lineHeight} textAnchor="end" style={anchorStyle}>
+            {ln}
+          </tspan>
+        ))}
+      </text>
     );
   };
 }
@@ -358,7 +375,11 @@ export function BarByGroup({
                   style={{ background: d.fill }}
                 />
                 <div className="min-w-0">
-                  <div className="truncate font-semibold text-slate-800 dark:text-slate-100" title={d.label}>
+                  {/* KHÔNG dùng `truncate`: overflow:hidden khiến html2canvas
+                      cắt cụt tên xã (mất phần trên/dưới của dấu tiếng Việt) khi
+                      xuất PDF. Tên xã ngắn + cột rộng 240px nên để hiển thị đầy
+                      đủ, tự xuống dòng nếu quá dài. */}
+                  <div className="font-semibold text-slate-800 dark:text-slate-100 break-words" title={d.label}>
                     {d.label}
                   </div>
                   <div className="text-slate-600 dark:text-slate-400">

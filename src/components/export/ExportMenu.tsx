@@ -15,9 +15,10 @@ import {
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import type { LoanRecord } from '@/lib/types';
-import { computeKpi, type PortfolioKpi } from '@/lib/metrics';
+import { computeKpi, groupBy, type GroupAgg, type PortfolioKpi } from '@/lib/metrics';
+import { fmtCurrency, fmtNumber, fmtPercent } from '@/lib/format';
 import { exportToXlsx, type XlsxExportInput } from '@/lib/export-xlsx';
-import { exportToPdf, type PdfExportInput } from '@/lib/export-pdf';
+import { exportToPdf, type PdfExportInput, type PdfTable } from '@/lib/export-pdf';
 
 // Loại các khế ước đã tất toán (Tình trạng món vay = "close") khỏi mọi
 // bản xuất Excel/PDF. Người dùng vẫn xem được trong "Tra cứu chi tiết",
@@ -27,6 +28,51 @@ function excludeClosedLoans(rows: readonly LoanRecord[]): LoanRecord[] {
     const s = (r.tinhTrangMonVay ?? '').trim().toLowerCase();
     return s !== 'close' && s !== 'closed';
   });
+}
+
+// Dựng bảng số liệu "text thật" mặc định cho PDF từ danh sách khế ước đang
+// xuất. Mọi trang đều truyền `rows`, nên ta tự sinh các bảng phân rã theo
+// Xã / Chương trình / ĐVUT — không cần mỗi trang tự viết. Trang nào cần bảng
+// riêng có thể truyền `pdfTables` để ghi đè.
+function breakdownTable(
+  title: string,
+  nameHeader: string,
+  groups: GroupAgg[],
+  limit = 40
+): PdfTable | null {
+  if (!groups.length) return null;
+  return {
+    title,
+    columns: [
+      { header: '#', key: 'stt', align: 'right' },
+      { header: nameHeader, key: 'ten' },
+      { header: 'Số KƯ', key: 'soKU', align: 'right' },
+      { header: 'Dư nợ', key: 'duNo', align: 'right' },
+      { header: 'Nợ quá hạn', key: 'nqh', align: 'right' },
+      { header: '% QH', key: 'tyLe', align: 'right' },
+    ],
+    rows: groups.slice(0, limit).map((g, i) => ({
+      stt: i + 1,
+      ten: g.label,
+      soKU: fmtNumber(g.soKheUoc),
+      duNo: fmtCurrency(g.tongDuNo),
+      nqh: fmtCurrency(g.duNoQuaHan),
+      tyLe: fmtPercent(g.tyLeNoQH),
+    })),
+  };
+}
+
+function buildDefaultPdfTables(rows: readonly LoanRecord[]): PdfTable[] {
+  const src = rows as LoanRecord[];
+  return [
+    breakdownTable('Dư nợ theo xã', 'Xã', groupBy(src, 'tenXa')),
+    breakdownTable(
+      'Dư nợ theo chương trình tín dụng',
+      'Chương trình',
+      groupBy(src, 'tenChuongTrinh')
+    ),
+    breakdownTable('Dư nợ theo đơn vị ủy thác', 'Đơn vị ủy thác', groupBy(src, 'tenDVUT')),
+  ].filter((t): t is PdfTable => t !== null);
 }
 
 export interface ExportMenuProps {
@@ -50,8 +96,10 @@ export interface ExportMenuProps {
    */
   chartRefs?: React.RefObject<HTMLElement>[];
 
-  /** Bảng dữ liệu bổ sung hiển thị trong PDF */
+  /** Bảng dữ liệu bổ sung hiển thị trong PDF (một bảng — tương thích ngược) */
   pdfTable?: PdfExportInput['table'];
+  /** Nhiều bảng số liệu (text thật) hiển thị trong PDF */
+  pdfTables?: PdfExportInput['tables'];
   /** Các sheet bổ sung hiển thị trong XLSX */
   xlsxExtraSheets?: XlsxExportInput['extraSheets'];
 
@@ -98,6 +146,7 @@ export function ExportMenu(props: ExportMenuProps): React.ReactElement {
     rows,
     kpi,
     pdfTable,
+    pdfTables,
     xlsxExtraSheets,
     xlsxFilename,
     pdfFilename,
@@ -143,11 +192,15 @@ export function ExportMenu(props: ExportMenuProps): React.ReactElement {
 
   const runPdf = React.useCallback(async () => {
     const chartElements = resolveChartElements(chartRefs, chartSelectors);
+    // Ưu tiên bảng do trang truyền vào; nếu không có, tự sinh bảng phân rã
+    // mặc định (Xã / Chương trình / ĐVUT) từ danh sách khế ước đang xuất.
+    const tables = pdfTables ?? buildDefaultPdfTables(exportRows);
     await exportToPdf({
       pageTitle,
       subtitle,
       kpi: exportKpi,
       chartElements,
+      tables,
       table: pdfTable,
       filename: pdfFilename,
     });
@@ -157,6 +210,8 @@ export function ExportMenu(props: ExportMenuProps): React.ReactElement {
     pageTitle,
     subtitle,
     exportKpi,
+    exportRows,
+    pdfTables,
     pdfTable,
     pdfFilename,
   ]);

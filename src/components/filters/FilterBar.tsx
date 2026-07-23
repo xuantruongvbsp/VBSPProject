@@ -18,6 +18,7 @@ import { Plus, X, GripVertical, Search, UserCircle2, MapPin } from 'lucide-react
 import { Button } from '@/components/ui/Button';
 import {
   useDataStore,
+  applyFilters,
   FIELD_LABEL,
   type ActiveFilter,
   type FilterField,
@@ -155,6 +156,7 @@ export function FilterBar({ useStore, accent = 'brand' }: FilterBarProps = {}) {
   const {
     rows,
     filters,
+    ranges,
     addFilter,
     removeFilter,
     reorderFilters,
@@ -305,6 +307,9 @@ export function FilterBar({ useStore, accent = 'brand' }: FilterBarProps = {}) {
               onChange={(values) => updateFilter(f.id, { values })}
               onClose={() => setEditing(null)}
               rows={rows}
+              allFilters={filters}
+              excludeId={f.id}
+              ranges={ranges}
               accent={accent}
             />
           );
@@ -319,6 +324,9 @@ function ValuePicker({
   onChange,
   onClose,
   rows,
+  allFilters,
+  excludeId,
+  ranges,
   accent,
 }: {
   field: FilterField;
@@ -326,9 +334,34 @@ function ValuePicker({
   onChange: (v: string[]) => void;
   onClose: () => void;
   rows: LoanRecord[];
+  /** Toàn bộ bộ lọc đang áp dụng (kể cả staff/txnpoint) để lồng phụ thuộc. */
+  allFilters: ActiveFilter[];
+  /** Id của chính bộ lọc đang sửa — loại khỏi phạm vi để không tự giới hạn. */
+  excludeId: string;
+  ranges: RangeFilters;
   accent: 'brand' | 'period';
 }) {
-  const options = useMemo(() => distinctValues(rows, field), [rows, field]);
+  // Danh sách giá trị PHỤ THUỘC các bộ lọc khác: chỉ hiện giá trị của `field`
+  // xuất hiện trong tập đã lọc bởi mọi bộ lọc khác (VD chọn "Xã = Định Quán"
+  // thì "Tổ TK&VV" chỉ liệt kê các tổ thuộc Định Quán). Không tính bộ lọc đang
+  // sửa (để không tự thu hẹp) và không tính ô tìm kiếm tự do.
+  const others = useMemo(
+    () => allFilters.filter((f) => f.id !== excludeId),
+    [allFilters, excludeId]
+  );
+  const scopedByOthers = others.some((f) => f.values.length > 0);
+  const options = useMemo(() => {
+    const scopedRows = applyFilters(rows, others, ranges, { q: '' });
+    const base = distinctValues(scopedRows, field);
+    // Giữ lại các giá trị đang chọn dù không còn khớp phạm vi, để người dùng
+    // vẫn bỏ chọn được (tránh "giá trị ma" khóa cứng kết quả về rỗng).
+    if (selected.length === 0) return base;
+    const inBase = new Set(base);
+    const extra = selected.filter((v) => !inBase.has(v));
+    return extra.length
+      ? [...base, ...extra].sort((a, b) => a.localeCompare(b, 'vi'))
+      : base;
+  }, [rows, others, ranges, field, selected]);
   const [q, setQ] = useState('');
   const filtered = options.filter((o) => o.toLowerCase().includes(q.toLowerCase()));
   const set = new Set(selected);
@@ -343,6 +376,11 @@ function ValuePicker({
           Đóng
         </button>
       </div>
+      {scopedByOthers && (
+        <div className="mb-2 rounded bg-slate-50 px-2 py-1 text-[11px] text-slate-500 dark:bg-slate-700/40 dark:text-slate-400">
+          Chỉ hiển thị giá trị khớp các bộ lọc khác đang áp dụng
+        </div>
+      )}
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}

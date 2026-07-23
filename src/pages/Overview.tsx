@@ -25,7 +25,9 @@ import {
 import { applyFilters, useDataStore, type FilterField } from '@/store/useDataStore';
 import { useStaffStore } from '@/store/useStaffStore';
 import { useTxnPointStore } from '@/store/useTxnPointStore';
-import { makeStaffKeyExtractor, STAFF_AMBIGUOUS, STAFF_UNASSIGNED } from '@/lib/thon-coverage';
+import { makeStaffKeyExtractor, makePointKeyExtractor, STAFF_AMBIGUOUS, STAFF_UNASSIGNED } from '@/lib/thon-coverage';
+import { useChartColors } from '@/lib/useChartColors';
+import { MultiSeriesBar } from '@/components/charts/MultiSeriesBar';
 import {
   computeKpi,
   groupBy,
@@ -264,6 +266,35 @@ export function OverviewPage() {
     [filtered, staff.length, points.length, cbtdExtractor]
   );
 
+  // Dư nợ theo Điểm giao dịch — dùng cho biểu đồ xuất PDF (#4).
+  const dgdExtractor = useMemo(() => makePointKeyExtractor(points), [points]);
+  const byDGD = useMemo(
+    () => (points.length > 0 ? groupBy(filtered, dgdExtractor) : []),
+    [filtered, points.length, dgdExtractor]
+  );
+
+  // Màu chart (theo theme) — dùng cho các biểu đồ chất lượng/rủi ro xuất PDF.
+  const cc = useChartColors();
+  // #3 — Nợ quá hạn & nợ khoanh theo Hội đoàn thể (ĐVUT).
+  const orgRiskData = useMemo(
+    () =>
+      byDVUT.map((g) => ({
+        label: g.label,
+        duNoQuaHan: g.duNoQuaHan,
+        duNoKhoanh: g.duNoKhoanh,
+      })),
+    [byDVUT]
+  );
+  // #5 — Chất lượng tín dụng: Nợ quá hạn / Nợ khoanh / Lãi tồn trong hạn.
+  const qualityData = useMemo(
+    () => [
+      { label: 'Nợ quá hạn', value: kpi.duNoQuaHan, fill: cc.semantic.duNoQuaHan },
+      { label: 'Nợ khoanh', value: kpi.duNoKhoanh, fill: cc.semantic.duNoKhoanh },
+      { label: 'Lãi tồn trong hạn', value: kpi.laiTonTH, fill: cc.palette[8] },
+    ],
+    [kpi.duNoQuaHan, kpi.duNoKhoanh, kpi.laiTonTH, cc]
+  );
+
   /** Drill-down từ biểu đồ CBTD: parse Mã NV ra khỏi key, set selectedStaffId. */
   const drillToCBTD = useCallback(
     (key: string) => {
@@ -288,7 +319,14 @@ export function OverviewPage() {
   }, [filtered, donutField, ngaySoLieu]);
   const histogram = useMemo(() => histogramTongDuNo(filtered, histUnit), [filtered, histUnit]);
   const ts = useMemo(() => timeSeriesGiaiNgan(filtered), [filtered]);
+  // Lịch đáo hạn: TRÊN TRANG hiển thị đầy đủ mọi năm.
   const maturity = useMemo(() => heatmapDaoHan(filtered), [filtered]);
+  // Bản CHỈ DÙNG CHO XUẤT PDF: tập trung từ năm của kỳ số liệu trở đi (mặc
+  // định 2026), ẩn các tháng đáo hạn đã qua ở những năm trước cho báo cáo gọn.
+  const maturityExport = useMemo(() => {
+    const fromYear = ngaySoLieu?.getFullYear() ?? 2026;
+    return maturity.filter((m) => Number(m.ym.slice(0, 4)) >= fromYear);
+  }, [maturity, ngaySoLieu]);
   const topKH = useMemo(
     () => [...filtered].sort((a, b) => b.tongDuNo - a.tongDuNo).slice(0, 20),
     [filtered]
@@ -344,17 +382,18 @@ export function OverviewPage() {
             rows={filtered}
             kpi={kpi}
             chartSelectors={[
-              '#chart-dvut',
-              '#chart-program',
-              '#chart-histogram',
               '#chart-xa',
+              '#chart-dvut-export',
+              '#chart-program-export',
+              '#chart-org-risk-export',
+              ...(byDGD.length > 0 ? ['#chart-point-export'] : []),
+              '#chart-quality-export',
+              '#chart-histogram',
               '#chart-tien-gui-dvut',
               '#chart-tien-gui-xa',
               '#chart-timeseries',
-              '#chart-customer-structure',
-              '#chart-maturity',
+              '#chart-maturity-export',
               '#chart-top-customers',
-              '#chart-dormant',
             ]}
             size="sm"
           />
@@ -681,6 +720,88 @@ export function OverviewPage() {
             <HeatmapMaturity data={maturity} chartType={heatType} onClick={drillByMaturity} />
           </CardContent>
         </Card>
+
+        {/* Bản ẩn CHỈ để xuất PDF: cùng biểu đồ nhưng dữ liệu từ 2026 trở đi.
+            Đặt off-screen (không display:none để html2canvas vẫn chụp được).
+            <h3> phía trước để caption trong PDF lấy đúng "Lịch đáo hạn…". */}
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            left: -99999,
+            top: 0,
+            width: 900,
+            background: '#ffffff',
+          }}
+        >
+          <h3>Lịch đáo hạn theo tháng</h3>
+          <div id="chart-maturity-export">
+            <HeatmapMaturity data={maturityExport} chartType={heatType} />
+          </div>
+        </div>
+
+        {/* Biểu đồ ẩn CHỈ để xuất PDF — bám theo báo cáo BĐD-HĐQT: dư nợ theo
+            Hội đoàn thể (ủy thác) và cơ cấu theo chương trình tín dụng. Luôn có
+            trong PDF bất kể toggle Xã/ĐVUT/CT đang chọn gì trên giao diện. */}
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            left: -99999,
+            top: 0,
+            width: 900,
+            background: '#ffffff',
+          }}
+        >
+          <h3>Dư nợ theo Hội đoàn thể (đơn vị ủy thác)</h3>
+          <div id="chart-dvut-export">
+            <BarByGroup data={byDVUT} colorMode="dvut" limit={6} />
+          </div>
+          <h3>Cơ cấu dư nợ theo chương trình tín dụng</h3>
+          <div id="chart-program-export">
+            <BarByGroup data={byProgram} colorMode="program" limit={12} />
+          </div>
+        </div>
+
+        {/* Biểu đồ ẩn CHỈ để xuất PDF — bám báo cáo BĐD-HĐQT (#3, #4, #5). */}
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            left: -99999,
+            top: 0,
+            width: 900,
+            background: '#ffffff',
+          }}
+        >
+          <h3>Nợ quá hạn &amp; nợ khoanh theo Hội đoàn thể</h3>
+          <div id="chart-org-risk-export">
+            <MultiSeriesBar
+              data={orgRiskData}
+              series={[
+                { key: 'duNoQuaHan', name: 'Nợ quá hạn', color: cc.semantic.duNoQuaHan },
+                { key: 'duNoKhoanh', name: 'Nợ khoanh', color: cc.semantic.duNoKhoanh },
+              ]}
+            />
+          </div>
+
+          {byDGD.length > 0 && (
+            <>
+              <h3>Dư nợ theo điểm giao dịch</h3>
+              <div id="chart-point-export">
+                <BarByGroup data={byDGD} colorMode="rainbow" limit={10} />
+              </div>
+            </>
+          )}
+
+          <h3>Chất lượng tín dụng</h3>
+          <div id="chart-quality-export">
+            <MultiSeriesBar
+              data={qualityData}
+              series={[{ key: 'value', name: 'Giá trị' }]}
+            />
+          </div>
+        </div>
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
