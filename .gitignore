@@ -36,6 +36,9 @@ khoanh-*.png
 scripts/ims-export/config.json
 scripts/ims-export/logs/
 
+# IMS NDH KYCON — script noi bo, KHONG push len GitHub.
+scripts/ims-ndh-kycon/
+
 # OS / editor noise
 .DS_Store
 Thumbs.db
