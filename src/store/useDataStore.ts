@@ -60,6 +60,17 @@ export interface SearchFilter {
   q: string;
 }
 
+/**
+ * Chế độ lọc theo cờ NQ11 (Nghị quyết 11) ở trang Tra cứu chi tiết.
+ * - 'all' : không lọc
+ * - 'yes' : chỉ khế ước thuộc NQ11
+ * - 'no'  : chỉ khế ước KHÔNG thuộc NQ11
+ * Cờ NQ11 suy ra bằng cách so "Số khế ước" với danh sách Mã món vay NQ11
+ * (GQVL + NOXH) trong store Kế hoạch tín dụng — xử lý tại Explorer vì
+ * `applyFilters` không truy cập được store đó.
+ */
+export type Nq11FilterMode = 'all' | 'yes' | 'no';
+
 interface State {
   rows: LoanRecord[];
   ngaySoLieu: Date | null;
@@ -68,6 +79,8 @@ interface State {
   filters: ActiveFilter[];
   ranges: RangeFilters;
   search: SearchFilter;
+  /** Lọc theo cờ NQ11 (chỉ dùng ở Tra cứu chi tiết). */
+  nq11Filter: Nq11FilterMode;
   /** Các range đang được áp do drill-down — sẽ bị xóa khi rời /du-lieu */
   drillRangeKeys: RangeKey[];
   setData: (rows: LoanRecord[], ngaySoLieu: Date | null) => void;
@@ -81,6 +94,7 @@ interface State {
   clearFilters: () => void;
   setRange: <K extends keyof RangeFilters>(k: K, v: RangeFilters[K]) => void;
   setSearch: (q: string) => void;
+  setNq11Filter: (v: Nq11FilterMode) => void;
   /**
    * Áp đặt một bộ lọc đơn trị cho một trường (drill-down từ biểu đồ).
    * Mọi bộ lọc cũ trên cùng trường sẽ bị thay thế; các bộ lọc trên trường
@@ -116,6 +130,7 @@ export const useDataStore = create<State>((set) => ({
   filters: [],
   ranges: { mucVay: null, tongDuNo: null, laiSuat: null, ngayVay: null, ngayDaoHan: null, soDuTG105Min: null },
   search: { q: '' },
+  nq11Filter: 'all',
   drillRangeKeys: [],
 
   setData: (rows, ngaySoLieu) =>
@@ -129,6 +144,7 @@ export const useDataStore = create<State>((set) => ({
       filters: [],
       ranges: { mucVay: null, tongDuNo: null, laiSuat: null, ngayVay: null, ngayDaoHan: null, soDuTG105Min: null },
       search: { q: '' },
+      nq11Filter: 'all',
       drillRangeKeys: [],
       error: null,
     }),
@@ -161,12 +177,14 @@ export const useDataStore = create<State>((set) => ({
       filters: [],
       ranges: { mucVay: null, tongDuNo: null, laiSuat: null, ngayVay: null, ngayDaoHan: null, soDuTG105Min: null },
       search: { q: '' },
+      nq11Filter: 'all',
       drillRangeKeys: [],
     }),
 
   setRange: (k, v) =>
     set((s) => ({ ranges: { ...s.ranges, [k]: v } })),
   setSearch: (q) => set({ search: { q } }),
+  setNq11Filter: (v) => set({ nq11Filter: v }),
 
   drillDown: (field, value) =>
     set((s) => {

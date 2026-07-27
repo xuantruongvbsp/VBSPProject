@@ -20,6 +20,9 @@ import { cn } from '@/lib/utils';
 
 export type BarGroupChartType = 'bar' | 'treemap' | 'pie';
 
+/** Khóa của lát "Khác" (gộp nhóm ngoài top-N) — không cho drill-down. */
+const OTHER_KEY = '__vsppro_other__';
+
 /**
  * Chế độ màu của các thanh:
  * - `rainbow` (mặc định): mỗi thanh 1 màu trong palette categorical (8 hue).
@@ -295,15 +298,29 @@ export function BarByGroup({
 
 
   if (chartType === 'pie') {
-    const pieData = trimmed
+    const valueOf = (d: GroupAgg) => ((d as any)[metric] as number) || 0;
+    const shown = trimmed
       .map((d, i) => ({
         key: d.key,
         label: d.label,
-        value: (d as any)[metric] as number || 0,
+        value: valueOf(d),
         fill: getCellColor(d, i),
       }))
       .filter((d) => d.value > 0);
-    const pieTotal = pieData.reduce((s, d) => s + d.value, 0);
+    // Gộp các nhóm ngoài top-`limit` thành lát "Khác" để tỷ trọng và "Tổng"
+    // phản ánh TOÀN BỘ dimension, không chỉ các lát đang vẽ. Nếu không có phần
+    // dư (data ≤ limit) thì không thêm lát nào.
+    const rest = data.slice(limit);
+    const restTotal = rest.reduce((s, d) => s + valueOf(d), 0);
+    const pieData =
+      restTotal > 0
+        ? [
+            ...shown,
+            { key: OTHER_KEY, label: `Khác (${rest.length} nhóm)`, value: restTotal, fill: neutral },
+          ]
+        : shown;
+    // Tổng là tổng grand của toàn bộ `data` (kể cả nhóm bị cắt), để khớp KPI.
+    const pieTotal = data.reduce((s, d) => s + valueOf(d), 0);
 
     const renderOuterLabel = (props: any) => {
       const { cx, cy, midAngle, outerRadius, percent, fill } = props;
@@ -341,7 +358,10 @@ export function BarByGroup({
                 innerRadius={70}
                 outerRadius={110}
                 paddingAngle={2}
-                onClick={(d: any) => onClick?.(d?.key ?? d?.payload?.key)}
+                onClick={(d: any) => {
+                  const k = d?.key ?? d?.payload?.key;
+                  if (k && k !== OTHER_KEY) onClick?.(k);
+                }}
                 cursor={cursor}
                 isAnimationActive={false}
                 label={renderOuterLabel}
@@ -367,8 +387,8 @@ export function BarByGroup({
             return (
               <li
                 key={d.key}
-                className={cn('flex items-start gap-2', onClick && 'cursor-pointer')}
-                onClick={() => onClick?.(d.key)}
+                className={cn('flex items-start gap-2', onClick && d.key !== OTHER_KEY && 'cursor-pointer')}
+                onClick={() => d.key !== OTHER_KEY && onClick?.(d.key)}
               >
                 <span
                   className="mt-[5px] inline-block h-2 w-2 shrink-0 rounded-full"

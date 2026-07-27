@@ -2,6 +2,7 @@ import { useMemo, useState, useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { applyFilters, useDataStore } from '@/store/useDataStore';
 import { useTxnPointStore } from '@/store/useTxnPointStore';
+import { useCreditPlanStore } from '@/store/useCreditPlanStore';
 import { Card, CardContent } from '@/components/ui/Card';
 import { InfoPopover } from '@/components/ui/InfoPopover';
 import { ExportMenu } from '@/components/export/ExportMenu';
@@ -15,7 +16,7 @@ import { ArrowDownAZ, ArrowUpAZ } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /** Khóa cột tổng hợp không thuộc LoanRecord (suy ra từ dữ liệu khác). */
-type SyntheticColKey = 'tenDGD';
+type SyntheticColKey = 'tenDGD' | 'nq11';
 type ColKey = keyof LoanRecord | SyntheticColKey;
 
 interface Col {
@@ -32,6 +33,8 @@ interface ColRenderCtx {
   maxDepositByKH: Map<string, number>;
   /** Map maThon → tên ĐGD (Điểm giao dịch) — suy ra từ danh mục ĐGD. */
   thonToDGD: Map<string, string>;
+  /** Set "Số khế ước" thuộc NQ11 (GQVL + NOXH) — từ store Kế hoạch tín dụng. */
+  nq11Set: Set<string>;
 }
 
 const COLS: Col[] = [
@@ -42,6 +45,12 @@ const COLS: Col[] = [
   { key: 'tenDVUT', label: 'Đơn vị ủy thác', width: 160 },
   { key: 'tenTo', label: 'Tổ TK&VV', width: 180 },
   { key: 'tenChuongTrinh', label: 'Chương trình', width: 220 },
+  {
+    key: 'nq11',
+    label: 'NQ11',
+    width: 80,
+    render: (r, ctx) => (ctx.nq11Set.has(String(r.soKheUoc)) ? 'Có' : 'Không'),
+  },
   { key: 'tinhTrangMonVay', label: 'Tình trạng', width: 110 },
   { key: 'mucVay', label: 'Mức vay', width: 130, align: 'right', render: (r) => fmtCurrency(r.mucVay) },
   { key: 'tongDuNo', label: 'Tổng dư nợ', width: 140, align: 'right', render: (r) => fmtCurrency(r.tongDuNo) },
@@ -60,18 +69,33 @@ const COLS: Col[] = [
 ];
 
 export function ExplorerPage() {
-  const { rows, filters, ranges, search } = useDataStore();
+  const { rows, filters, ranges, search, nq11Filter } = useDataStore();
   const points = useTxnPointStore((s) => s.points);
+  const nq11MonVayIds = useCreditPlanStore((s) => s.nq11MonVayIds);
+  const nq11NoxhMonVayIds = useCreditPlanStore((s) => s.nq11NoxhMonVayIds);
+
+  // Set "Số khế ước" thuộc NQ11 = hợp GQVL (SK_GQVL) + NOXH (NĐ100). Ở Báo cáo
+  // 31 không có cột "Mã món vay" riêng — "Số khế ước" chính là định danh món
+  // vay, và danh sách NQ11 dùng cùng định dạng nên so trực tiếp được.
+  const nq11Set = useMemo(
+    () => new Set<string>([...nq11MonVayIds, ...nq11NoxhMonVayIds].map(String)),
+    [nq11MonVayIds, nq11NoxhMonVayIds]
+  );
   const [sort, setSort] = useState<{ key: ColKey; dir: 'asc' | 'desc' }>({
     key: 'tenXa',
     dir: 'asc',
   });
   const [detail, setDetail] = useState<LoanRecord | null>(null);
 
-  const filtered = useMemo(
-    () => applyFilters(rows, filters, ranges, search),
-    [rows, filters, ranges, search]
-  );
+  const filtered = useMemo(() => {
+    let out = applyFilters(rows, filters, ranges, search);
+    // Lọc NQ11 áp sau applyFilters vì cần Set từ store Kế hoạch tín dụng.
+    if (nq11Filter !== 'all') {
+      const want = nq11Filter === 'yes';
+      out = out.filter((r) => nq11Set.has(String(r.soKheUoc)) === want);
+    }
+    return out;
+  }, [rows, filters, ranges, search, nq11Filter, nq11Set]);
 
   const kpi = useMemo(() => computeKpi(filtered), [filtered]);
 
@@ -102,11 +126,15 @@ export function ExplorerPage() {
         ? (maxDepositByKH.get(a.maKH) ?? 0)
         : sortKey === 'tenDGD'
         ? (thonToDGD.get(a.maThon) ?? '')
+        : sortKey === 'nq11'
+        ? (nq11Set.has(String(a.soKheUoc)) ? 1 : 0)
         : a[sortKey];
       const bv = sortKey === 'soDuTienGui105'
         ? (maxDepositByKH.get(b.maKH) ?? 0)
         : sortKey === 'tenDGD'
         ? (thonToDGD.get(b.maThon) ?? '')
+        : sortKey === 'nq11'
+        ? (nq11Set.has(String(b.soKheUoc)) ? 1 : 0)
         : b[sortKey];
       if (typeof av === 'number' && typeof bv === 'number') {
         return sort.dir === 'asc' ? av - bv : bv - av;
@@ -116,7 +144,7 @@ export function ExplorerPage() {
       return sort.dir === 'asc' ? as.localeCompare(bs, 'vi') : bs.localeCompare(as, 'vi');
     });
     return copy;
-  }, [filtered, sort, maxDepositByKH, thonToDGD]);
+  }, [filtered, sort, maxDepositByKH, thonToDGD, nq11Set]);
 
   const parentRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer({
@@ -151,7 +179,7 @@ export function ExplorerPage() {
 
       <Card>
         <CardContent className="py-3">
-          <FilterBar showDepositThreshold />
+          <FilterBar showDepositThreshold showNq11Filter />
         </CardContent>
       </Card>
 
@@ -218,7 +246,7 @@ export function ExplorerPage() {
                         )}
                       >
                         {c.render
-                          ? c.render(r, { maxDepositByKH, thonToDGD })
+                          ? c.render(r, { maxDepositByKH, thonToDGD, nq11Set })
                           : String(r[c.key as keyof LoanRecord] ?? '')}
                       </div>
                     ))}

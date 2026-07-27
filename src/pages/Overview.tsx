@@ -25,7 +25,7 @@ import {
 import { applyFilters, useDataStore, type FilterField } from '@/store/useDataStore';
 import { useStaffStore } from '@/store/useStaffStore';
 import { useTxnPointStore } from '@/store/useTxnPointStore';
-import { makeStaffKeyExtractor, makePointKeyExtractor, STAFF_AMBIGUOUS, STAFF_UNASSIGNED } from '@/lib/thon-coverage';
+import { makeStaffKeyExtractor, makePointKeyExtractor, STAFF_AMBIGUOUS, STAFF_UNASSIGNED, DGD_AMBIGUOUS, DGD_UNASSIGNED } from '@/lib/thon-coverage';
 import { useChartColors } from '@/lib/useChartColors';
 import { MultiSeriesBar } from '@/components/charts/MultiSeriesBar';
 import {
@@ -131,7 +131,7 @@ export function OverviewPage() {
   const [stackedCBTDType, setStackedCBTDType] = useState<StackedChartType>('percent');
   const [barGroupType, setBarGroupType] = useState<BarGroupChartType>('bar');
   // Combined "Dư nợ theo Xã / ĐVUT / Chương trình" card: toggle chiều phân tích.
-  const [dimGroupBy, setDimGroupBy] = useState<'xa' | 'dvut' | 'program'>('xa');
+  const [dimGroupBy, setDimGroupBy] = useState<'xa' | 'dvut' | 'program' | 'dgd'>('xa');
   const [barDimType, setBarDimType] = useState<BarGroupChartType>('pie');
   // Combined "Số dư tiền gửi 105" card: ĐVUT vs Xã.
   const [depositGroupBy, setDepositGroupBy] = useState<'dvut' | 'xa'>('xa');
@@ -139,6 +139,7 @@ export function OverviewPage() {
   const staff = useStaffStore((s) => s.staff);
   const selectStaff = useStaffStore((s) => s.selectStaff);
   const points = useTxnPointStore((s) => s.points);
+  const selectPoint = useTxnPointStore((s) => s.selectPoint);
 
   const [lineType, setLineType] = useState<LineChartType>('area');
   const [histType, setHistType] = useState<HistogramChartType>('hbar');
@@ -308,6 +309,20 @@ export function OverviewPage() {
       }
     },
     [staff, selectStaff, navigate]
+  );
+  /** Drill-down từ biểu đồ ĐGD: parse Mã ĐGD ra khỏi key, set selectedPointId. */
+  const drillToDGD = useCallback(
+    (key: string) => {
+      if (key === DGD_UNASSIGNED || key === DGD_AMBIGUOUS) return;
+      const m = /^([^—]+) —/.exec(key);
+      if (!m) return;
+      const target = points.find((p) => p.maDGD === m[1].trim());
+      if (target) {
+        selectPoint(target.id);
+        navigate('/snapshot/du-lieu');
+      }
+    },
+    [points, selectPoint, navigate]
   );
   // "Cơ cấu khách hàng" — khi chọn "Theo độ tuổi", tuổi được tính tại ngày
   // số liệu (fallback: hôm nay) để kết quả đồng nhất với các chỉ tiêu khác.
@@ -486,16 +501,34 @@ export function OverviewPage() {
       >
         {(() => {
           const data =
-            dimGroupBy === 'xa' ? byXa : dimGroupBy === 'dvut' ? byDVUT : byProgram;
+            dimGroupBy === 'xa' ? byXa
+            : dimGroupBy === 'dvut' ? byDVUT
+            : dimGroupBy === 'dgd' ? byDGD
+            : byProgram;
           const drillField =
             dimGroupBy === 'xa' ? 'tenXa' : dimGroupBy === 'dvut' ? 'tenDVUT' : 'tenChuongTrinh';
           const dimLabel =
-            dimGroupBy === 'xa' ? 'Xã' : dimGroupBy === 'dvut' ? 'Đơn vị ủy thác' : 'Chương trình tín dụng';
+            dimGroupBy === 'xa' ? 'Xã'
+            : dimGroupBy === 'dvut' ? 'Đơn vị ủy thác'
+            : dimGroupBy === 'dgd' ? 'Điểm giao dịch'
+            : 'Chương trình tín dụng';
           const infoKey =
-            dimGroupBy === 'xa' ? 'chartXa' : dimGroupBy === 'dvut' ? 'chartDvut' : 'chartProgram';
+            dimGroupBy === 'xa' ? 'chartXa'
+            : dimGroupBy === 'dvut' ? 'chartDvut'
+            : dimGroupBy === 'dgd' ? 'chartDGD'
+            : 'chartProgram';
           const colorMode =
             dimGroupBy === 'program' ? 'program' : dimGroupBy === 'dvut' ? 'dvut' : 'rainbow';
           const limit = dimGroupBy === 'dvut' ? 6 : 10;
+          // Chỉ hiện nút "ĐGD" khi danh mục Điểm giao dịch đã có dữ liệu.
+          const dimOptions: Array<[typeof dimGroupBy, string]> = [
+            ['xa', 'Xã'],
+            ['dvut', 'ĐVUT'],
+            ['program', 'CT'],
+            ...(points.length > 0
+              ? ([['dgd', 'ĐGD']] as Array<[typeof dimGroupBy, string]>)
+              : []),
+          ];
           return (
         <Card>
           <CardHeader>
@@ -503,11 +536,7 @@ export function OverviewPage() {
               <div className="flex items-center gap-2">
                 <CardTitle>Dư nợ theo {dimLabel}</CardTitle>
                 <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5 text-xs shadow-sm dark:border-slate-700 dark:bg-slate-800">
-                  {([
-                    ['xa', 'Xã'],
-                    ['dvut', 'ĐVUT'],
-                    ['program', 'CT'],
-                  ] as const).map(([val, label]) => (
+                  {dimOptions.map(([val, label]) => (
                     <button
                       key={val}
                       type="button"
@@ -533,7 +562,9 @@ export function OverviewPage() {
             <BarByGroup
               data={data}
               limit={limit}
-              onClick={(v) => drillTo(drillField, v)}
+              onClick={
+                dimGroupBy === 'dgd' ? drillToDGD : (v) => drillTo(drillField, v)
+              }
               chartType={barDimType}
               colorMode={colorMode}
             />

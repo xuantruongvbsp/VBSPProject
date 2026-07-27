@@ -11,6 +11,7 @@ import { fmtCurrency, fmtDate, fmtNumber, fmtPercent } from '@/lib/format';
 import { buildThonToDGDNames } from '@/lib/thon-coverage';
 import { useTxnPointStore } from '@/store/useTxnPointStore';
 import { useDataStore } from '@/store/useDataStore';
+import { useCreditPlanStore } from '@/store/useCreditPlanStore';
 
 export interface XlsxExportInput {
   /** Danh sách khế ước đã lọc theo bộ lọc hiện hành */
@@ -73,6 +74,8 @@ interface LoanColumnCtx {
    * 0) — dùng max theo maKH để mọi dòng của khách xuất ra đều đúng số dư thật.
    */
   maxDepositByKH: Map<string, number>;
+  /** Set "Số khế ước" thuộc NQ11 (GQVL + NOXH) — từ store Kế hoạch tín dụng. */
+  nq11Set: Set<string>;
 }
 
 /** Danh mục các trường được xuất trong sheet chi tiết khế ước */
@@ -84,8 +87,6 @@ interface LoanColumn {
 }
 
 const LOAN_COLUMNS: LoanColumn[] = [
-  { header: 'Mã chi nhánh', get: (r) => r.maCN },
-  { header: 'Mã PGD', get: (r) => r.maPGD },
   { header: 'Tên PGD', get: (r) => r.tenPGD },
   { header: 'Mã xã', get: (r) => r.maXa },
   { header: 'Tên xã', get: (r) => r.tenXa },
@@ -93,7 +94,6 @@ const LOAN_COLUMNS: LoanColumn[] = [
   { header: 'Tên thôn', get: (r) => r.tenThon },
   { header: 'Mã khách hàng', get: (r) => r.maKH },
   { header: 'Tên khách hàng', get: (r) => r.tenKH },
-  { header: 'Phân loại', get: (r) => r.phanLoai },
   { header: 'Giới tính', get: (r) => r.gioiTinh },
   { header: 'Dân tộc', get: (r) => r.tenDanToc },
   { header: 'Tổ TK&VV', get: (r) => r.tenTo },
@@ -102,11 +102,10 @@ const LOAN_COLUMNS: LoanColumn[] = [
   { header: 'Ngày vay', get: (r) => fmtDate(r.ngayVay) },
   { header: 'Ngày đến hạn HĐ', get: (r) => fmtDate(r.ngayDHHopDong) },
   { header: 'Ngày đến hạn gia hạn', get: (r) => fmtDate(r.ngayDHGiaHan) },
-  { header: 'Thời hạn vay (tháng)', get: (r) => r.thoiHanVay, numFmt: '#,##0' },
   { header: 'Lãi suất (%/năm)', get: (r) => r.laiSuat, numFmt: '#,##0.00' },
-  { header: 'Hình thức vay', get: (r) => r.hinhThucVay },
   { header: 'Tình trạng món vay', get: (r) => r.tinhTrangMonVay },
   { header: 'Chương trình tín dụng', get: (r) => r.tenChuongTrinh },
+  { header: 'NQ11', get: (r, ctx) => (ctx.nq11Set.has(String(r.soKheUoc)) ? 'Có' : 'Không') },
   { header: 'Nguồn vốn', get: (r) => r.nguonVon },
   { header: 'Mức vay', get: (r) => r.mucVay, numFmt: '#,##0' },
   { header: 'Tổng giải ngân', get: (r) => r.tongGiaiNgan, numFmt: '#,##0' },
@@ -120,14 +119,10 @@ const LOAN_COLUMNS: LoanColumn[] = [
     get: (r, ctx) => ctx.maxDepositByKH.get(r.maKH) ?? r.soDuTienGui105,
     numFmt: '#,##0',
   },
-  { header: 'Gốc đã trả', get: (r) => r.gocDaTra, numFmt: '#,##0' },
   { header: 'Lãi tồn trong hạn', get: (r) => r.laiTonTH, numFmt: '#,##0' },
   { header: 'Lãi tồn quá hạn', get: (r) => r.laiTonQH, numFmt: '#,##0' },
-  { header: 'Thu lãi TH trong tháng', get: (r) => r.thuLaiTHThang, numFmt: '#,##0' },
-  { header: 'Thu lãi QH trong tháng', get: (r) => r.thuLaiQHThang, numFmt: '#,##0' },
   { header: 'Giải ngân trong tháng', get: (r) => r.giaiNganTrongThang, numFmt: '#,##0' },
   { header: 'Thu nợ TH trong tháng', get: (r) => r.thuNoTHThang, numFmt: '#,##0' },
-  { header: 'Thu nợ QH trong tháng', get: (r) => r.thuNoQHThang, numFmt: '#,##0' },
   { header: 'Ngày giao dịch gần nhất', get: (r) => fmtDate(r.ngayGiaoDichGanNhat) },
 ];
 
@@ -181,9 +176,16 @@ function buildDetailSheet(rows: LoanRecord[]): XLSX.WorkSheet {
     const cur = maxDepositByKH.get(r.maKH);
     if (cur === undefined || v > cur) maxDepositByKH.set(r.maKH, v);
   }
+  // Cờ NQ11: "Số khế ước" thuộc danh sách Mã món vay NQ11 (GQVL + NOXH) từ
+  // store Kế hoạch tín dụng. Chưa import danh sách → set rỗng → cột toàn "Không".
+  const cp = useCreditPlanStore.getState();
+  const nq11Set = new Set<string>(
+    [...cp.nq11MonVayIds, ...cp.nq11NoxhMonVayIds].map(String)
+  );
   const ctx: LoanColumnCtx = {
     thonToDGD: buildThonToDGDNames(useTxnPointStore.getState().points),
     maxDepositByKH,
+    nq11Set,
   };
   const headers = LOAN_COLUMNS.map((c) => c.header);
   const aoa: (string | number)[][] = [headers];

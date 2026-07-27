@@ -135,6 +135,14 @@ export const METRIC_EXPLANATIONS: Record<string, MetricExplanation> = {
       'Tổng hợp dư nợ theo cột "Xã/Phường" trên Báo cáo 31, sắp xếp giảm dần và lấy Top 10.',
     note: 'Phản ánh mức độ phân bổ vốn theo địa bàn; bấm vào cột để lọc nhanh danh mục theo xã.',
   },
+  chartDGD: {
+    title: 'Dư nợ theo Điểm giao dịch',
+    definition:
+      'So sánh quy mô dư nợ giữa các Điểm giao dịch (ĐGD) — mỗi ĐGD phụ trách một nhóm Mã thôn (cấu hình ở danh mục Điểm giao dịch).',
+    formula:
+      'Khế ước được phân về ĐGD quản lý Mã thôn của nó, cộng dư nợ theo từng ĐGD, sắp xếp giảm dần và lấy Top 10. Thôn không thuộc ĐGD duy nhất gom vào "(Chưa gán ĐGD)" / "(Nhiều ĐGD)".',
+    note: 'Bấm vào một cột ĐGD để mở Tra cứu chi tiết đã lọc theo ĐGD đó.',
+  },
   chartPgd: {
     title: 'Dư nợ theo Phòng giao dịch',
     definition:

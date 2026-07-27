@@ -14,7 +14,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Plus, X, GripVertical, Search, UserCircle2, MapPin, Wallet } from 'lucide-react';
+import { Plus, X, GripVertical, Search, UserCircle2, MapPin, Wallet, BadgeCheck } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import {
   useDataStore,
@@ -27,6 +27,7 @@ import {
 } from '@/store/useDataStore';
 import { useStaffStore } from '@/store/useStaffStore';
 import { useTxnPointStore } from '@/store/useTxnPointStore';
+import { useCreditPlanStore } from '@/store/useCreditPlanStore';
 import { useIsOwner } from '@/store/useAuthStore';
 import { Link } from 'react-router-dom';
 import { distinctValues } from '@/lib/metrics';
@@ -154,12 +155,18 @@ interface FilterBarProps {
    * Chỉ bật ở ứng dụng snapshot (Tra cứu chi tiết) — dùng thẳng useDataStore.
    */
   showDepositThreshold?: boolean;
+  /**
+   * Hiện bộ lọc "NQ11: Tất cả / Có / Không" (so Số khế ước với danh sách Mã
+   * món vay NQ11 bên Kế hoạch tín dụng). Chỉ bật ở snapshot (Tra cứu chi tiết).
+   */
+  showNq11Filter?: boolean;
 }
 
 export function FilterBar({
   useStore,
   accent = 'brand',
   showDepositThreshold = false,
+  showNq11Filter = false,
 }: FilterBarProps = {}) {
   const store = (useStore ?? useDefaultFilterStore)();
   const {
@@ -176,6 +183,9 @@ export function FilterBar({
   } = store;
   const [adderOpen, setAdderOpen] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
+  // Đọc thẳng từ snapshot store để nút "Xóa tất cả" biết cờ NQ11 đang bật.
+  // Vô hại với ứng dụng period (luôn 'all', không có UI đổi).
+  const nq11Filter = useDataStore((s) => s.nq11Filter);
 
   // Bộ chọn "Cán bộ" / "Điểm giao dịch" áp dụng cho cả 2 ứng dụng
   // (snapshot và so sánh hai kỳ). Stores cán bộ/ĐGD là localStorage chung
@@ -225,6 +235,8 @@ export function FilterBar({
         </div>
 
         {showDepositThreshold && <DepositThresholdInput accent={accent} />}
+
+        {showNq11Filter && <Nq11FilterSelect accent={accent} />}
 
         {showStaff && (
           <>
@@ -300,7 +312,10 @@ export function FilterBar({
           )}
         </div>
 
-        {(filters.length > 0 || search.q || ranges.soDuTG105Min != null) && (
+        {(filters.length > 0 ||
+          search.q ||
+          ranges.soDuTG105Min != null ||
+          nq11Filter !== 'all') && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
             Xóa tất cả
           </Button>
@@ -518,6 +533,65 @@ function DepositThresholdInput({ accent }: { accent: 'brand' | 'period' }) {
           <X className="h-3 w-3" />
         </button>
       )}
+    </div>
+  );
+}
+
+/**
+ * Bộ lọc "NQ11: Tất cả / Có / Không" — so "Số khế ước" của Báo cáo 31 với
+ * danh sách Mã món vay NQ11 (GQVL + NOXH) đã import bên Kế hoạch tín dụng.
+ * Việc lọc thực tế diễn ra ở trang Tra cứu chi tiết (Explorer); ở đây chỉ
+ * ghi chế độ vào useDataStore. Vô hiệu hóa khi chưa có danh sách NQ11.
+ */
+function Nq11FilterSelect({ accent }: { accent: 'brand' | 'period' }) {
+  const value = useDataStore((s) => s.nq11Filter);
+  const setValue = useDataStore((s) => s.setNq11Filter);
+  const gqvl = useCreditPlanStore((s) => s.nq11MonVayIds);
+  const noxh = useCreditPlanStore((s) => s.nq11NoxhMonVayIds);
+  const count = gqvl.length + noxh.length;
+  const hasData = count > 0;
+  const active = value !== 'all';
+
+  const ringClass =
+    accent === 'period'
+      ? 'focus:border-period-400 focus:ring-period-200'
+      : 'focus:border-brand-400 focus:ring-brand-200';
+
+  return (
+    <div className="relative">
+      <BadgeCheck
+        className={cn(
+          'pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2',
+          active
+            ? accent === 'period'
+              ? 'text-period-500'
+              : 'text-brand-500'
+            : 'text-slate-400 dark:text-slate-500'
+        )}
+      />
+      <select
+        value={value}
+        onChange={(e) => setValue(e.target.value as 'all' | 'yes' | 'no')}
+        disabled={!hasData}
+        className={cn(
+          'h-8 rounded-md border bg-white pl-7 pr-7 text-xs outline-none focus:ring-1 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-800',
+          active
+            ? accent === 'period'
+              ? 'border-period-300 text-slate-700 dark:border-period-700 dark:text-slate-200'
+              : 'border-brand-300 text-slate-700 dark:border-brand-700 dark:text-slate-200'
+            : 'border-slate-200 text-slate-700 dark:border-slate-700 dark:text-slate-200',
+          ringClass
+        )}
+        title={
+          hasData
+            ? `Lọc theo cờ NQ11 (${count.toLocaleString('vi-VN')} món trong danh sách)`
+            : 'Chưa có danh sách NQ11 — import SK_GQVL / NOXH bên Kế hoạch tín dụng'
+        }
+      >
+        <option value="all">NQ11: Tất cả</option>
+        <option value="yes">NQ11: Có</option>
+        <option value="no">NQ11: Không</option>
+      </select>
     </div>
   );
 }
