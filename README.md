@@ -8,6 +8,20 @@ Toàn bộ xử lý chạy trên trình duyệt của bạn. Tệp Excel **khôn
 
 ---
 
+## Ứng dụng có gì?
+
+App gồm **3 ứng dụng độc lập** — dữ liệu và bộ lọc của mỗi ứng dụng được giữ riêng biệt:
+
+| Ứng dụng | Nhập vào | Cho ra |
+|---|---|---|
+| **1. Phân tích một kỳ** | 1 tệp Báo cáo 31 | 8 KPI tổng quan · biểu đồ ĐVUT / chương trình / cơ cấu khách hàng · báo cáo so sánh giữa và trong từng đối tượng · lịch đáo hạn · nợ quá hạn (NPL) · khoanh nợ · tra cứu chi tiết 174 trường mỗi khế ước |
+| **2. So sánh giữa hai kỳ** | 2–3 tệp Báo cáo 31 (Cuối năm trước · Cuối tháng trước · Hiện tại), chọn 2 để so | Diễn biến KPI · roll rate · cure rate · vào/ra khách hàng · ma trận chuyển nhóm · Top tăng/giảm theo PGD/Xã/ĐVUT · chất lượng tài sản · PAR30/90/180 · so sánh điểm giao dịch (ĐGD) |
+| **3. Kế hoạch tín dụng** | Kế hoạch dư nợ theo quyết định (nhập tay) + thực tế từ Báo cáo 31 | So sánh kế hoạch vs thực tế theo xã / chương trình / nguồn vốn · tỷ lệ hoàn thành · báo cáo hiệu suất cán bộ & ĐGD · quản lý danh mục xã |
+
+Cả ba đều: chạy hoàn toàn trên trình duyệt, hỗ trợ **giao diện tối/sáng**, **xuất báo cáo ra Excel / PDF**, và cơ chế **Quản trị viên / Người xem** (quản trị nhập & xuất bản dữ liệu, người xem mở link là thấy — chi tiết trong TUTORIAL.md).
+
+---
+
 ## Hướng dẫn cài đặt cho người chưa biết lập trình
 
 Bạn cần làm 4 việc, **một lần duy nhất**:
@@ -41,12 +55,12 @@ Nếu thấy dòng dạng `v20.x.x` thì đã cài thành công. Nếu báo lỗ
 
 Bạn **không cần** cài Git. Cách đơn giản nhất:
 
-1. Mở trang: **https://github.com/chautinkhiem1997-ctrl/KIETCUIBAP**
+1. Mở trang: **https://github.com/maituankiet97/VBSPProject**
 2. Bấm nút xanh **"Code"** ở góc trên bên phải danh sách tệp
 3. Trong menu hiện ra, bấm **"Download ZIP"**
-4. Lưu tệp `KIETCUIBAP-main.zip` vào thư mục bạn muốn (ví dụ: `C:\Users\<tên-bạn>\Documents\`)
+4. Lưu tệp `VBSPProject-main.zip` vào thư mục bạn muốn (ví dụ: `C:\Users\<tên-bạn>\Documents\`)
 5. Chuột phải vào tệp ZIP → **Extract All...** → bấm **Extract**
-6. Bạn sẽ có thư mục `KIETCUIBAP-main` chứa toàn bộ mã nguồn
+6. Bạn sẽ có thư mục `VBSPProject-main` chứa toàn bộ mã nguồn
 
 > **Mẹo**: đổi tên thư mục thành `VSPPRO` cho ngắn gọn — không bắt buộc, nhưng dễ nhớ hơn.
 
@@ -54,9 +68,9 @@ Bạn **không cần** cài Git. Cách đơn giản nhất:
 
 ### Bước 3 — Cài thư viện (5–10 phút, một lần duy nhất)
 
-1. Mở thư mục `KIETCUIBAP-main` (hoặc `VSPPRO` nếu đã đổi tên) vừa giải nén
+1. Mở thư mục `VBSPProject-main` (hoặc `VSPPRO` nếu đã đổi tên) vừa giải nén
 2. **Chuột phải vào khoảng trống trong thư mục** (không phải lên một tệp nào) → chọn **"Open in Terminal"**
-   - Nếu Windows 10 không có lựa chọn này: mở PowerShell, gõ `cd "C:\đường\dẫn\đến\KIETCUIBAP-main"` rồi Enter
+   - Nếu Windows 10 không có lựa chọn này: mở PowerShell, gõ `cd "C:\đường\dẫn\đến\VBSPProject-main"` rồi Enter
 3. Trong cửa sổ terminal vừa mở, gõ:
    ```
    npm install
@@ -64,13 +78,13 @@ Bạn **không cần** cài Git. Cách đơn giản nhất:
 4. Đợi 5–10 phút. Sẽ thấy nhiều dòng chữ chạy qua, kèm thanh tiến trình. **Bình thường**.
 5. Khi thấy dòng dạng `added 286 packages in 7m` thì xong.
 
-> Nếu báo lỗi đỏ: chụp màn hình gửi cho người đã chia sẻ app (Châu Tín Khiêm) — đừng tự sửa.
+> Nếu báo lỗi đỏ: chụp màn hình gửi cho người đã chia sẻ app (Mai Tuấn Kiệt) — đừng tự sửa.
 
 ---
 
 ### Bước 4 — Khởi chạy app (mỗi khi muốn dùng)
 
-Trong cùng cửa sổ terminal đang ở thư mục `KIETCUIBAP-main`, gõ:
+Trong cùng cửa sổ terminal đang ở thư mục `VBSPProject-main`, gõ:
 ```
 npm run dev
 ```
@@ -97,7 +111,7 @@ App sẽ hiện ra. Đọc tiếp **[TUTORIAL.md](TUTORIAL.md)** mục **2.1** �
 
 Bạn không cần làm lại Bước 1, 2, 3. Mỗi khi muốn mở app:
 
-1. Mở thư mục `KIETCUIBAP-main`
+1. Mở thư mục `VBSPProject-main`
 2. Chuột phải khoảng trống → **Open in Terminal**
 3. Gõ `npm run dev` → Enter
 4. Mở `http://localhost:5173/` trên trình duyệt
@@ -134,4 +148,4 @@ Nếu chỉ dùng một mình trên máy cá nhân (không chia sẻ link cho ai
 
 ## Cần giúp đỡ?
 
-Liên hệ người đã chia sẻ app này cho bạn.
+Liên hệ **Mai Tuấn Kiệt** — người đã chia sẻ app này cho bạn.

@@ -50,6 +50,22 @@ export function buildThonCoverage(
   return { thonToStaffIds, thonToPointIds };
 }
 
+/**
+ * maThon → tên ĐGD để hiển thị. Thôn thuộc nhiều ĐGD (hiếm) thì nối tên
+ * bằng ' / '; thôn chưa gán không có mặt trong map. Dùng chung cho lưới
+ * "Tra cứu chi tiết" và cột "Điểm giao dịch" trong bản xuất Excel.
+ */
+export function buildThonToDGDNames(points: TxnPointRecord[]): Map<string, string> {
+  const m = new Map<string, string>();
+  for (const p of points) {
+    for (const t of p.maThons) {
+      const cur = m.get(t);
+      m.set(t, cur ? `${cur} / ${p.tenDGD}` : p.tenDGD);
+    }
+  }
+  return m;
+}
+
 /** Sentinel labels cho nhóm tổng hợp. */
 export const STAFF_UNASSIGNED = '(Chưa gán cán bộ)';
 export const STAFF_AMBIGUOUS = '(Nhiều cán bộ phụ trách)';

@@ -8,6 +8,7 @@ import { ExportMenu } from '@/components/export/ExportMenu';
 import { FilterBar } from '@/components/filters/FilterBar';
 import { LoanDetailDrawer } from '@/components/detail/LoanDetailDrawer';
 import { computeKpi } from '@/lib/metrics';
+import { buildThonToDGDNames } from '@/lib/thon-coverage';
 import { fmtCurrency, fmtDate, fmtPercent } from '@/lib/format';
 import type { LoanRecord } from '@/lib/types';
 import { ArrowDownAZ, ArrowUpAZ } from 'lucide-react';
@@ -74,29 +75,23 @@ export function ExplorerPage() {
 
   const kpi = useMemo(() => computeKpi(filtered), [filtered]);
 
-  // Map maKH → max(soDuTienGui105). Field này lặp giá trị giống nhau trên các
-  // dòng khế ước cùng KH, nhưng vẫn lấy max để đề phòng dữ liệu lệch.
+  // Map maKH → max(soDuTienGui105). Đây là chỉ tiêu cấp KHÁCH HÀNG, nhưng trong
+  // Báo cáo 31 giá trị chỉ nằm trên MỘT dòng khế ước của khách (thường theo
+  // chương trình gắn sổ tiết kiệm), các dòng còn lại = 0 — KHÔNG lặp đồng đều.
+  // Vì vậy phải quét trên toàn bộ `rows` (không lọc): nếu chỉ quét `filtered`,
+  // khi lọc theo chương trình mà dòng mang số dư bị loại thì cột hiện sai 0.
   const maxDepositByKH = useMemo(() => {
     const m = new Map<string, number>();
-    for (const r of filtered) {
+    for (const r of rows) {
       const v = r.soDuTienGui105 || 0;
       const cur = m.get(r.maKH);
       if (cur === undefined || v > cur) m.set(r.maKH, v);
     }
     return m;
-  }, [filtered]);
+  }, [rows]);
 
   // Map maThon → tên ĐGD. Một thôn thuộc nhiều ĐGD (hiếm) thì nối tên bằng ' / '.
-  const thonToDGD = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const p of points) {
-      for (const t of p.maThons) {
-        const cur = m.get(t);
-        m.set(t, cur ? `${cur} / ${p.tenDGD}` : p.tenDGD);
-      }
-    }
-    return m;
-  }, [points]);
+  const thonToDGD = useMemo(() => buildThonToDGDNames(points), [points]);
 
   const sorted = useMemo(() => {
     const copy = [...filtered];
@@ -156,7 +151,7 @@ export function ExplorerPage() {
 
       <Card>
         <CardContent className="py-3">
-          <FilterBar />
+          <FilterBar showDepositThreshold />
         </CardContent>
       </Card>
 

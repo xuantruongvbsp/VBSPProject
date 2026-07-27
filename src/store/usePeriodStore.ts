@@ -106,7 +106,7 @@ interface State {
   consumePendingDrill: () => PendingDrill | null;
 }
 
-const EMPTY_RANGES: RangeFilters = { mucVay: null, tongDuNo: null, laiSuat: null, ngayVay: null, ngayDaoHan: null };
+const EMPTY_RANGES: RangeFilters = { mucVay: null, tongDuNo: null, laiSuat: null, ngayVay: null, ngayDaoHan: null, soDuTG105Min: null };
 
 const DEFAULT_PAIR: ComparePair = { a: 'lastMonth', b: 'now' };
 

@@ -8,6 +8,9 @@ import * as XLSX from 'xlsx';
 import type { LoanRecord } from '@/lib/types';
 import type { DormantCustomer, PortfolioKpi } from '@/lib/metrics';
 import { fmtCurrency, fmtDate, fmtNumber, fmtPercent } from '@/lib/format';
+import { buildThonToDGDNames } from '@/lib/thon-coverage';
+import { useTxnPointStore } from '@/store/useTxnPointStore';
+import { useDataStore } from '@/store/useDataStore';
 
 export interface XlsxExportInput {
   /** Danh sách khế ước đã lọc theo bộ lọc hiện hành */
@@ -60,10 +63,22 @@ export function makeDefaultFilename(
   return defaultFilename(pageTitle, ext);
 }
 
+/** Bối cảnh cho các cột suy ra từ danh mục, không nằm trên LoanRecord. */
+interface LoanColumnCtx {
+  /** maThon → tên ĐGD (danh mục Điểm giao dịch). */
+  thonToDGD: Map<string, string>;
+  /**
+   * maKH → max(soDuTienGui105) trên TOÀN BỘ dữ liệu. "Số dư tiền gửi 105" là
+   * chỉ tiêu cấp khách hàng, chỉ nằm trên một khế ước của khách (dòng khác =
+   * 0) — dùng max theo maKH để mọi dòng của khách xuất ra đều đúng số dư thật.
+   */
+  maxDepositByKH: Map<string, number>;
+}
+
 /** Danh mục các trường được xuất trong sheet chi tiết khế ước */
 interface LoanColumn {
   header: string;
-  get: (r: LoanRecord) => string | number;
+  get: (r: LoanRecord, ctx: LoanColumnCtx) => string | number;
   /** Mã định dạng số của Excel (tuỳ chọn) */
   numFmt?: string;
 }
@@ -74,6 +89,7 @@ const LOAN_COLUMNS: LoanColumn[] = [
   { header: 'Tên PGD', get: (r) => r.tenPGD },
   { header: 'Mã xã', get: (r) => r.maXa },
   { header: 'Tên xã', get: (r) => r.tenXa },
+  { header: 'Điểm giao dịch', get: (r, ctx) => ctx.thonToDGD.get(r.maThon) ?? '' },
   { header: 'Tên thôn', get: (r) => r.tenThon },
   { header: 'Mã khách hàng', get: (r) => r.maKH },
   { header: 'Tên khách hàng', get: (r) => r.tenKH },
@@ -98,7 +114,12 @@ const LOAN_COLUMNS: LoanColumn[] = [
   { header: 'Dư nợ quá hạn', get: (r) => r.duNoQuaHan, numFmt: '#,##0' },
   { header: 'Dư nợ khoanh', get: (r) => r.duNoKhoanh, numFmt: '#,##0' },
   { header: 'Tổng dư nợ', get: (r) => r.tongDuNo, numFmt: '#,##0' },
-  { header: 'Số dư TK 105', get: (r) => r.soDuTienGui105, numFmt: '#,##0' },
+  {
+    header: 'Số dư TK 105',
+    // Số dư cấp khách hàng (max theo maKH) — xem chú thích ở LoanColumnCtx.
+    get: (r, ctx) => ctx.maxDepositByKH.get(r.maKH) ?? r.soDuTienGui105,
+    numFmt: '#,##0',
+  },
   { header: 'Gốc đã trả', get: (r) => r.gocDaTra, numFmt: '#,##0' },
   { header: 'Lãi tồn trong hạn', get: (r) => r.laiTonTH, numFmt: '#,##0' },
   { header: 'Lãi tồn quá hạn', get: (r) => r.laiTonQH, numFmt: '#,##0' },
@@ -148,10 +169,26 @@ function buildKpiSheet(
 
 /** Tạo sheet "Chi tiết khế ước" từ danh sách LoanRecord */
 function buildDetailSheet(rows: LoanRecord[]): XLSX.WorkSheet {
+  // Danh mục ĐGD là cấu hình toàn cục (không phụ thuộc bộ lọc của trang) nên
+  // đọc thẳng từ store — mọi trang dùng chung sheet chi tiết đều có cột này.
+  // Số dư TG 105 tính max theo maKH trên TOÀN BỘ store (không chỉ `rows` đã
+  // lọc) để dòng của khách vẫn hiện số dư thật kể cả khi dòng mang số dư bị
+  // bộ lọc loại khỏi tập xuất. Store rỗng (vd app so sánh kỳ) → map rỗng →
+  // cột tự rơi về giá trị từng dòng `r.soDuTienGui105`.
+  const maxDepositByKH = new Map<string, number>();
+  for (const r of useDataStore.getState().rows) {
+    const v = r.soDuTienGui105 || 0;
+    const cur = maxDepositByKH.get(r.maKH);
+    if (cur === undefined || v > cur) maxDepositByKH.set(r.maKH, v);
+  }
+  const ctx: LoanColumnCtx = {
+    thonToDGD: buildThonToDGDNames(useTxnPointStore.getState().points),
+    maxDepositByKH,
+  };
   const headers = LOAN_COLUMNS.map((c) => c.header);
   const aoa: (string | number)[][] = [headers];
   for (const r of rows) {
-    aoa.push(LOAN_COLUMNS.map((c) => c.get(r)));
+    aoa.push(LOAN_COLUMNS.map((c) => c.get(r, ctx)));
   }
   const ws = XLSX.utils.aoa_to_sheet(aoa);
 

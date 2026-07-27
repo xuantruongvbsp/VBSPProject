@@ -46,6 +46,12 @@ export interface RangeFilters {
   laiSuat: [number, number] | null;
   ngayVay: [string, string] | null; // ISO yyyy-mm-dd
   ngayDaoHan: [string, string] | null; // ISO yyyy-mm-dd — so khớp trên ngayDHGDXA (đồng bộ với heatmap & Explorer)
+  /**
+   * Ngưỡng dưới (nghiêm ngặt: strict `>`) cho "Số dư tiền gửi 105" ở CẤP
+   * KHÁCH HÀNG. Giữ lại khế ước của khách có max(soDuTienGui105 theo maKH)
+   * lớn hơn giá trị này. `null` = không áp dụng. Đơn vị: đồng.
+   */
+  soDuTG105Min: number | null;
 }
 
 export type RangeKey = keyof RangeFilters;
@@ -108,7 +114,7 @@ export const useDataStore = create<State>((set) => ({
   isLoading: false,
   error: null,
   filters: [],
-  ranges: { mucVay: null, tongDuNo: null, laiSuat: null, ngayVay: null, ngayDaoHan: null },
+  ranges: { mucVay: null, tongDuNo: null, laiSuat: null, ngayVay: null, ngayDaoHan: null, soDuTG105Min: null },
   search: { q: '' },
   drillRangeKeys: [],
 
@@ -121,7 +127,7 @@ export const useDataStore = create<State>((set) => ({
       rows: [],
       ngaySoLieu: null,
       filters: [],
-      ranges: { mucVay: null, tongDuNo: null, laiSuat: null, ngayVay: null, ngayDaoHan: null },
+      ranges: { mucVay: null, tongDuNo: null, laiSuat: null, ngayVay: null, ngayDaoHan: null, soDuTG105Min: null },
       search: { q: '' },
       drillRangeKeys: [],
       error: null,
@@ -153,7 +159,7 @@ export const useDataStore = create<State>((set) => ({
   clearFilters: () =>
     set({
       filters: [],
-      ranges: { mucVay: null, tongDuNo: null, laiSuat: null, ngayVay: null, ngayDaoHan: null },
+      ranges: { mucVay: null, tongDuNo: null, laiSuat: null, ngayVay: null, ngayDaoHan: null, soDuTG105Min: null },
       search: { q: '' },
       drillRangeKeys: [],
     }),
@@ -246,6 +252,21 @@ export function applyFilters(
   if (ranges.laiSuat) {
     const [a, b] = ranges.laiSuat;
     out = out.filter((r) => r.laiSuat >= a && r.laiSuat <= b);
+  }
+  if (ranges.soDuTG105Min != null) {
+    // "Số dư tiền gửi 105" là chỉ tiêu cấp KHÁCH HÀNG, nhưng trong Báo cáo 31
+    // chỉ nằm trên MỘT khế ước của khách (các dòng khác = 0). Vì vậy tính max
+    // theo maKH trên TOÀN BỘ `rows` đầu vào (không phải `out` đã bị thu hẹp)
+    // để bộ lọc khác — vd chương trình — không làm mất dòng mang số dư. Giữ
+    // lại khế ước của khách có số dư thật > ngưỡng.
+    const threshold = ranges.soDuTG105Min;
+    const maxByKH = new Map<string, number>();
+    for (const r of rows) {
+      const v = r.soDuTienGui105 || 0;
+      const cur = maxByKH.get(r.maKH);
+      if (cur === undefined || v > cur) maxByKH.set(r.maKH, v);
+    }
+    out = out.filter((r) => (maxByKH.get(r.maKH) ?? 0) > threshold);
   }
   if (ranges.ngayVay) {
     const [a, b] = ranges.ngayVay;

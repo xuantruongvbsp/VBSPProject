@@ -14,7 +14,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Plus, X, GripVertical, Search, UserCircle2, MapPin } from 'lucide-react';
+import { Plus, X, GripVertical, Search, UserCircle2, MapPin, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import {
   useDataStore,
@@ -149,9 +149,18 @@ interface FilterBarProps {
   useStore?: FilterStoreHook;
   /** Tông màu nhấn — quyết định nút tìm kiếm và chip giá trị. */
   accent?: 'brand' | 'period';
+  /**
+   * Hiện ô lọc "Số dư TG 105 > …" (chỉ tiêu cấp khách hàng của Báo cáo 31).
+   * Chỉ bật ở ứng dụng snapshot (Tra cứu chi tiết) — dùng thẳng useDataStore.
+   */
+  showDepositThreshold?: boolean;
 }
 
-export function FilterBar({ useStore, accent = 'brand' }: FilterBarProps = {}) {
+export function FilterBar({
+  useStore,
+  accent = 'brand',
+  showDepositThreshold = false,
+}: FilterBarProps = {}) {
   const store = (useStore ?? useDefaultFilterStore)();
   const {
     rows,
@@ -214,6 +223,8 @@ export function FilterBar({ useStore, accent = 'brand' }: FilterBarProps = {}) {
             )}
           />
         </div>
+
+        {showDepositThreshold && <DepositThresholdInput accent={accent} />}
 
         {showStaff && (
           <>
@@ -289,7 +300,7 @@ export function FilterBar({ useStore, accent = 'brand' }: FilterBarProps = {}) {
           )}
         </div>
 
-        {(filters.length > 0 || search.q) && (
+        {(filters.length > 0 || search.q || ranges.soDuTG105Min != null) && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
             Xóa tất cả
           </Button>
@@ -435,6 +446,78 @@ function ValuePicker({
           Bỏ chọn tất cả
         </button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Ô lọc "Số dư TG 105 > …" — ngưỡng dưới (strict `>`) ở CẤP KHÁCH HÀNG cho
+ * chỉ tiêu "Số dư tiền gửi 105" của Báo cáo 31. Dùng thẳng useDataStore
+ * (chỉ hiển thị ở ứng dụng snapshot) vì đây là trường riêng của snapshot.
+ * Nhập số có nhóm hàng nghìn; để trống = gỡ bộ lọc.
+ */
+function DepositThresholdInput({ accent }: { accent: 'brand' | 'period' }) {
+  const min = useDataStore((s) => s.ranges.soDuTG105Min);
+  const setRange = useDataStore((s) => s.setRange);
+  const [text, setText] = useState(min != null ? min.toLocaleString('vi-VN') : '');
+
+  // Đồng bộ ngược khi giá trị bị xóa từ nơi khác (vd nút "Xóa tất cả").
+  useEffect(() => {
+    setText(min != null ? min.toLocaleString('vi-VN') : '');
+  }, [min]);
+
+  const onChange = (raw: string) => {
+    const digits = raw.replace(/[^\d]/g, '');
+    if (!digits) {
+      setText('');
+      setRange('soDuTG105Min', null);
+      return;
+    }
+    const n = Number(digits);
+    setText(n.toLocaleString('vi-VN'));
+    setRange('soDuTG105Min', n);
+  };
+
+  const active = min != null;
+  const focusRing =
+    accent === 'period'
+      ? 'focus-within:border-period-400 focus-within:ring-period-200'
+      : 'focus-within:border-brand-400 focus-within:ring-brand-200';
+
+  return (
+    <div
+      className={cn(
+        'flex h-8 items-center gap-1.5 rounded-md border bg-white pl-2 pr-1.5 text-xs dark:bg-slate-800 focus-within:ring-1',
+        active
+          ? accent === 'period'
+            ? 'border-period-300 dark:border-period-700'
+            : 'border-brand-300 dark:border-brand-700'
+          : 'border-slate-200 dark:border-slate-700',
+        focusRing
+      )}
+      title="Chỉ giữ khách hàng có Số dư tiền gửi 105 lớn hơn giá trị này"
+    >
+      <Wallet className="h-3.5 w-3.5 shrink-0 text-slate-400 dark:text-slate-500" />
+      <span className="shrink-0 whitespace-nowrap text-slate-500 dark:text-slate-400">
+        Số dư TG 105 &gt;
+      </span>
+      <input
+        value={text}
+        onChange={(e) => onChange(e.target.value)}
+        inputMode="numeric"
+        placeholder="0"
+        className="h-full w-24 bg-transparent text-right text-slate-700 outline-none dark:text-slate-200"
+      />
+      <span className="shrink-0 text-slate-400 dark:text-slate-500">đ</span>
+      {active && (
+        <button
+          onClick={() => onChange('')}
+          className="rounded-full p-0.5 text-slate-400 hover:bg-rose-100 hover:text-rose-600 dark:text-slate-500 dark:hover:bg-rose-900/30"
+          title="Bỏ lọc số dư"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      )}
     </div>
   );
 }
