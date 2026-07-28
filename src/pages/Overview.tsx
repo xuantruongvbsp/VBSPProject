@@ -116,7 +116,7 @@ const DORMANT_BUCKETS = [
 type DormantBucketId = (typeof DORMANT_BUCKETS)[number]['id'];
 
 export function OverviewPage() {
-  const { rows, filters, ranges, search, ngaySoLieu, drillDown, drillDownRange } =
+  const { rows, filters, ranges, search, ngaySoLieu, depositByKH, drillDown, drillDownRange } =
     useDataStore();
   const navigate = useNavigate();
   const [donutField, setDonutField] = useState<
@@ -215,10 +215,12 @@ export function OverviewPage() {
     [rows, filters, ranges, search]
   );
 
-  const kpi = useMemo(() => computeKpi(filtered), [filtered]);
-  const byProgram = useMemo(() => groupBy(filtered, 'tenChuongTrinh'), [filtered]);
-  const byDVUT = useMemo(() => groupBy(filtered, 'tenDVUT'), [filtered]);
-  const byXa = useMemo(() => groupBy(filtered, 'tenXa'), [filtered]);
+  // Truyền `depositByKH` để Số dư TK 105 gồm cả số dư nằm trên khế ước đã tất
+  // toán (đã ẩn khỏi `filtered`) — khớp với cột ở Tra cứu chi tiết.
+  const kpi = useMemo(() => computeKpi(filtered, depositByKH), [filtered, depositByKH]);
+  const byProgram = useMemo(() => groupBy(filtered, 'tenChuongTrinh', depositByKH), [filtered, depositByKH]);
+  const byDVUT = useMemo(() => groupBy(filtered, 'tenDVUT', depositByKH), [filtered, depositByKH]);
+  const byXa = useMemo(() => groupBy(filtered, 'tenXa', depositByKH), [filtered, depositByKH]);
   // Top theo "Số dư tiền gửi 105" — `groupBy` sắp xếp mặc định theo tongDuNo,
   // ở đây cần sắp lại để chart "Top 10" đúng nghĩa với chỉ tiêu tiền gửi.
   const byDVUTDeposit = useMemo(
@@ -263,15 +265,15 @@ export function OverviewPage() {
     [staff, points]
   );
   const byCBTD = useMemo(
-    () => (staff.length > 0 && points.length > 0 ? groupBy(filtered, cbtdExtractor) : []),
-    [filtered, staff.length, points.length, cbtdExtractor]
+    () => (staff.length > 0 && points.length > 0 ? groupBy(filtered, cbtdExtractor, depositByKH) : []),
+    [filtered, staff.length, points.length, cbtdExtractor, depositByKH]
   );
 
   // Dư nợ theo Điểm giao dịch — dùng cho biểu đồ xuất PDF (#4).
   const dgdExtractor = useMemo(() => makePointKeyExtractor(points), [points]);
   const byDGD = useMemo(
-    () => (points.length > 0 ? groupBy(filtered, dgdExtractor) : []),
-    [filtered, points.length, dgdExtractor]
+    () => (points.length > 0 ? groupBy(filtered, dgdExtractor, depositByKH) : []),
+    [filtered, points.length, dgdExtractor, depositByKH]
   );
 
   // Màu chart (theo theme) — dùng cho các biểu đồ chất lượng/rủi ro xuất PDF.
@@ -328,10 +330,10 @@ export function OverviewPage() {
   // số liệu (fallback: hôm nay) để kết quả đồng nhất với các chỉ tiêu khác.
   const byClassification = useMemo(() => {
     if (donutField === 'age') {
-      return groupByAge(filtered, ngaySoLieu ?? new Date());
+      return groupByAge(filtered, ngaySoLieu ?? new Date(), depositByKH);
     }
-    return groupBy(filtered, donutField);
-  }, [filtered, donutField, ngaySoLieu]);
+    return groupBy(filtered, donutField, depositByKH);
+  }, [filtered, donutField, ngaySoLieu, depositByKH]);
   const histogram = useMemo(() => histogramTongDuNo(filtered, histUnit), [filtered, histUnit]);
   const ts = useMemo(() => timeSeriesGiaiNgan(filtered), [filtered]);
   // Lịch đáo hạn: TRÊN TRANG hiển thị đầy đủ mọi năm.

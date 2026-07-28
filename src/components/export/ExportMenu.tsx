@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import type { LoanRecord } from '@/lib/types';
 import { computeKpi, groupBy, type GroupAgg, type PortfolioKpi } from '@/lib/metrics';
+import { useDataStore } from '@/store/useDataStore';
 import { fmtCurrency, fmtNumber, fmtPercent } from '@/lib/format';
 import { exportToXlsx, type XlsxExportInput } from '@/lib/export-xlsx';
 import { exportToPdf, type PdfExportInput, type PdfTable } from '@/lib/export-pdf';
@@ -175,7 +176,10 @@ export function ExportMenu(props: ExportMenuProps): React.ReactElement {
   // khớp với danh sách thật sự được ghi vào file.
   const exportRows = React.useMemo(() => excludeClosedLoans(rows), [rows]);
   const exportKpi = React.useMemo<PortfolioKpi>(
-    () => (exportRows.length === rows.length ? kpi : computeKpi(exportRows)),
+    () =>
+      exportRows.length === rows.length
+        ? kpi
+        : computeKpi(exportRows, useDataStore.getState().depositByKH),
     [exportRows, rows.length, kpi]
   );
 

@@ -97,7 +97,7 @@ export function ExplorerPage() {
     return out;
   }, [rows, filters, ranges, search, nq11Filter, nq11Set, depositByKH]);
 
-  const kpi = useMemo(() => computeKpi(filtered), [filtered]);
+  const kpi = useMemo(() => computeKpi(filtered, depositByKH), [filtered, depositByKH]);
 
   // Số dư TK 105 là chỉ tiêu cấp KHÁCH HÀNG, chỉ nằm trên MỘT khế ước của khách
   // (các dòng khác = 0) và có thể là khế ước đã tất toán (đã bị ẩn khỏi `rows`).

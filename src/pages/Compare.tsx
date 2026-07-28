@@ -81,7 +81,7 @@ const KPI_ROWS: KpiRow[] = [
 ];
 
 export function ComparePage() {
-  const { rows, filters, ranges, search, ngaySoLieu } = useDataStore();
+  const { rows, filters, ranges, search, ngaySoLieu, depositByKH } = useDataStore();
   const staff = useStaffStore((s) => s.staff);
   const points = useTxnPointStore((s) => s.points);
 
@@ -98,7 +98,7 @@ export function ComparePage() {
     [rows, filters, ranges, search]
   );
 
-  const baseKpi = useMemo(() => computeKpi(baseFiltered), [baseFiltered]);
+  const baseKpi = useMemo(() => computeKpi(baseFiltered, depositByKH), [baseFiltered, depositByKH]);
 
   // For "within" mode, narrow base to a parent value first.
   const scoped = useMemo(() => {
@@ -137,10 +137,10 @@ export function ComparePage() {
       return {
         label: value,
         rows: subset,
-        kpi: computeKpi(subset),
+        kpi: computeKpi(subset, depositByKH),
       };
     });
-  }, [picked, scoped, extractKey]);
+  }, [picked, scoped, extractKey, depositByKH]);
 
   async function handleExportCompareTable() {
     if (groups.length === 0) {

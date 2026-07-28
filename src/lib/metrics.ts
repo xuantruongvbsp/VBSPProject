@@ -9,6 +9,23 @@ export function isOpenLoan(r: LoanRecord): boolean {
   return s !== 'close' && s !== 'closed';
 }
 
+/**
+ * Số dư TK 105 của một dòng khế ước dùng cho tổng hợp cấp KHÁCH HÀNG.
+ *
+ * Ưu tiên map `depositByKH` (tính sẵn trên TOÀN BỘ khế ước kể cả đã tất toán —
+ * xem `useDataStore.depositByKH`): số dư TK 105 có thể nằm trên khế ước "close"
+ * vốn bị loại khỏi `rows`, nếu chỉ đọc `r.soDuTienGui105` thì mất. Khi không
+ * truyền map (vd trang so sánh kỳ) hoặc khế ước thiếu maKH → rơi về giá trị của
+ * chính dòng, giữ nguyên hành vi cũ.
+ */
+function depositOf(r: LoanRecord, depositByKH?: Map<string, number>): number {
+  if (r.maKH && depositByKH) {
+    const m = depositByKH.get(r.maKH);
+    if (m !== undefined) return m;
+  }
+  return r.soDuTienGui105 ?? 0;
+}
+
 export interface PortfolioKpi {
   soKheUoc: number;
   soKhachHang: number;
@@ -27,7 +44,10 @@ export interface PortfolioKpi {
   soDuTienGui105: number;
 }
 
-export function computeKpi(rows: LoanRecord[]): PortfolioKpi {
+export function computeKpi(
+  rows: LoanRecord[],
+  depositByKH?: Map<string, number>
+): PortfolioKpi {
   if (!rows.length) {
     return {
       soKheUoc: 0,
@@ -73,7 +93,7 @@ export function computeKpi(rows: LoanRecord[]): PortfolioKpi {
     if (r.maKH && isOpenLoan(r)) kh.add(r.maKH);
     const depKey = r.maKH || r.soKheUoc;
     if (depKey) {
-      const v = r.soDuTienGui105 ?? 0;
+      const v = depositOf(r, depositByKH);
       const cur = depositPerKey.get(depKey) ?? 0;
       if (v > cur) depositPerKey.set(depKey, v);
       else if (!depositPerKey.has(depKey)) depositPerKey.set(depKey, v);
@@ -123,7 +143,8 @@ export interface GroupAgg {
 
 export function groupBy(
   rows: LoanRecord[],
-  field: keyof LoanRecord | ((r: LoanRecord) => string)
+  field: keyof LoanRecord | ((r: LoanRecord) => string),
+  depositByKH?: Map<string, number>
 ): GroupAgg[] {
   const getKey = typeof field === 'function'
     ? field
@@ -168,7 +189,7 @@ export function groupBy(
     if (r.maKH && isOpenLoan(r)) g._kh.add(r.maKH);
     const depKey = r.maKH || r.soKheUoc;
     if (depKey) {
-      const v = r.soDuTienGui105 ?? 0;
+      const v = depositOf(r, depositByKH);
       const cur = g._depositPerKey.get(depKey) ?? 0;
       if (v > cur) g._depositPerKey.set(depKey, v);
       else if (!g._depositPerKey.has(depKey)) g._depositPerKey.set(depKey, v);
@@ -233,7 +254,11 @@ function ageBucketKey(age: number | null): string {
  * Thứ tự output giữ nguyên theo tuổi tăng dần — không sort theo `tongDuNo`
  * như `groupBy` để các nhóm tuổi hiển thị liên tục.
  */
-export function groupByAge(rows: LoanRecord[], refDate: Date): GroupAgg[] {
+export function groupByAge(
+  rows: LoanRecord[],
+  refDate: Date,
+  depositByKH?: Map<string, number>
+): GroupAgg[] {
   const labels = new Map<string, string>();
   for (const b of AGE_BUCKETS) labels.set(b.key, b.label);
   labels.set(AGE_UNKNOWN.key, AGE_UNKNOWN.label);
@@ -286,7 +311,7 @@ export function groupByAge(rows: LoanRecord[], refDate: Date): GroupAgg[] {
     }
     const depKey = r.maKH || r.soKheUoc;
     if (depKey) {
-      const v = r.soDuTienGui105 ?? 0;
+      const v = depositOf(r, depositByKH);
       const cur = g._depositPerKey.get(depKey) ?? 0;
       if (v > cur) g._depositPerKey.set(depKey, v);
       else if (!g._depositPerKey.has(depKey)) g._depositPerKey.set(depKey, v);

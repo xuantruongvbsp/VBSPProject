@@ -44,7 +44,7 @@ const HEAT_OPTS: ChartTypeOption<HeatmapChartType>[] = [
  * trong menu trái. Tất cả thống kê dùng bộ lọc hiện hành trên FilterBar.
  */
 export function KhoanhPage() {
-  const { rows, filters, ranges, search, ngaySoLieu, drillDown } = useDataStore();
+  const { rows, filters, ranges, search, ngaySoLieu, depositByKH, drillDown } = useDataStore();
   const navigate = useNavigate();
   const [detail, setDetail] = useState<LoanRecord | null>(null);
   const [chartDvutType, setChartDvutType] = useState<BarGroupChartType>('pie');
@@ -67,7 +67,7 @@ export function KhoanhPage() {
     [rows, filters, ranges, search]
   );
 
-  const kpi = useMemo(() => computeKpi(filtered), [filtered]);
+  const kpi = useMemo(() => computeKpi(filtered, depositByKH), [filtered, depositByKH]);
 
   // Chỉ các khế ước có dư nợ khoanh > 0
   const khoanhLoans = useMemo(
