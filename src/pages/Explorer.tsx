@@ -69,7 +69,7 @@ const COLS: Col[] = [
 ];
 
 export function ExplorerPage() {
-  const { rows, filters, ranges, search, nq11Filter } = useDataStore();
+  const { rows, filters, ranges, search, nq11Filter, depositByKH } = useDataStore();
   const points = useTxnPointStore((s) => s.points);
   const nq11MonVayIds = useCreditPlanStore((s) => s.nq11MonVayIds);
   const nq11NoxhMonVayIds = useCreditPlanStore((s) => s.nq11NoxhMonVayIds);
@@ -88,31 +88,22 @@ export function ExplorerPage() {
   const [detail, setDetail] = useState<LoanRecord | null>(null);
 
   const filtered = useMemo(() => {
-    let out = applyFilters(rows, filters, ranges, search);
+    let out = applyFilters(rows, filters, ranges, search, depositByKH);
     // Lọc NQ11 áp sau applyFilters vì cần Set từ store Kế hoạch tín dụng.
     if (nq11Filter !== 'all') {
       const want = nq11Filter === 'yes';
       out = out.filter((r) => nq11Set.has(String(r.soKheUoc)) === want);
     }
     return out;
-  }, [rows, filters, ranges, search, nq11Filter, nq11Set]);
+  }, [rows, filters, ranges, search, nq11Filter, nq11Set, depositByKH]);
 
   const kpi = useMemo(() => computeKpi(filtered), [filtered]);
 
-  // Map maKH → max(soDuTienGui105). Đây là chỉ tiêu cấp KHÁCH HÀNG, nhưng trong
-  // Báo cáo 31 giá trị chỉ nằm trên MỘT dòng khế ước của khách (thường theo
-  // chương trình gắn sổ tiết kiệm), các dòng còn lại = 0 — KHÔNG lặp đồng đều.
-  // Vì vậy phải quét trên toàn bộ `rows` (không lọc): nếu chỉ quét `filtered`,
-  // khi lọc theo chương trình mà dòng mang số dư bị loại thì cột hiện sai 0.
-  const maxDepositByKH = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const r of rows) {
-      const v = r.soDuTienGui105 || 0;
-      const cur = m.get(r.maKH);
-      if (cur === undefined || v > cur) m.set(r.maKH, v);
-    }
-    return m;
-  }, [rows]);
+  // Số dư TK 105 là chỉ tiêu cấp KHÁCH HÀNG, chỉ nằm trên MỘT khế ước của khách
+  // (các dòng khác = 0) và có thể là khế ước đã tất toán (đã bị ẩn khỏi `rows`).
+  // Dùng map tính sẵn ở store trên TOÀN BỘ khế ước — kể cả close — để không hiện
+  // nhầm 0. Xem `useDataStore.depositByKH`.
+  const maxDepositByKH = depositByKH;
 
   // Map maThon → tên ĐGD. Một thôn thuộc nhiều ĐGD (hiếm) thì nối tên bằng ' / '.
   const thonToDGD = useMemo(() => buildThonToDGDNames(points), [points]);

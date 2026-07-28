@@ -166,16 +166,12 @@ function buildKpiSheet(
 function buildDetailSheet(rows: LoanRecord[]): XLSX.WorkSheet {
   // Danh mục ĐGD là cấu hình toàn cục (không phụ thuộc bộ lọc của trang) nên
   // đọc thẳng từ store — mọi trang dùng chung sheet chi tiết đều có cột này.
-  // Số dư TG 105 tính max theo maKH trên TOÀN BỘ store (không chỉ `rows` đã
-  // lọc) để dòng của khách vẫn hiện số dư thật kể cả khi dòng mang số dư bị
-  // bộ lọc loại khỏi tập xuất. Store rỗng (vd app so sánh kỳ) → map rỗng →
-  // cột tự rơi về giá trị từng dòng `r.soDuTienGui105`.
-  const maxDepositByKH = new Map<string, number>();
-  for (const r of useDataStore.getState().rows) {
-    const v = r.soDuTienGui105 || 0;
-    const cur = maxDepositByKH.get(r.maKH);
-    if (cur === undefined || v > cur) maxDepositByKH.set(r.maKH, v);
-  }
+  // Số dư TG 105 lấy từ map tính sẵn ở store trên TOÀN BỘ khế ước — kể cả khế
+  // ước đã tất toán (close) vốn bị ẩn khỏi `rows`. Nhờ đó dòng của khách vẫn
+  // hiện số dư thật dù dòng/khế ước mang số dư bị bộ lọc (hoặc trạng thái close)
+  // loại khỏi tập xuất. Store rỗng (vd app so sánh kỳ) → map rỗng → cột tự rơi
+  // về giá trị từng dòng `r.soDuTienGui105`.
+  const maxDepositByKH = useDataStore.getState().depositByKH;
   // Cờ NQ11: "Số khế ước" thuộc danh sách Mã món vay NQ11 (GQVL + NOXH) từ
   // store Kế hoạch tín dụng. Chưa import danh sách → set rỗng → cột toàn "Không".
   const cp = useCreditPlanStore.getState();

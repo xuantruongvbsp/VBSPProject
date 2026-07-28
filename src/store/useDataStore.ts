@@ -73,6 +73,14 @@ export type Nq11FilterMode = 'all' | 'yes' | 'no';
 
 interface State {
   rows: LoanRecord[];
+  /**
+   * Map maKH → max("Số dư tiền gửi 105") tính trên TOÀN BỘ khế ước đã parse,
+   * KỂ CẢ khế ước đã tất toán (close) vốn bị loại khỏi `rows`. Số dư TK 105 là
+   * chỉ tiêu cấp KHÁCH HÀNG và trong Báo cáo 31 có thể nằm trên một khế ước đã
+   * đóng — nếu chỉ nhìn `rows` sẽ hiện nhầm 0. Mọi nơi hiển thị/lọc số dư TK
+   * 105 phải đọc map này thay vì tự quét `rows`.
+   */
+  depositByKH: Map<string, number>;
   ngaySoLieu: Date | null;
   isLoading: boolean;
   error: string | null;
@@ -122,8 +130,20 @@ function isNotClosed(r: LoanRecord): boolean {
   return s !== 'close' && s !== 'closed';
 }
 
+/** Tính max số dư TK 105 theo maKH trên toàn bộ khế ước (kể cả đã tất toán). */
+function buildDepositByKH(rows: LoanRecord[]): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const r of rows) {
+    const v = r.soDuTienGui105 || 0;
+    const cur = m.get(r.maKH);
+    if (cur === undefined || v > cur) m.set(r.maKH, v);
+  }
+  return m;
+}
+
 export const useDataStore = create<State>((set) => ({
   rows: [],
+  depositByKH: new Map(),
   ngaySoLieu: null,
   isLoading: false,
   error: null,
@@ -134,12 +154,20 @@ export const useDataStore = create<State>((set) => ({
   drillRangeKeys: [],
 
   setData: (rows, ngaySoLieu) =>
-    set({ rows: rows.filter(isNotClosed), ngaySoLieu, error: null }),
+    // depositByKH tính TRƯỚC khi lọc close để giữ số dư TK 105 nằm trên khế
+    // ước đã tất toán; `rows` vẫn ẩn khế ước close như cũ.
+    set({
+      rows: rows.filter(isNotClosed),
+      depositByKH: buildDepositByKH(rows),
+      ngaySoLieu,
+      error: null,
+    }),
   setLoading: (b) => set({ isLoading: b }),
   setError: (e) => set({ error: e }),
   reset: () =>
     set({
       rows: [],
+      depositByKH: new Map(),
       ngaySoLieu: null,
       filters: [],
       ranges: { mucVay: null, tongDuNo: null, laiSuat: null, ngayVay: null, ngayDaoHan: null, soDuTG105Min: null },
@@ -249,7 +277,11 @@ export function applyFilters(
   rows: LoanRecord[],
   filters: ActiveFilter[],
   ranges: RangeFilters,
-  search: SearchFilter
+  search: SearchFilter,
+  // Map maKH → số dư TK 105 tính sẵn trên toàn bộ khế ước (kể cả đã tất toán).
+  // Truyền vào ở Tra cứu chi tiết để lọc ngưỡng không bỏ sót số dư nằm trên
+  // khế ước đã đóng. Bỏ trống → tự tính từ `rows` (chỉ thấy khế ước còn mở).
+  depositByKH?: Map<string, number>
 ): LoanRecord[] {
   let out = rows;
 
@@ -278,12 +310,15 @@ export function applyFilters(
     // để bộ lọc khác — vd chương trình — không làm mất dòng mang số dư. Giữ
     // lại khế ước của khách có số dư thật > ngưỡng.
     const threshold = ranges.soDuTG105Min;
-    const maxByKH = new Map<string, number>();
-    for (const r of rows) {
-      const v = r.soDuTienGui105 || 0;
-      const cur = maxByKH.get(r.maKH);
-      if (cur === undefined || v > cur) maxByKH.set(r.maKH, v);
-    }
+    const maxByKH = depositByKH ?? (() => {
+      const m = new Map<string, number>();
+      for (const r of rows) {
+        const v = r.soDuTienGui105 || 0;
+        const cur = m.get(r.maKH);
+        if (cur === undefined || v > cur) m.set(r.maKH, v);
+      }
+      return m;
+    })();
     out = out.filter((r) => (maxByKH.get(r.maKH) ?? 0) > threshold);
   }
   if (ranges.ngayVay) {
