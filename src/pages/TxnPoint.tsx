@@ -6,7 +6,6 @@ import {
   Save,
   X,
   Download,
-  Upload,
   Search,
   Check,
   AlertTriangle,
@@ -14,16 +13,19 @@ import {
   ChevronDown,
   ChevronRight,
   MapPin,
+  FileSpreadsheet,
+  FileDown,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useDataStore } from '@/store/useDataStore';
-import {
-  useTxnPointStore,
-  exportTxnPointJson,
-  parseTxnPointJson,
-} from '@/store/useTxnPointStore';
+import { useTxnPointStore, exportTxnPointJson } from '@/store/useTxnPointStore';
 import { useIsOwner } from '@/store/useAuthStore';
+import { parseTxnPointSheet, downloadTxnPointTemplate, padNumericCodes } from '@/lib/catalog-import';
+import {
+  CatalogImportDialog,
+  type CatalogImportPreview,
+} from '@/components/import/CatalogImportDialog';
 import { fmtCompact } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { TxnPointRecord } from '@/lib/types';
@@ -146,7 +148,9 @@ export function TxnPointPage() {
     null
   );
   const [search, setSearch] = useState('');
-  const importFileRef = useRef<HTMLInputElement>(null);
+  const excelFileRef = useRef<HTMLInputElement>(null);
+  const [excelPreview, setExcelPreview] = useState<CatalogImportPreview | null>(null);
+  const pendingExcel = useRef<TxnPointRecord[]>([]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -223,24 +227,61 @@ export function TxnPointPage() {
     URL.revokeObjectURL(url);
   }
 
-  async function handleImportFile(file: File) {
+  /** Đọc file Excel/CSV → mở hộp thoại xem trước (chưa ghi vào danh mục). */
+  async function handleImportExcel(file: File) {
     try {
-      const text = await file.text();
-      const records = parseTxnPointJson(text);
-      const mode = points.length === 0
-        ? 'replace'
-        : confirm(
-            `Tìm thấy ${records.length} điểm giao dịch trong tệp. Bấm OK để GỘP (trùng Mã ĐGD sẽ bị ghi đè), bấm Hủy để THAY THẾ toàn bộ.`
-          )
-          ? 'merge'
-          : 'replace';
-      importPoints(records, mode);
-      alert(`Đã import ${records.length} điểm giao dịch (${mode === 'merge' ? 'gộp' : 'thay thế'}).`);
+      const parsed = await parseTxnPointSheet(file);
+      if (parsed.records.length === 0) {
+        throw new Error('Không có dòng nào điền Mã ĐGD.');
+      }
+      const knownThons = new Set(thonStats.map((t) => t.maThon));
+      const existing = new Set(points.map((p) => p.maDGD));
+      const issues = [...parsed.issues];
+
+      // Excel hay làm rụng số 0 đứng đầu của mã thôn — tự khôi phục theo BC 31.
+      let fixCount = 0;
+      const records = parsed.records.map((r) => {
+        const { items, fixes } = padNumericCodes(r.maThons, knownThons);
+        fixCount += fixes.length;
+        return { ...r, maThons: items };
+      });
+      if (fixCount > 0) {
+        issues.push(`Đã tự khôi phục số 0 đứng đầu cho ${fixCount} mã thôn (VD: 1 → 001).`);
+      }
+
+      pendingExcel.current = records.map((r) => ({
+        id: '',
+        maDGD: r.maDGD,
+        tenDGD: r.tenDGD,
+        maThons: r.maThons,
+      }));
+      setExcelPreview({
+        rows: records.map((r) => ({
+          code: r.maDGD,
+          name: r.tenDGD,
+          items: r.maThons,
+          // Chỉ đối chiếu được khi đã nạp Báo cáo 31.
+          unknownItems: rows.length > 0 ? r.maThons.filter((m) => !knownThons.has(m)) : [],
+          isExisting: existing.has(r.maDGD),
+        })),
+        issues,
+        itemLabel: 'Mã thôn',
+        itemSourceLabel: 'Báo cáo 31',
+        fileName: file.name,
+      });
     } catch (e) {
-      alert(`Lỗi đọc tệp JSON: ${(e as Error).message}`);
+      alert(`Lỗi đọc tệp Excel/CSV: ${(e as Error).message}`);
     } finally {
-      if (importFileRef.current) importFileRef.current.value = '';
+      if (excelFileRef.current) excelFileRef.current.value = '';
     }
+  }
+
+  function confirmExcelImport(mode: 'merge' | 'replace') {
+    const records = pendingExcel.current;
+    importPoints(records, mode);
+    pendingExcel.current = [];
+    setExcelPreview(null);
+    alert(`Đã import ${records.length} điểm giao dịch (${mode === 'merge' ? 'gộp' : 'thay thế'}).`);
   }
 
   return (
@@ -255,21 +296,48 @@ export function TxnPointPage() {
             Mỗi Điểm giao dịch (cấp dưới Xã) bao gồm nhiều Mã thôn. Khi chọn ĐGD ở thanh lọc,
             các báo cáo sẽ chỉ hiển thị khế ước thuộc các thôn đó.
           </p>
+          {isOwner && (
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              Khỏi gõ tay: bấm <strong>File mẫu</strong> để tải Excel đã liệt kê sẵn mọi Mã thôn
+              trong Báo cáo 31, điền 2 cột Mã ĐGD / Tên ĐGD rồi bấm <strong>Import Excel</strong>.
+            </p>
+          )}
         </div>
         {isOwner && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
             <input
-              ref={importFileRef}
+              ref={excelFileRef}
               type="file"
-              accept="application/json,.json"
+              accept=".xlsx,.xls,.csv"
               className="hidden"
               onChange={(e) => {
                 const f = e.target.files?.[0];
-                if (f) void handleImportFile(f);
+                if (f) void handleImportExcel(f);
               }}
             />
-            <Button variant="outline" size="sm" onClick={() => importFileRef.current?.click()}>
-              <Upload className="h-3.5 w-3.5" /> Import JSON
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                downloadTxnPointTemplate(
+                  thonStats.map((t) => ({
+                    maThon: t.maThon,
+                    tenThon: t.tenThon,
+                    tenXa: t.tenXa,
+                    loanCount: t.loanCount,
+                  }))
+                )
+              }
+              title={
+                thonStats.length > 0
+                  ? `Tải file Excel mẫu đã điền sẵn ${thonStats.length} mã thôn của Báo cáo 31`
+                  : 'Tải file Excel mẫu (chưa có Báo cáo 31 nên chỉ có dòng ví dụ)'
+              }
+            >
+              <FileDown className="h-3.5 w-3.5" /> File mẫu
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => excelFileRef.current?.click()}>
+              <FileSpreadsheet className="h-3.5 w-3.5" /> Import Excel
             </Button>
             <Button
               variant="outline"
@@ -424,6 +492,18 @@ export function TxnPointPage() {
           </Card>
         )}
       </div>
+
+      <CatalogImportDialog
+        open={excelPreview !== null}
+        title="Xem trước import Điểm giao dịch"
+        preview={excelPreview}
+        existingCount={points.length}
+        onCancel={() => {
+          pendingExcel.current = [];
+          setExcelPreview(null);
+        }}
+        onConfirm={confirmExcelImport}
+      />
     </div>
   );
 }

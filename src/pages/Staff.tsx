@@ -6,7 +6,6 @@ import {
   Save,
   X,
   Download,
-  Upload,
   Search,
   Users,
   Check,
@@ -15,17 +14,20 @@ import {
   ChevronDown,
   ChevronRight,
   MapPin,
+  FileSpreadsheet,
+  FileDown,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useDataStore } from '@/store/useDataStore';
-import {
-  useStaffStore,
-  exportStaffJson,
-  parseStaffJson,
-} from '@/store/useStaffStore';
+import { useStaffStore, exportStaffJson } from '@/store/useStaffStore';
 import { useTxnPointStore } from '@/store/useTxnPointStore';
 import { useIsOwner } from '@/store/useAuthStore';
+import { parseStaffSheet, downloadStaffTemplate } from '@/lib/catalog-import';
+import {
+  CatalogImportDialog,
+  type CatalogImportPreview,
+} from '@/components/import/CatalogImportDialog';
 import { fmtCompact } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
@@ -124,7 +126,9 @@ export function StaffPage() {
     null
   );
   const [search, setSearch] = useState('');
-  const importFileRef = useRef<HTMLInputElement>(null);
+  const excelFileRef = useRef<HTMLInputElement>(null);
+  const [excelPreview, setExcelPreview] = useState<CatalogImportPreview | null>(null);
+  const pendingExcel = useRef<StaffRecord[]>([]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -201,24 +205,48 @@ export function StaffPage() {
     URL.revokeObjectURL(url);
   }
 
-  async function handleImportFile(file: File) {
+  /** Đọc file Excel/CSV → mở hộp thoại xem trước (chưa ghi vào danh mục). */
+  async function handleImportExcel(file: File) {
     try {
-      const text = await file.text();
-      const records = parseStaffJson(text);
-      const mode = staff.length === 0
-        ? 'replace'
-        : confirm(
-            `Tìm thấy ${records.length} cán bộ trong tệp. Bấm OK để GỘP (trùng Mã NV sẽ bị ghi đè), bấm Hủy để THAY THẾ toàn bộ.`
-          )
-          ? 'merge'
-          : 'replace';
-      importStaff(records, mode);
-      alert(`Đã import ${records.length} cán bộ (${mode === 'merge' ? 'gộp' : 'thay thế'}).`);
+      const parsed = await parseStaffSheet(file);
+      if (parsed.records.length === 0) {
+        throw new Error('Không có dòng nào điền Mã NV.');
+      }
+      const knownDGDs = new Set(points.map((p) => p.maDGD));
+      const existing = new Set(staff.map((s) => s.maNV));
+      pendingExcel.current = parsed.records.map((r) => ({
+        id: '',
+        maNV: r.maNV,
+        tenNV: r.tenNV,
+        maDGDs: r.maDGDs,
+      }));
+      setExcelPreview({
+        rows: parsed.records.map((r) => ({
+          code: r.maNV,
+          name: r.tenNV,
+          items: r.maDGDs,
+          // Chỉ đối chiếu được khi danh mục ĐGD đã có dữ liệu.
+          unknownItems: points.length > 0 ? r.maDGDs.filter((m) => !knownDGDs.has(m)) : [],
+          isExisting: existing.has(r.maNV),
+        })),
+        issues: parsed.issues,
+        itemLabel: 'Mã ĐGD',
+        itemSourceLabel: 'danh mục Điểm giao dịch',
+        fileName: file.name,
+      });
     } catch (e) {
-      alert(`Lỗi đọc tệp JSON: ${(e as Error).message}`);
+      alert(`Lỗi đọc tệp Excel/CSV: ${(e as Error).message}`);
     } finally {
-      if (importFileRef.current) importFileRef.current.value = '';
+      if (excelFileRef.current) excelFileRef.current.value = '';
     }
+  }
+
+  function confirmExcelImport(mode: 'merge' | 'replace') {
+    const records = pendingExcel.current;
+    importStaff(records, mode);
+    pendingExcel.current = [];
+    setExcelPreview(null);
+    alert(`Đã import ${records.length} cán bộ (${mode === 'merge' ? 'gộp' : 'thay thế'}).`);
   }
 
   return (
@@ -237,21 +265,47 @@ export function StaffPage() {
             </Link>
             .
           </p>
+          {isOwner && (
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              Khỏi gõ tay: bấm <strong>File mẫu</strong> để tải Excel đã liệt kê sẵn mọi Mã ĐGD
+              trong danh mục, điền 2 cột Mã NV / Tên NV rồi bấm <strong>Import Excel</strong>.
+            </p>
+          )}
         </div>
         {isOwner && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
             <input
-              ref={importFileRef}
+              ref={excelFileRef}
               type="file"
-              accept="application/json,.json"
+              accept=".xlsx,.xls,.csv"
               className="hidden"
               onChange={(e) => {
                 const f = e.target.files?.[0];
-                if (f) void handleImportFile(f);
+                if (f) void handleImportExcel(f);
               }}
             />
-            <Button variant="outline" size="sm" onClick={() => importFileRef.current?.click()}>
-              <Upload className="h-3.5 w-3.5" /> Import JSON
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                downloadStaffTemplate(
+                  points.map((p) => ({
+                    maDGD: p.maDGD,
+                    tenDGD: p.tenDGD,
+                    thonCount: p.maThons.length,
+                  }))
+                )
+              }
+              title={
+                points.length > 0
+                  ? `Tải file Excel mẫu đã điền sẵn ${points.length} mã ĐGD`
+                  : 'Tải file Excel mẫu (chưa có ĐGD nên chỉ có dòng ví dụ)'
+              }
+            >
+              <FileDown className="h-3.5 w-3.5" /> File mẫu
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => excelFileRef.current?.click()}>
+              <FileSpreadsheet className="h-3.5 w-3.5" /> Import Excel
             </Button>
             <Button
               variant="outline"
@@ -473,6 +527,18 @@ export function StaffPage() {
           </Card>
         )}
       </div>
+
+      <CatalogImportDialog
+        open={excelPreview !== null}
+        title="Xem trước import Cán bộ"
+        preview={excelPreview}
+        existingCount={staff.length}
+        onCancel={() => {
+          pendingExcel.current = [];
+          setExcelPreview(null);
+        }}
+        onConfirm={confirmExcelImport}
+      />
     </div>
   );
 }
