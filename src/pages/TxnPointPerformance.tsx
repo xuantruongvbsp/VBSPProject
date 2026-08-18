@@ -24,6 +24,7 @@ import type { LoanRecord, TxnPointRecord } from '@/lib/types';
 
 type SortKey =
   | 'tenDGD'
+  | 'soToTruong'
   | 'soKheUoc'
   | 'soKhachHang'
   | 'tongDuNo'
@@ -38,6 +39,8 @@ interface PointSlice {
   point: TxnPointRecord;
   thonCount: number;
 
+  /** Số Tổ trưởng TK&VV = số Mã tổ duy nhất còn dư nợ trong phạm vi ĐGD. */
+  soToTruong: number;
   soKheUoc: number;
   soKhachHang: number;
   tongDuNo: number;
@@ -51,6 +54,7 @@ interface PointSlice {
 }
 
 const NUMERIC_KEYS: SortKey[] = [
+  'soToTruong',
   'soKheUoc',
   'soKhachHang',
   'tongDuNo',
@@ -92,6 +96,7 @@ export function TxnPointPerformancePage() {
       duNoKhoanh: number;
       laiTonTH: number;
       kh: Set<string>;
+      to: Set<string>;
     };
     const newBucket = (): Bucket => ({
       soKheUoc: 0,
@@ -101,6 +106,7 @@ export function TxnPointPerformancePage() {
       duNoKhoanh: 0,
       laiTonTH: 0,
       kh: new Set(),
+      to: new Set(),
     });
 
     const slices = new Map<string, Bucket>();
@@ -115,6 +121,11 @@ export function TxnPointPerformancePage() {
       return slices.get(owners[0]) ?? unassigned;
     };
 
+    // Tập Mã tổ duy nhất trên toàn bộ phần đã gán ĐGD — dùng cho chip tổng.
+    // Đếm riêng (không cộng dồn từng ĐGD) để 1 tổ trải trên nhiều ĐGD
+    // không bị tính hai lần.
+    const coveredTo = new Set<string>();
+
     for (const r of filtered) {
       const b = route(r);
       b.soKheUoc += 1;
@@ -126,9 +137,16 @@ export function TxnPointPerformancePage() {
       // Chỉ tính KH có dư nợ > 0 — bỏ qua Mã KH đã tất toán (dư nợ = 0)
       // để Mức vay BQ và số KH phản ánh đúng khách hàng còn dư nợ.
       if (r.maKH && r.tongDuNo > 0) b.kh.add(r.maKH);
+      // Tổ trưởng: khóa theo Mã tổ (1-1 với Tên tổ) để hai tổ trưởng trùng
+      // tên ở hai thôn khác nhau không bị gộp làm một.
+      if (r.maTo && r.tongDuNo > 0) {
+        b.to.add(r.maTo);
+        if (b !== unassigned && b !== ambiguous) coveredTo.add(r.maTo);
+      }
     }
 
     const finalize = (b: Bucket): Omit<PointSlice, 'point' | 'thonCount'> => ({
+      soToTruong: b.to.size,
       soKheUoc: b.soKheUoc,
       soKhachHang: b.kh.size,
       tongDuNo: b.tongDuNo,
@@ -154,6 +172,7 @@ export function TxnPointPerformancePage() {
       rows,
       unassigned: finalize(unassigned),
       ambiguous: finalize(ambiguous),
+      coveredToCount: coveredTo.size,
     };
   }, [filtered, points, thonToPointIds]);
 
@@ -203,6 +222,7 @@ export function TxnPointPerformancePage() {
       keyLabel: r.point.tenDGD,
       dgdCount: 0,
       thonCount: r.thonCount,
+      soToTruong: r.soToTruong,
       soKheUoc: r.soKheUoc,
       soKhachHang: r.soKhachHang,
       tongDuNo: r.tongDuNo,
@@ -264,6 +284,12 @@ export function TxnPointPerformancePage() {
   // chưa có dữ liệu vẫn nằm trong mức bình quân.
   const duNoBQperPoint =
     points.length > 0 ? coveredTongDuNo / points.length : 0;
+  // Số tổ trưởng bình quân mỗi ĐGD — mẫu = tổng số ĐGD trong danh mục, khớp
+  // với cách tính "Dư nợ BQ/ĐGD" ở trên.
+  const toPerPoint =
+    points.length > 0
+      ? (computed.coveredToCount / points.length).toFixed(1).replace('.', ',')
+      : '0,0';
 
   return (
     <div className="space-y-4 p-6">
@@ -291,8 +317,14 @@ export function TxnPointPerformancePage() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <SummaryChip label="ĐGD" value={fmtNumber(points.length)} tone="neutral" />
+        <SummaryChip
+          label="Tổ trưởng"
+          value={fmtNumber(computed.coveredToCount)}
+          subValue={`BQ ${toPerPoint} tổ/ĐGD`}
+          tone="neutral"
+        />
         <SummaryChip
           label="Dư nợ phủ ĐGD"
           value={fmtCompact(coveredTongDuNo)}
@@ -339,6 +371,7 @@ export function TxnPointPerformancePage() {
                 <tr>
                   <Th label="Điểm giao dịch" sortKey="tenDGD" activeKey={sortKey} dir={sortDir} onSort={toggleSort} />
                   <th className="px-4 py-3 text-right font-semibold">Số thôn</th>
+                  <Th label="Tổ trưởng" sortKey="soToTruong" activeKey={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
                   <Th label="KƯ" sortKey="soKheUoc" activeKey={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
                   <Th label="KH" sortKey="soKhachHang" activeKey={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
                   <Th label="Tổng dư nợ" sortKey="tongDuNo" activeKey={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
@@ -353,7 +386,7 @@ export function TxnPointPerformancePage() {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {visibleRows.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="px-4 py-6 text-center text-slate-400">
+                    <td colSpan={12} className="px-4 py-6 text-center text-slate-400">
                       Không có ĐGD phù hợp.
                     </td>
                   </tr>
@@ -393,6 +426,7 @@ function Row({ row, onDrill }: { row: PointSlice; onDrill: () => void }) {
         <div className="font-medium text-slate-800 dark:text-slate-100">{row.point.tenDGD}</div>
       </td>
       <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-200">{row.thonCount}</td>
+      <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-200">{fmtNumber(row.soToTruong)}</td>
       <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-200">{fmtNumber(row.soKheUoc)}</td>
       <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-200">{fmtNumber(row.soKhachHang)}</td>
       <td className="px-4 py-3 text-right font-semibold text-slate-800 dark:text-slate-100">
@@ -425,6 +459,7 @@ function SummaryRow({
     <tr className="text-sm text-slate-500 dark:text-slate-400">
       <td className="px-4 py-3 font-semibold italic">{label}</td>
       <td className="px-4 py-3 text-right">—</td>
+      <td className="px-4 py-3 text-right">{fmtNumber(data.soToTruong)}</td>
       <td className="px-4 py-3 text-right">{fmtNumber(data.soKheUoc)}</td>
       <td className="px-4 py-3 text-right">{fmtNumber(data.soKhachHang)}</td>
       <td className="px-4 py-3 text-right">{fmtCompact(data.tongDuNo)}</td>

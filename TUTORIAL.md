@@ -1,247 +1,334 @@
-# Hướng dẫn vận hành: chế độ Quản trị viên & Người xem
+# Hướng dẫn vận hành VSPPRO Webapp
 
-Tài liệu này mô tả quy trình mới của VSPPRO Webapp sau khi thêm phân quyền:
+Tài liệu này mô tả cách **vận hành** ứng dụng hằng ngày: khởi động, nhập dữ liệu cho cả ba ứng dụng, dựng danh mục, chia sẻ cho người xem và xử lý sự cố.
 
-- **Quản trị viên (chủ sở hữu)** — thường chỉ có **bạn**. Có toàn quyền: nhập tệp, xóa tệp, đổi tệp, nhập hai kỳ, **xuất bản** dữ liệu cho người xem.
-- **Người xem** — đồng nghiệp / nhân viên. Mở link và **tự động** thấy dữ liệu bạn vừa xuất bản. Họ chỉ có quyền **đọc, lọc, xuất báo cáo**. Không thấy ô nhập tệp, không thấy danh sách tệp gốc, không thấy nút "Tải tệp khác" / "Đổi cặp tệp".
+Chưa cài đặt máy lần nào? Đọc **[SETUP.md](SETUP.md)** trước (cài Git, Node.js, tải mã nguồn). Muốn biết ứng dụng có những gì? Đọc **[README.md](README.md)**.
 
-Cả hai vai dùng **chung một URL** — khác biệt nằm ở vai trò trong trình duyệt của họ.
+Hai vai trò dùng **chung một URL**, khác nhau ở vai lưu trong trình duyệt:
+
+| | Quản trị viên (owner) | Người xem (viewer) |
+|---|---|---|
+| Thường là | chỉ **bạn** | đồng nghiệp, lãnh đạo |
+| Nhập / đổi / xóa tệp Excel | ✅ | ❌ (không thấy ô nhập tệp) |
+| Sửa danh mục ĐGD, cán bộ, xã, kế hoạch | ✅ | ❌ (chỉ đọc) |
+| Xem KPI, biểu đồ, lọc, drill-down | ✅ | ✅ |
+| Xuất báo cáo Excel / PDF | ✅ | ✅ |
+| Thấy tên tệp gốc, danh sách tệp gần đây | ✅ | ❌ |
 
 ---
 
-## 1. Khởi động máy chủ cục bộ
+## 1. Khởi động ứng dụng
 
-Trên máy của **bạn** (quản trị viên):
+Mở **Git Bash** (hoặc PowerShell) tại thư mục dự án và chọn **một** trong ba lệnh:
 
 ```bash
-cd C:\Users\tinkh\VSPPRO\webapp
-npm install          # chỉ cần chạy lần đầu
-npx vite --host      # --host để máy khác trong LAN truy cập được
+cd /c/VBSP/KIETCUIBAP
+
+npm run dev      # chỉ máy bạn dùng  → http://localhost:5173
+npm run lan      # máy bạn + LAN + link internet (Cloudflare)
+npm run share    # máy bạn + link internet (Cloudflare), không mở LAN
 ```
 
-Lệnh này sẽ in ra hai địa chỉ:
+- `npm run dev` in ra `Local: http://localhost:5173/`.
+- `npm run lan` in thêm `Network: http://192.168.x.x:5173/` cho máy khác trong cùng Wi-Fi/LAN.
+- `npm run lan` và `npm run share` đồng thời chạy `cloudflared`, in ra một URL HTTPS công khai dạng `https://vai-tu-ngau-nhien.trycloudflare.com` — xem mục 8.
 
-```
-  ➜  Local:   http://localhost:5173/
-  ➜  Network: http://192.168.x.x:5173/
-```
+Dừng: bấm `Ctrl + C` trong cửa sổ đó. Đóng cửa sổ = ứng dụng tắt, mọi link chết theo.
 
-- **Local** = chỉ máy bạn dùng.
-- **Network** = các máy khác trong cùng mạng LAN/Wi-Fi văn phòng có thể vào.
-
-> Để dừng máy chủ: bấm `Ctrl+C` trong cửa sổ terminal đó.
+> **Lần đầu chạy `npm run lan`**: Windows hỏi cho phép Node.js qua tường lửa → chọn **Allow** cho mạng **Private**.
 
 ---
 
-## 2. Quy trình của Quản trị viên (bạn)
+## 2. Mở khóa chế độ quản trị
 
-### 2.1 Mở khóa chế độ quản trị
+Mỗi trình duyệt mới mặc định ở vai **Người xem**.
 
-Mỗi lần mở trang lần đầu trên một trình duyệt mới, bạn sẽ ở vai **Người xem** (mặc định).
+1. Vào trang chủ (Lobby) `http://localhost:5173/`
+2. Cuộn xuống cuối trang, bấm dòng chữ nhỏ **"Chế độ quản trị"**
+3. Nhập mật khẩu → **Mở khóa**
 
-1. Truy cập `http://localhost:5173/`
-2. Cuộn xuống cuối trang chủ (Lobby), bấm liên kết nhỏ **"Chế độ quản trị"**
-3. Nhập mật khẩu quản trị (hash của mật khẩu này được cấu hình trong `src/config/auth.ts` — xem mục 6 để đặt mật khẩu cho lần sử dụng đầu tiên)
-4. Bấm **Mở khóa**
+Xong, cuối Lobby đổi thành **"Đang ở chế độ quản trị · Thoát"**. Vai trò lưu trong `localStorage` — cùng máy, cùng trình duyệt thì không phải đăng nhập lại.
 
-Sau khi mở khóa, footer Lobby hiển thị: **"Đang ở chế độ quản trị · Thoát"**.
-Vai trò này được lưu trong `localStorage` của trình duyệt — bạn không cần đăng nhập lại trên cùng máy/cùng trình duyệt.
+Muốn xem thử người xem nhìn thấy gì: bấm **Thoát** → trình duyệt trở về vai người xem.
 
-> **Đổi mật khẩu**: xem mục 6 ở cuối tài liệu.
-
-### 2.2 Nhập tệp Báo cáo 31 cho ứng dụng "Phân tích một kỳ"
-
-1. Lobby → bấm thẻ **Phân tích một kỳ**
-2. Bấm **Chọn tệp dữ liệu** (hoặc kéo thả) → chọn tệp `.XLSX`
-3. Đợi vài giây để hệ thống bóc tách (15.000+ khế ước)
-4. Khi vào màn hình chính, sidebar trái sẽ hiển thị:
-   - Số khế ước
-   - Ngày số liệu
-   - Nút **Tải tệp khác** (chỉ bạn thấy)
-   - Nút **Xuất bản cho người xem** (chỉ bạn thấy)
-
-### 2.3 Xuất bản dữ liệu cho người xem
-
-1. Khi bộ dữ liệu đã sẵn sàng, sidebar có nút **"Xuất bản cho người xem"**
-2. Bấm vào → hệ thống ghi tệp `webapp/public/published.json` (~ 80–100 MB cho 15k khế ước)
-3. Khi nút chuyển thành **"Đã xuất bản"** màu xanh là xong
-
-Từ thời điểm này, bất kỳ người xem nào mở (hoặc tải lại) URL **sẽ tự động nhận bộ dữ liệu mới**, không cần bạn gửi tệp Excel hay làm thao tác gì thêm.
-
-> **Cập nhật dữ liệu**: cứ làm lại bước 2.2 → 2.3 với tệp mới. Tệp `published.json` sẽ ghi đè.
-
-### 2.4 Nhập hai tệp cho ứng dụng "So sánh giữa hai kỳ"
-
-1. Lobby → bấm thẻ **So sánh giữa hai kỳ**
-2. Kéo tệp **kỳ trước** vào ô bên trái và tệp **kỳ sau** vào ô bên phải
-3. Khi vào màn hình chính, sidebar trái có:
-   - Hai ngày kỳ
-   - Nút **Đổi cặp tệp**
-   - Nút **Xuất bản cho người xem**
-4. Bấm **Xuất bản cho người xem** → ghi `webapp/public/published-period.json`
-
-Hai bộ xuất bản (`published.json` + `published-period.json`) **độc lập**. Bạn có thể xuất bản chỉ một, cả hai, hoặc cập nhật riêng từng cái.
-
-### 2.5 Quay lại vai Người xem (để kiểm tra hộ người xem nhìn thấy gì)
-
-Lobby → bấm **"Đang ở chế độ quản trị · Thoát"** ở cuối trang.
-
-Trình duyệt sẽ trở về vai Người xem. Khi muốn thao tác lại, lặp bước 2.1.
-
-### 2.6 Quy ước hiển thị dữ liệu trong "Phân tích một kỳ"
-
-Để báo cáo gọn và đúng trọng tâm, ứng dụng áp dụng các quy ước sau:
-
-- **Khế ước đã tất toán bị ẩn hoàn toàn.** Dòng có `Tình trạng món vay = close` không xuất hiện ở bất kỳ KPI, biểu đồ, bộ lọc, bảng Tra cứu chi tiết hay bản xuất Excel/PDF nào. Nếu cần xem, dùng trực tiếp tệp Excel gốc.
-- **"Lịch đáo hạn theo tháng" dùng cột "Ngày ĐH theo GDXA".** Chỉ khế ước có giá trị ở cột này mới được đếm vào biểu đồ nhiệt. Khế ước để trống cột GDXA sẽ không xuất hiện trên lịch (kể cả khi còn "Ngày ĐH theo hợp đồng" hoặc "Ngày ĐH theo Gia hạn").
-- **Cột "Ngày đến hạn" trong Tra cứu chi tiết là "Ngày ĐH theo GDXA"** — không còn là "Ngày ĐH HĐ" như phiên bản cũ.
-- **Tiêu đề cột trong Excel được đối chiếu dung thứ.** Khác biệt nhỏ về chữ hoa/thường, khoảng trắng, hoặc dấu tiếng Việt vẫn được nhận diện. Mỗi lần nhập tệp, ứng dụng in danh sách cột phát hiện vào DevTools Console (`F12 → Console → [parser] Excel columns detected:…`) — tiện để kiểm tra nếu một biểu đồ không có dữ liệu.
-
-> Chế độ "So sánh giữa hai kỳ" **không** áp dụng các quy ước này (dùng kho dữ liệu riêng). Khế ước đã tất toán vẫn được giữ để nhận biết biến động "tất toán giữa hai kỳ".
+> Đổi mật khẩu: mục 10.
 
 ---
 
-## 3. Quy trình của Người xem
+## 3. Ứng dụng 1 — Phân tích một kỳ
 
-Người xem **không cần làm gì** ngoài việc mở URL bạn gửi.
+**Nhập dữ liệu** (chỉ quản trị viên):
 
-1. Mở `http://192.168.x.x:5173/` (link Network mà bạn cung cấp)
-2. Lobby hiển thị 2 thẻ:
-   - **Phân tích một kỳ** — nếu đã xuất bản: badge "Đã có dữ liệu"
-   - **So sánh giữa hai kỳ** — tương tự
-3. Bấm vào một thẻ → ứng dụng mở ra, đã có sẵn dữ liệu
-4. Họ có thể:
-   - Xem tất cả KPI, biểu đồ, bảng
-   - Lọc theo PGD, xã, hội đoàn thể, tình trạng, v.v.
-   - Drill-down vào chi tiết từng khế ước
-   - **Xuất báo cáo** ra Excel / PDF (nút "Xuất báo cáo" ở mỗi trang)
+1. Lobby → thẻ **Phân tích một kỳ**
+2. Kéo-thả tệp `.XLSX` Báo cáo 31 vào ô, hoặc bấm **Chọn tệp dữ liệu**
+3. Chờ vài giây đến 1 phút (15.000+ khế ước)
 
-Người xem **không thấy**:
-- Ô nhập tệp / "Chọn tệp dữ liệu"
-- Nút "Tải tệp khác", "Đổi cặp tệp"
-- Danh sách "Tệp gần đây"
-- Tên tệp gốc
-- Liên kết "Chế độ quản trị" có hiển thị nhưng phải biết mật khẩu mới mở khóa được
+**Tệp đã nhập gần đây**: các tệp từng mở được ghi nhớ trong IndexedDB của trình duyệt. Lần sau chỉ cần bấm **"Mở lại tệp …"** — không phải đi tìm file. Bấm **Xóa tất cả** để dọn danh sách (chỉ xóa danh sách trên máy bạn, không đụng file gốc).
 
-Nếu bạn chưa xuất bản dữ liệu cho một ứng dụng, người xem khi vào ứng dụng đó sẽ thấy thông báo: **"Quản trị viên chưa xuất bản dữ liệu cho ứng dụng này"**.
+**Các trang trong sidebar:**
 
----
-
-## 4. Chia sẻ đường dẫn cho người xem
-
-### 4.1 Mạng nội bộ văn phòng (LAN / Wi-Fi cùng nhà)
-
-Đơn giản nhất, không cần internet:
-
-1. Trên máy bạn, chạy `npx vite --host`
-2. Ghi nhớ địa chỉ Network (ví dụ `http://192.168.1.42:5173/`)
-3. Gửi link đó cho đồng nghiệp qua chat / email
-4. Họ mở bằng trình duyệt — xong
-
-> **Lưu ý**: máy bạn phải đang bật và đang chạy `npx vite --host` thì link mới sống.
-
-> **Tường lửa Windows**: lần đầu chạy `--host`, Windows sẽ hỏi cho phép Node.js qua tường lửa — chọn **Allow** cho mạng riêng (Private).
-
-### 4.2 Truy cập từ ngoài văn phòng — Cloudflare Tunnel
-
-Nếu người xem cần truy cập từ nhà / khi đi công tác, dùng `cloudflared` (miễn phí, không cần đăng ký domain):
-
-1. Tải `cloudflared.exe` từ <https://github.com/cloudflare/cloudflared/releases/latest>
-2. Đặt vào thư mục bất kỳ (ví dụ `C:\tools\cloudflared.exe`)
-3. Mở terminal mới, chạy:
-   ```bash
-   C:\tools\cloudflared.exe tunnel --url http://localhost:5173
-   ```
-4. cloudflared sẽ in ra một URL HTTPS công khai dạng:
-   ```
-   https://something-random-words.trycloudflare.com
-   ```
-5. Gửi URL đó cho người xem. Đường truyền được mã hóa bằng HTTPS.
-
-> **Lưu ý quan trọng**: URL `trycloudflare.com` ngẫu nhiên này **công khai trên internet**. Bất kỳ ai có URL đều mở được. Vì dữ liệu chứa thông tin khách hàng (tên, CMND, địa chỉ), **chỉ chia sẻ URL trực tiếp với những người được phép, qua kênh bảo mật** (chat công ty, không đăng lên nơi công cộng). Khi không dùng nữa, đóng `cloudflared` (Ctrl+C) → URL chết ngay.
-
-### 4.3 Phương án nhiều bảo mật hơn (tùy chọn)
-
-Nếu muốn thêm lớp đăng nhập trước khi vào trang, có thể đăng ký Cloudflare Access (miễn phí cho ≤ 50 user). Liên hệ tôi nếu cần thiết lập.
+| Trang | Nội dung |
+|---|---|
+| Tổng quan | 8 KPI · biểu đồ ĐVUT · chương trình · cơ cấu khách hàng · lịch đáo hạn |
+| Báo cáo nợ quá hạn | NPL, phân nhóm nợ, danh sách khế ước quá hạn |
+| Báo cáo Dư nợ khoanh | dư nợ khoanh theo xã / chương trình / thời hạn khoanh |
+| Báo cáo so sánh | so sánh chéo giữa và trong từng đối tượng |
+| Hiệu quả cán bộ | xếp hạng theo cán bộ — **cần danh mục cán bộ + ĐGD** (mục 6) |
+| Hiệu quả ĐGD | xếp hạng theo Điểm giao dịch — **cần danh mục ĐGD** (mục 6) |
+| Tra cứu chi tiết | bảng 174 trường mỗi khế ước, lọc + drill-down |
+| Danh mục cán bộ | quản lý cán bộ ↔ ĐGD (mục 6) |
+| Điểm giao dịch | quản lý ĐGD ↔ mã thôn (mục 6) |
 
 ---
 
-## 5. Tệp xuất bản nằm ở đâu? Khi nào nên xóa?
+## 4. Ứng dụng 2 — So sánh giữa hai kỳ
 
-- Khi chạy `npx vite` (chế độ dev), tệp được ghi vào:
-  - `webapp/public/published.json` (Phân tích một kỳ)
-  - `webapp/public/published-period.json` (So sánh hai kỳ)
-- Khi chạy `npx vite preview` (sau khi `npm run build`), tệp được ghi vào `webapp/dist/` thay vì `public/`.
+Ứng dụng này nhận **tối đa 3 tệp**, xếp vào 3 ô cố định:
 
-**Quan trọng — bảo mật PII**:
-Hai tệp này **chứa toàn bộ thông tin khách hàng** (tên, CMND, địa chỉ, số điện thoại, dư nợ…). Chúng:
-- **Không bao giờ được commit lên Git** (kể cả repo nội bộ).
-- **Không sao chép sang máy khác** trừ khi bạn chủ đích.
-- Nên **xóa** khi không còn dùng — chỉ cần xóa thủ công file `webapp/public/published.json`.
+| Ô | Ý nghĩa |
+|---|---|
+| **Cuối năm trước** | số liệu 31/12 năm trước |
+| **Cuối tháng trước** | số liệu cuối tháng liền trước |
+| **Hiện tại** | số liệu kỳ đang phân tích |
 
-Khi bạn muốn ngừng cho người xem xem nữa: xóa hai tệp đó → người xem mở trang sẽ thấy "Quản trị viên chưa xuất bản dữ liệu".
+1. Lobby → thẻ **So sánh giữa hai kỳ**
+2. Kéo tệp vào từng ô (nạp ít nhất **2 ô** mới so sánh được)
+3. Chọn **cặp kỳ** muốn so (ví dụ Cuối tháng trước ↔ Hiện tại)
+4. Muốn thay tệp một ô: bấm nút **Thay tệp** ngay trên ô đó
+
+> Ứng dụng tự chặn nạp hai tệp trùng "Ngày số liệu" vào hai ô khác nhau.
+
+Các trang: Diễn biến · Ma trận chuyển nhóm · Chất lượng tài sản · Top tăng/giảm · Hội đoàn thể & Tổ · So sánh hiệu quả cán bộ · So sánh hiệu quả ĐGD · Bảng khế ước biến động · Outreach & khách hàng.
 
 ---
 
-## 6. Đổi mật khẩu chế độ quản trị
+## 5. Ứng dụng 3 — Kế hoạch tín dụng
 
-Hash mật khẩu mẫu trong `src/config/auth.ts` **phải được thay** trước khi triển khai cho người khác sử dụng — nếu không, bất kỳ ai biết hash mẫu cũng có thể đoán ra mật khẩu.
+Thứ tự làm việc theo đúng thứ tự menu:
 
-1. Mở trình duyệt bất kỳ → bấm `F12` → tab **Console**
-2. Dán đoạn lệnh sau, thay `MAT-KHAU-MOI-CUA-BAN`:
+1. **Quyết định** — nhập số QĐ, ngày QĐ, đính kèm file PDF quyết định
+2. **Kế hoạch** — nhập chỉ tiêu dư nợ theo Xã · Chương trình · Nguồn vốn
+3. **Thực tế** — nạp Báo cáo 31 để lấy số dư nợ thực tế
+4. **Báo cáo** — so sánh Kế hoạch vs Thực tế, tỷ lệ hoàn thành
+5. **Báo cáo thực hiện** — hiệu suất theo cán bộ / ĐGD
+6. **Danh mục xã** — danh sách xã dùng cho hai bước trên
+
+Dữ liệu ứng dụng này lưu trong trình duyệt (localStorage) và **tự đồng bộ riêng** cho người xem, độc lập với hai ứng dụng kia.
+
+---
+
+## 6. Danh mục Điểm giao dịch & Cán bộ
+
+Báo cáo 31 **không có** cột ĐGD hay cán bộ — hai danh mục này bạn tự dựng, một lần, rồi dùng lại mãi. Không có chúng thì các trang "Hiệu quả ĐGD", "Hiệu quả cán bộ" và bộ lọc theo ĐGD sẽ trống.
+
+Cấu trúc: **Cán bộ → phụ trách nhiều ĐGD → mỗi ĐGD gồm nhiều Mã thôn → mã thôn khớp với khế ước trong Báo cáo 31.**
+
+### 6.1 Dựng danh mục ĐGD bằng Excel (nhanh nhất)
+
+Vào **Điểm giao dịch**:
+
+1. Bấm **File mẫu** → tải về một file Excel đã **liệt kê sẵn toàn bộ Mã thôn** có trong Báo cáo 31 đang mở (kèm Tên thôn / Tên xã / Số khế ước để đối chiếu, và một sheet "Huong dan").
+2. Mở file, với mỗi dòng thôn điền 2 cột đầu: **Mã ĐGD** và **Tên ĐGD**.
+   - Nhiều thôn cùng một ĐGD → ghi **trùng** Mã ĐGD (Tên ĐGD chỉ cần đúng ở dòng đầu).
+   - Thôn chưa thuộc ĐGD nào → để trống 2 cột đó, hệ thống bỏ qua.
+   - Có thể gộp nhiều mã thôn vào một ô, ngăn bằng dấu phẩy: `001, 002, 003`.
+3. Lưu file → về app bấm **Import Excel** → xem trước → **Import**.
+
+Màn hình xem trước cho biết: đọc được bao nhiêu ĐGD, bao nhiêu mã mới / bị ghi đè, mã thôn nào **không có trong Báo cáo 31** (in đỏ), và cho chọn **Gộp** (trùng mã thì ghi đè) hay **Thay thế toàn bộ**.
+
+Không cần tạo ĐGD trước bằng tay — import sinh ra ĐGD từ chính file.
+
+### 6.2 Dựng danh mục cán bộ
+
+Vào **Danh mục cán bộ** — **làm sau khi đã có danh mục ĐGD**:
+
+1. **File mẫu** → file Excel đã liệt kê sẵn mọi **Mã ĐGD** trong danh mục
+2. Điền **Mã NV** / **Tên NV** cho từng dòng ĐGD (một cán bộ phụ trách nhiều ĐGD thì ghi trùng Mã NV)
+3. **Import Excel** → xem trước → **Import**
+
+File cán bộ chỉ *tham chiếu* Mã ĐGD; mã nào chưa có trong danh mục ĐGD sẽ bị cảnh báo đỏ chứ hệ thống **không tự tạo ĐGD mới**.
+
+### 6.3 Kiểm soát phủ thôn
+
+Ngay trên trang Điểm giao dịch có bảng đối chiếu:
+
+- **Chưa gán** — thôn có trong Báo cáo 31 nhưng chưa thuộc ĐGD nào (kèm số khế ước, dư nợ bị bỏ sót)
+- **Gán trùng** — một thôn bị gán cho từ 2 ĐGD trở lên
+- **Mã thôn đã gán nhưng không có trong Báo cáo 31** — gõ sai mã, hoặc thôn đã sáp nhập / đổi mã
+
+Mục tiêu: "Chưa gán" và "Gán trùng" đều về **0**.
+
+### 6.4 Sao lưu & chuyển sang máy khác
+
+- Nút **Export JSON** tải danh mục hiện tại về máy để sao lưu.
+- Muốn dựng lại danh mục trên **máy khác**: giữ chính file Excel bạn đã điền, copy sang máy đó rồi bấm *Import Excel*. (Nút Import JSON đã bỏ — nhập danh mục nay chỉ qua Excel/CSV.)
+- Danh mục **không** đi theo `git pull`: nó nằm trong localStorage của từng trình duyệt.
+
+> Sửa từng ĐGD / cán bộ bằng tay vẫn được: dùng nút **Thêm** hoặc biểu tượng bút chì trên từng dòng. Excel chỉ để nhập hàng loạt cho nhanh.
+
+---
+
+## 7. Xuất bản cho người xem — **tự động**
+
+Không còn nút "Xuất bản cho người xem" như bản cũ. Hễ bạn đang ở chế độ quản trị và dữ liệu thay đổi, ứng dụng **tự xuất bản sau ~1,5 giây**.
+
+Trạng thái hiển thị bằng một nhãn nhỏ ở sidebar:
+
+| Nhãn | Nghĩa |
+|---|---|
+| `Tự động đồng bộ cho người xem` | đang chờ, chưa có gì để gửi |
+| `Đang đồng bộ…` | đang gửi |
+| `Đã đồng bộ · 2 phút trước` | xong, người xem refresh là thấy |
+| `Lỗi đồng bộ` | rê chuột vào để đọc lý do |
+
+Mỗi lần đồng bộ dữ liệu, **danh mục Cán bộ + ĐGD được gửi kèm** (vài KB) nên người xem ở máy khác có cùng hai bộ chọn với bạn. Ứng dụng Kế hoạch tín dụng có nhãn đồng bộ riêng của nó.
+
+Người xem **phải F5** mới thấy bản mới — cố ý như vậy để dữ liệu không đổi giữa chừng phiên làm việc của họ.
+
+Nếu bạn chưa xuất bản gì, người xem vào sẽ thấy: *"Quản trị viên chưa xuất bản dữ liệu cho ứng dụng này."*
+
+---
+
+## 8. Chia sẻ link cho người xem
+
+### 8.1 Trong văn phòng (LAN / cùng Wi-Fi)
+
+1. Chạy `npm run lan`
+2. Gửi địa chỉ **Network** (ví dụ `http://192.168.1.42:5173/`)
+3. Họ mở bằng trình duyệt — xong
+
+Máy bạn phải đang bật và đang chạy lệnh thì link mới sống.
+
+### 8.2 Từ ngoài văn phòng (Cloudflare Tunnel)
+
+`npm run lan` và `npm run share` đã tự chạy `cloudflared` — chỉ cần lấy URL `https://….trycloudflare.com` trong terminal và gửi đi.
+
+> ⚠️ URL này **công khai trên internet** — ai có link đều mở được, mà dữ liệu chứa tên, CMND, địa chỉ khách hàng. Chỉ gửi trực tiếp cho người được phép, qua kênh nội bộ. Xong việc bấm `Ctrl + C` → URL chết ngay.
+
+Cần thêm lớp đăng nhập trước khi vào trang: dùng Cloudflare Access (miễn phí ≤ 50 user).
+
+---
+
+## 9. Tệp xuất bản nằm ở đâu — và bảo mật PII
+
+Khi chạy `npm run dev`, dữ liệu xuất bản được ghi vào thư mục `public/`:
+
+| Tệp | Nội dung |
+|---|---|
+| `published.json.gz` | Phân tích một kỳ |
+| `published-period.json.gz` | So sánh giữa hai kỳ |
+| `published-catalog.json.gz` | Danh mục Cán bộ + ĐGD |
+| `published-credit-plan.json.gz` | Kế hoạch tín dụng |
+| `decision-attachments/` | PDF quyết định đính kèm |
+
+Các tệp được **nén gzip** trước khi ghi (≈ 49 MB → ≈ 5 MB). Khi chạy `npm run preview` (sau `npm run build`), chúng nằm trong `dist/` thay vì `public/`.
+
+**Bảo mật:**
+
+- Toàn bộ các tệp trên **chứa thông tin cá nhân khách hàng**.
+- Đã có trong `.gitignore` → **không bao giờ** bị commit lên GitHub. Đừng gỡ dòng đó ra.
+- Không copy sang máy khác trừ khi chủ đích.
+- Muốn ngừng chia sẻ: xóa các tệp `public/published*` → người xem sẽ thấy "chưa xuất bản dữ liệu".
+
+---
+
+## 10. Quy ước dữ liệu cần biết
+
+Áp dụng cho ứng dụng **Phân tích một kỳ**:
+
+- **Khế ước đã tất toán bị ẩn hoàn toàn.** Dòng có `Tình trạng món vay = close` không xuất hiện ở bất kỳ KPI, biểu đồ, bộ lọc, bảng Tra cứu chi tiết hay bản xuất Excel/PDF nào.
+  - **Ngoại lệ duy nhất:** *Số dư TK 105* (tiền gửi) được tính trên **toàn bộ** khế ước, kể cả đã tất toán — vì số dư tiền gửi của khách thường nằm trên khế ước đã đóng. Tổng TK 105 vì thế có thể cao hơn kỳ vọng nếu bạn chỉ nhìn các khế ước đang hoạt động.
+- **"Lịch đáo hạn theo tháng" dùng cột "Ngày ĐH theo GDXA".** Khế ước để trống cột này không lên biểu đồ nhiệt, kể cả khi còn "Ngày ĐH theo hợp đồng" hay "Ngày ĐH theo Gia hạn".
+- **Cột "Ngày đến hạn" trong Tra cứu chi tiết cũng là "Ngày ĐH theo GDXA".**
+- **Tiêu đề cột Excel được đối chiếu dung thứ** — khác biệt chữ hoa/thường, khoảng trắng, dấu tiếng Việt vẫn nhận diện được. Mỗi lần nhập tệp, danh sách cột phát hiện được in ra DevTools Console (`F12 → Console → [parser] Excel columns detected:…`).
+
+> Ứng dụng **So sánh giữa hai kỳ** không áp dụng các quy ước này (kho dữ liệu riêng) — khế ước tất toán vẫn được giữ để nhận biết biến động "tất toán giữa hai kỳ".
+
+---
+
+## 11. Đổi mật khẩu chế độ quản trị
+
+Mã nguồn chỉ chứa **hash SHA-256**, không chứa mật khẩu thô. Hash mẫu **phải đổi** trước khi giao cho người khác dùng.
+
+1. Mở trình duyệt bất kỳ → `F12` → tab **Console**
+2. Dán lệnh sau, thay `MAT-KHAU-MOI-CUA-BAN`:
    ```js
    crypto.subtle.digest('SHA-256', new TextEncoder().encode('MAT-KHAU-MOI-CUA-BAN'))
      .then(b => console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
    ```
-3. Nhấn Enter → console in ra một chuỗi hex 64 ký tự
-4. Mở tệp `webapp/src/config/auth.ts`
-5. Thay giá trị của `OWNER_PASSWORD_SHA256` bằng chuỗi hex vừa tạo
-6. Lưu file. Vite sẽ tự reload — lần sau mở khóa cần dùng mật khẩu mới
-7. Người xem mở khóa bằng mật khẩu cũ sẽ bị từ chối
-
-> Mã nguồn chỉ chứa **hash SHA-256**, không chứa mật khẩu thô. Người xem có thể xem mã nguồn nhưng không lấy lại được mật khẩu từ hash.
+3. Copy chuỗi hex 64 ký tự
+4. Mở `src/config/auth.ts`, thay giá trị `OWNER_PASSWORD_SHA256`
+5. Lưu file — Vite tự nạp lại, lần sau mở khóa dùng mật khẩu mới
 
 ---
 
-## 7. Câu hỏi nhanh
+## 12. Cập nhật code mới từ GitHub
+
+```bash
+cd /c/VBSP/KIETCUIBAP
+git status          # nếu có sửa đổi local → git stash
+git pull
+npm install         # chỉ khi package.json có thay đổi
+npm run dev
+```
+
+Sau đó bấm `Ctrl + Shift + R` trong trình duyệt để bỏ cache.
+
+Trên máy người khác, kiểm tra một lần: `git remote -v` phải trỏ đúng repo đang dùng, nếu không `git pull` sẽ không lấy được code mới.
+
+`git pull` **chỉ cập nhật code**, không mang theo dữ liệu Báo cáo 31, danh mục ĐGD/cán bộ hay kế hoạch tín dụng — những thứ đó nằm trong trình duyệt của từng máy.
+
+---
+
+## 13. Câu hỏi nhanh
+
+**Q: Tổng dư nợ trong app thấp hơn tệp Excel gốc?**
+A: Đúng theo thiết kế — app đã ẩn mọi khế ước `Tình trạng món vay = close`. Muốn đối chiếu, lọc cùng điều kiện trong Excel trước khi so. (Mục 10.)
+
+**Q: Tổng "Số dư TK 105" lại cao hơn tôi tính tay?**
+A: Cũng đúng theo thiết kế — TK 105 tính trên cả khế ước đã tất toán. (Mục 10.)
+
+**Q: "Lịch đáo hạn theo tháng" trống hoặc quá ít dữ liệu?**
+A: Biểu đồ chỉ đếm khế ước có giá trị ở cột "Ngày ĐH theo GDXA". Mở `F12 → Console`, tìm dòng `[parser] Excel columns detected:…` để chắc cột đó tồn tại và đúng tên. Nếu cột có nhưng đa số dòng để trống thì đó là lý do.
+
+**Q: Trang "Hiệu quả ĐGD" / "Hiệu quả cán bộ" trống?**
+A: Chưa dựng danh mục — làm mục 6, và kiểm tra bảng "Kiểm soát phủ thôn" xem còn thôn nào chưa gán không.
+
+**Q: Người xem có cần làm gì khi tôi nạp tệp mới?**
+A: Chỉ cần **F5**.
 
 **Q: Người xem có thể bấm "Chế độ quản trị" để thử mật khẩu không?**
-A: Có — liên kết hiển thị cho mọi người. Nhưng không có mật khẩu thì không qua được, và lỗi sai chỉ in dòng chữ ngắn. Nếu lo bị thử brute-force, đặt mật khẩu dài + dùng cloudflared kèm Cloudflare Access (mục 4.3).
+A: Có, liên kết hiện với mọi người — nhưng không có mật khẩu thì không qua được. Lo brute-force thì đặt mật khẩu dài và thêm Cloudflare Access.
 
-**Q: Người xem có thể xem mã nguồn JS qua DevTools và thấy dữ liệu thô không?**
-A: Có. Đây là ứng dụng trên trình duyệt — toàn bộ dữ liệu được tải về máy người xem để hiển thị. Phân quyền này chặn **giao diện** nhập / xóa / đổi tệp, không phải chặn truy cập ở mức kỹ thuật. Nếu cần cách ly hoàn toàn (ví dụ chỉ cho xem một PGD), cần backend riêng — nói tôi biết để bàn thêm.
-
-**Q: Khi cập nhật tệp mới, người xem có cần làm gì?**
-A: Chỉ cần **F5** để nạp lại. Nếu họ đang mở sẵn trang, dữ liệu cũ vẫn hiển thị cho đến khi họ tự refresh (đây là lựa chọn có chủ đích để tránh dữ liệu thay đổi giữa chừng phiên làm việc của họ).
+**Q: Người xem mở DevTools có thấy dữ liệu thô không?**
+A: Có. Đây là ứng dụng chạy trên trình duyệt — dữ liệu phải tải về máy họ để hiển thị. Phân quyền này chặn **thao tác** nhập / xóa / đổi tệp, không phải chặn truy cập ở mức kỹ thuật. Muốn cách ly thật (ví dụ mỗi người chỉ xem một PGD) thì cần backend riêng.
 
 **Q: Có thể có nhiều quản trị viên không?**
-A: Có. Cứ chia sẻ mật khẩu cho ai cần và họ tự mở khóa trên trình duyệt của họ. Nhưng chỉ có **một** tệp `published.json` chung — ai bấm Xuất bản sau cùng thì dữ liệu của người đó sẽ "thắng".
+A: Có, cứ chia sẻ mật khẩu. Nhưng chỉ có **một** bộ tệp xuất bản chung — ai đồng bộ sau cùng thì dữ liệu của người đó thắng.
 
-**Q: Tôi quên thoát chế độ quản trị trên một máy khách, làm sao đăng xuất từ xa?**
-A: Không có cách đăng xuất từ xa (vì không có server lưu phiên). Nếu mất kiểm soát, **đổi mật khẩu** (mục 6) — nhưng ai đã mở khóa rồi vẫn có quyền cho đến khi họ tự xóa `localStorage` hoặc bạn bảo họ vào Lobby bấm "Thoát".
+**Q: Lỡ mở chế độ quản trị trên máy người khác, đăng xuất từ xa được không?**
+A: Không (không có server lưu phiên). Bảo họ vào Lobby bấm **Thoát**, hoặc đổi mật khẩu (mục 11) — nhưng người đã mở khóa vẫn giữ quyền cho tới khi tự thoát / xóa localStorage.
 
-**Q: Tổng dư nợ trong "Phân tích một kỳ" thấp hơn số trên tệp Excel gốc?**
-A: Đúng theo thiết kế — ứng dụng đã ẩn tất cả khế ước `Tình trạng món vay = close`. Muốn đối chiếu tổng, lọc cùng điều kiện trong Excel trước khi so sánh. (Xem mục 2.6.)
-
-**Q: "Lịch đáo hạn theo tháng" trống hoặc ít dữ liệu hơn kỳ vọng?**
-A: Biểu đồ chỉ đếm khế ước có giá trị ở cột "Ngày ĐH theo GDXA". Mở DevTools Console (F12) → tìm dòng `[parser] Excel columns detected:…` để chắc chắn cột GDXA có trong tệp và tên cột đúng. Nếu cột GDXA tồn tại nhưng để trống cho đa số dòng, đó là lý do biểu đồ ít điểm.
+**Q: `Port 5173 is already in use`?**
+A: App đang chạy ở cửa sổ khác. Tìm cửa sổ đó bấm `Ctrl + C`, hoặc khởi động lại máy.
 
 ---
 
-## 8. Tóm tắt nhanh — checklist
+## 14. Checklist
 
-**Lần đầu setup:**
-- [ ] `cd webapp && npm install`
-- [ ] Đổi mật khẩu trong `src/config/auth.ts` (mục 6)
-- [ ] Cài cloudflared nếu cần truy cập từ xa
+**Lần đầu:**
+- [ ] Cài đặt theo [SETUP.md](SETUP.md)
+- [ ] Đổi mật khẩu quản trị (mục 11)
+- [ ] Nạp Báo cáo 31 → dựng danh mục **ĐGD** rồi tới **cán bộ** (mục 6)
+- [ ] Kiểm tra "Chưa gán" và "Gán trùng" đều = 0
 
 **Mỗi lần làm việc:**
-- [ ] `npx vite --host` (giữ cửa sổ này mở)
-- [ ] Vào Lobby → Chế độ quản trị → đăng nhập
-- [ ] Nhập tệp Báo cáo 31 (1 hoặc 2 tệp tùy ứng dụng)
-- [ ] Bấm **Xuất bản cho người xem** trên sidebar
-- [ ] Gửi link cho đồng nghiệp
+- [ ] `npm run dev` (hoặc `npm run lan` nếu cần chia sẻ) — giữ cửa sổ mở
+- [ ] Lobby → Chế độ quản trị → mở khóa
+- [ ] Nạp tệp Báo cáo 31 (hoặc bấm "Mở lại tệp …")
+- [ ] Chờ nhãn **Đã đồng bộ** ở sidebar
+- [ ] Gửi link cho đồng nghiệp, nhắc họ F5
 
-**Khi xong việc:**
-- [ ] Đóng terminal `vite` (Ctrl+C) → ứng dụng tắt
-- [ ] (Tùy chọn) xóa `webapp/public/published.json` để bảo mật PII
+**Xong việc:**
+- [ ] `Ctrl + C` để tắt server (và link Cloudflare)
+- [ ] (Tùy chọn) xóa `public/published*` nếu muốn ngừng chia sẻ hẳn

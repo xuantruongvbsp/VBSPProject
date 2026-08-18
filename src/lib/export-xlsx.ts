@@ -997,6 +997,8 @@ export interface PerformanceXlsxRow {
   /** Số thôn (suy ra) */
   thonCount: number;
 
+  /** Số Tổ trưởng TK&VV (số Mã tổ duy nhất) — hiện chỉ dùng cho báo cáo ĐGD */
+  soToTruong?: number;
   soKheUoc: number;
   soKhachHang: number;
   tongDuNo: number;
@@ -1050,6 +1052,13 @@ export async function exportPerformanceToXlsx(
       'Khế ước thuộc thôn không có chủ duy nhất được gom vào dòng tổng hợp ở cuối: "(Chưa gán)" và "(Trùng)".',
     ],
     ['NQH% = duNoQuaHan / tongDuNo. Mức vay BQ = tongDuNo / soKhachHang duy nhất.'],
+    ...(isStaff
+      ? []
+      : [
+          [
+            'Số tổ trưởng = số Mã tổ (Tổ TK&VV) duy nhất còn dư nợ trong phạm vi ĐGD; mỗi Mã tổ ứng với 1 Tên tổ = tên tổ trưởng.',
+          ],
+        ]),
   ];
   const ctxWs = XLSX.utils.aoa_to_sheet(ctx);
   ctxWs['!cols'] = [{ wch: 90 }];
@@ -1062,6 +1071,15 @@ export async function exportPerformanceToXlsx(
       ? [{ header: 'Số ĐGD phụ trách', get: (r: PerformanceXlsxRow) => r.dgdCount, numFmt: '#,##0' }]
       : []),
     { header: 'Số thôn phụ trách', get: (r) => r.thonCount, numFmt: '#,##0' },
+    ...(isStaff
+      ? []
+      : [
+          {
+            header: 'Số tổ trưởng',
+            get: (r: PerformanceXlsxRow) => r.soToTruong ?? 0,
+            numFmt: '#,##0',
+          },
+        ]),
     { header: 'Số khế ước', get: (r) => r.soKheUoc, numFmt: '#,##0' },
     { header: 'Số khách hàng', get: (r) => r.soKhachHang, numFmt: '#,##0' },
     { header: 'Tổng dư nợ (đ)', get: (r) => r.tongDuNo, numFmt: '#,##0' },
