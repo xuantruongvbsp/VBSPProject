@@ -333,7 +333,7 @@ const BAD_DEBT_COLUMNS: {
   { header: 'Nguồn vốn', get: (r) => r.nguonVon },
   { header: 'Ngày vay', get: (r) => fmtDate(r.ngayVay) },
   { header: 'Ngày chuyển NQH (GDXA)', get: (r) => fmtDate(r.ngayDHGDXA) },
-  { header: 'Thời hạn vay (tháng)', get: (r) => r.thoiHanVay, numFmt: '#,##0' },
+  { header: 'Thời hạn vay', get: (r) => r.thoiHanVay },
   { header: 'Lãi suất (%/năm)', get: (r) => r.laiSuat, numFmt: '#,##0.00' },
   { header: 'Mức vay (đ)', get: (r) => r.mucVay, numFmt: '#,##0' },
   { header: 'Tổng dư nợ (đ)', get: (r) => r.tongDuNo, numFmt: '#,##0' },

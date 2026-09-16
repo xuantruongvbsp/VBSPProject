@@ -22,6 +22,7 @@ import type {
   XaCatalogEntry,
 } from './credit-plan-types';
 import { DEFAULT_XA_LIST } from './credit-plan-types';
+import { upgradeLegacyRows } from './loan-record-compat';
 
 // File xuất bản được nén gzip để giảm kích thước on-wire ~10× (49 MB → ~5 MB).
 // Tệp `.json` cũ vẫn được fetch fallback để tương thích ngược trong giai đoạn
@@ -54,52 +55,10 @@ const DATE_FIELDS: ReadonlyArray<keyof LoanRecord> = [
   'ngayHetHanKhoanh',
 ];
 
-/**
- * Báo cáo 31 có 174 cột — `LoanRecord.raw` giữ nguyên cả 174 để hiển thị
- * chi tiết khế ước. Tuy nhiên người xem chỉ mở `LoanDetailDrawer`, và
- * drawer chỉ đọc một tập nhỏ ~49 khóa. Nếu serialize toàn bộ raw, payload
- * "So sánh hai kỳ" (2 × ~30k dòng) phình lên ~200 MB và làm Chrome OOM.
- *
- * Danh sách dưới đây phải khớp với các trường được khai trong
- * `src/components/detail/LoanDetailDrawer.tsx` (`sections`). Nếu drawer
- * thêm trường mới → cập nhật cả ở đây.
- */
-const RAW_KEYS_FOR_VIEWER: ReadonlyArray<string> = [
-  // Đơn vị quản lý
-  'Mã CN', 'Mã PGD', 'Tên PGD', 'Mã xã', 'Tên xã', 'Tên thôn',
-  // Khách hàng
-  'Mã KH', 'Tên KH', 'Ngày sinh', 'Giới tính', 'Phân loại', 'Loại KH',
-  'Tên DT', 'Số CMND', 'Nơi cấp CMND', 'Địa chỉ', 'Số điện thoại',
-  // Tổ TK&VV và Đơn vị ủy thác
-  'Mã tổ', 'Tên tổ', 'Loại tổ', 'Mã ĐVUT', 'Tên ĐVUT',
-  // Khế ước
-  'Số khế ước', 'Ngày vay', 'Ngày ĐH theo hợp đồng', 'Ngày ĐH theo Gia hạn',
-  'Thời hạn vay', 'Lãi suất', 'Hình thức vay', 'Tình trạng món vay',
-  // Số dư & Giải ngân
-  'Mức vay', 'Tổng giải ngân', 'Dư nợ trong hạn', 'Dư nợ quá hạn',
-  'Dư nợ khoanh', 'Tổng dư nợ', 'Gốc đã trả', 'Giải ngân trong tháng',
-  'Số dư tiền gửi 105', 'Ngày hết hạn Khoanh',
-  // Lãi & Thu nợ
-  'Tổng thu lãi TH', 'Lãi tồn TH', 'Tổng thu lãi QH', 'Lãi tồn QH',
-  'Lãi DT chưa đến hạn', 'Thu lãi TH tháng', 'Thu nợ TH tháng',
-  // Chương trình tín dụng
-  'Mã chương trình', 'Tên chương trình', 'Tên Quyết định', 'Nguồn vốn',
-  'Tên ĐTTH',
-];
-
-function pickRawForViewer(raw: Record<string, unknown> | undefined): Record<string, unknown> {
-  if (!raw) return {};
-  const out: Record<string, unknown> = {};
-  for (const k of RAW_KEYS_FOR_VIEWER) {
-    const v = raw[k];
-    if (v !== undefined && v !== null && v !== '') out[k] = v;
-  }
-  return out;
-}
-
+// Tệp xuất bản KHÔNG mang `raw` (bản sao 174 cột) — parser đã bỏ trường này.
+// Tệp xuất bản cũ còn `raw` được `upgradeLegacyRows` dọn khi viewer nạp.
 function rowToJson(row: LoanRecord): Record<string, unknown> {
-  const { raw, ...rest } = row;
-  const out: Record<string, unknown> = { ...rest, raw: pickRawForViewer(raw) };
+  const out: Record<string, unknown> = { ...row };
   for (const f of DATE_FIELDS) {
     const v = row[f];
     // Cứng tay: chỉ chấp nhận Date hợp lệ, mọi thứ khác → null. Tránh
@@ -121,6 +80,10 @@ function jsonToRow(j: Record<string, unknown>): LoanRecord {
     out[f] = typeof v === 'string' ? new Date(v) : null;
   }
   return out as unknown as LoanRecord;
+}
+
+function jsonToRows(rows: Record<string, unknown>[]): LoanRecord[] {
+  return upgradeLegacyRows(rows.map(jsonToRow));
 }
 
 // ---------------------------------------------------------------------------
@@ -153,7 +116,7 @@ export interface DeserializedSnapshot {
 export function deserializeSnapshot(text: string): DeserializedSnapshot {
   const obj = JSON.parse(text) as SnapshotPublishPayload;
   return {
-    rows: obj.rows.map(jsonToRow),
+    rows: jsonToRows(obj.rows),
     ngaySoLieu: obj.ngaySoLieu ? new Date(obj.ngaySoLieu) : null,
   };
 }
@@ -237,7 +200,7 @@ export type PeriodPublishPayload =
 
 function jsonToSnapshot(j: PeriodSnapshotJson): PeriodSnapshot {
   return {
-    rows: j.rows.map(jsonToRow),
+    rows: jsonToRows(j.rows),
     ngaySoLieu: j.ngaySoLieu ? new Date(j.ngaySoLieu) : null,
     // Bỏ tên tệp gốc — người xem không cần biết
     filename: '',
@@ -318,12 +281,12 @@ export async function fetchPublishedPeriod(): Promise<DeserializedPeriod | null>
 // ---------------------------------------------------------------------------
 // Gửi tệp xuất bản đến vite-plugin-publish.
 //
-// Lý do KHÔNG dùng Web Worker: structured-clone toàn bộ rows (30k × 174
-// trường, kèm `raw`) sang worker đã ngốn vài trăm MB và làm Chrome kill tab
-// vì OOM TRƯỚC khi worker kịp stringify. Gửi theo từng "chunk" trên luồng
-// chính + yield giữa các chunk giữ UI luôn phản hồi và không nhân bản dữ
-// liệu — chỉ tạo các đoạn JSON nhỏ rồi gom thành Blob (Blob lưu nội dung
-// dưới dạng nhị phân, ngay khi dồn xong các string chunks có thể được GC).
+// Lý do KHÔNG dùng Web Worker: structured-clone toàn bộ rows sang worker
+// nhân đôi bộ nhớ (thời còn `raw` 174 cột từng làm Chrome OOM kill tab).
+// Stringify theo từng "chunk" trên luồng chính + yield giữa các chunk giữ
+// UI luôn phản hồi và không nhân bản dữ liệu — chỉ tạo các đoạn JSON nhỏ
+// rồi gom thành Blob (Blob lưu nội dung dưới dạng nhị phân, các string
+// chunk có thể được GC ngay sau khi dồn vào).
 // ---------------------------------------------------------------------------
 
 export interface PublishOptions {
@@ -331,9 +294,9 @@ export interface PublishOptions {
   onProgress?: (phase: 'serializing' | 'uploading') => void;
 }
 
-/** Số dòng mỗi chunk khi stringify — chọn đủ lớn để overhead nhỏ, đủ nhỏ
- *  để mỗi vòng yield giữ UI mượt (~50 ms/chunk trên dữ liệu thực). */
-const ROWS_PER_CHUNK = 500;
+/** Số dòng mỗi chunk khi stringify — đo trên Báo cáo 31 thực (15k dòng):
+ *  500 dòng ≈ 200 ms/chunk (vẫn thấy khựng khi cuộn); 200 dòng ≈ 80 ms. */
+const ROWS_PER_CHUNK = 200;
 
 /** Chờ tick kế tiếp để main thread xử lý input/UI. */
 function yieldToEventLoop(): Promise<void> {

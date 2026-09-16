@@ -5,10 +5,26 @@
 //
 // Cấu trúc cơ sở dữ liệu:
 //   - Object store `meta`  (key=id) — siêu dữ liệu nhẹ, dùng cho danh sách
-//   - Object store `data`  (key=id) — bản ghi LoanRecord[] đầy đủ
+//   - Object store `data`  (key=`${id}#${n}`) — LoanRecord[] chia thành từng
+//     chunk `ROWS_PER_CHUNK` dòng. `meta.chunks` cho biết số chunk.
+//     Bản ghi cũ (trước khi chia chunk) nằm ở key=id, không có `meta.chunks`.
+//
+// Vì sao chia chunk: `IDBObjectStore.put()` structured-clone giá trị NGAY
+// trên main thread, đồng bộ. Ghi cả 15k–30k dòng trong một `put` là một
+// khối chặn vài giây (kèm 1 value hàng chục MB cho LevelDB) → Chrome hiện
+// "Wait or Exit". Chia nhỏ + `await` từng put để event loop được thở giữa
+// các chunk; toàn bộ vẫn nằm trong MỘT transaction nên hoặc lưu đủ hoặc
+// không lưu gì.
 
 import type { LoanRecord } from './types';
-import { parseVnDate } from './format';
+import { upgradeLegacyRows } from './loan-record-compat';
+
+/** Số dòng mỗi chunk — ~2–3 MB serialized, mỗi put ≈ vài chục ms. */
+const ROWS_PER_CHUNK = 2000;
+
+function chunkKey(id: string, n: number): string {
+  return `${id}#${n}`;
+}
 
 const DB_NAME = 'vsppro-recent-files';
 const DB_VERSION = 1;
@@ -25,6 +41,8 @@ export interface RecentFileMeta {
   lastOpenedAt: number;
   totalRows: number;
   ngaySoLieu: Date | null;
+  /** Số chunk trong store `data`. Thiếu ⇒ bản ghi cũ lưu nguyên khối ở key=id. */
+  chunks?: number;
 }
 
 interface RecentFileData {
@@ -140,44 +158,65 @@ export async function saveRecentFile(
     totalRows: rows.length,
     ngaySoLieu,
   };
-  const data: RecentFileData = { id: meta.id, rows };
+  const chunks = Math.ceil(rows.length / ROWS_PER_CHUNK);
+  meta.chunks = chunks;
   await tx([META_STORE, DATA_STORE], 'readwrite', async (t) => {
-    // Giữ nguyên importedAt nếu bản ghi đã tồn tại
+    const metaStore = t.objectStore(META_STORE);
+    const dataStore = t.objectStore(DATA_STORE);
+    // Giữ nguyên importedAt nếu bản ghi đã tồn tại; dọn dữ liệu cũ của cùng id
+    // (bản nguyên khối hoặc các chunk dư nếu lần trước có nhiều chunk hơn).
     const existing = await reqAsPromise(
-      t.objectStore(META_STORE).get(meta.id) as IDBRequest<RecentFileMeta | undefined>
+      metaStore.get(meta.id) as IDBRequest<RecentFileMeta | undefined>
     );
     if (existing) {
       meta.importedAt = existing.importedAt;
+      await deleteData(dataStore, existing);
     }
-    await reqAsPromise(t.objectStore(META_STORE).put(meta));
-    await reqAsPromise(t.objectStore(DATA_STORE).put(data));
+    for (let n = 0; n < chunks; n++) {
+      const data: RecentFileData = {
+        id: chunkKey(meta.id, n),
+        rows: rows.slice(n * ROWS_PER_CHUNK, (n + 1) * ROWS_PER_CHUNK),
+      };
+      // `await` từng put → serialize từng chunk nhỏ, giữa hai chunk event loop
+      // vẫn kịp render/nhận input.
+      await reqAsPromise(dataStore.put(data));
+    }
+    await reqAsPromise(metaStore.put(meta));
   });
   return meta;
 }
 
-/** Bù các trường được thêm sau khi tệp đã được parse và cache. Đọc giá trị
- * từ `raw` (chứa toàn bộ 174 cột gốc) và gán vào trường đã type-hóa nếu
- * trường đó đang `undefined`. Không thay đổi gì nếu trường đã có giá trị. */
-function backfillTypedFields(rows: LoanRecord[]): LoanRecord[] {
-  if (rows.length === 0) return rows;
-  // Một mẫu cũ sẽ thiếu các field mới — kiểm tra trên row đầu là đủ vì
-  // toàn bộ rows đều xuất phát từ cùng một parser snapshot.
-  const sample = rows[0];
-  const needsDeposit = !('soDuTienGui105' in sample);
-  const needsKhoanhDate = !('ngayHetHanKhoanh' in sample);
-  if (!needsDeposit && !needsKhoanhDate) return rows;
-  return rows.map((r) => {
-    const raw = r.raw ?? {};
-    const patch: Partial<LoanRecord> = {};
-    if (needsDeposit) {
-      const v = raw['Số dư tiền gửi 105'];
-      patch.soDuTienGui105 = typeof v === 'number' ? v : Number(v) || 0;
-    }
-    if (needsKhoanhDate) {
-      patch.ngayHetHanKhoanh = parseVnDate(raw['Ngày hết hạn Khoanh']);
-    }
-    return { ...r, ...patch } as LoanRecord;
-  });
+/** Xóa toàn bộ dữ liệu (nguyên khối hoặc chunk) thuộc một meta. */
+async function deleteData(dataStore: IDBObjectStore, meta: RecentFileMeta): Promise<void> {
+  if (meta.chunks === undefined) {
+    await reqAsPromise(dataStore.delete(meta.id));
+    return;
+  }
+  for (let n = 0; n < meta.chunks; n++) {
+    await reqAsPromise(dataStore.delete(chunkKey(meta.id, n)));
+  }
+}
+
+/** Đọc toàn bộ rows của một meta — null nếu thiếu dữ liệu. */
+async function readData(
+  dataStore: IDBObjectStore,
+  meta: RecentFileMeta
+): Promise<LoanRecord[] | null> {
+  if (meta.chunks === undefined) {
+    const data = await reqAsPromise(
+      dataStore.get(meta.id) as IDBRequest<RecentFileData | undefined>
+    );
+    return data ? data.rows : null;
+  }
+  const out: LoanRecord[] = [];
+  for (let n = 0; n < meta.chunks; n++) {
+    const data = await reqAsPromise(
+      dataStore.get(chunkKey(meta.id, n)) as IDBRequest<RecentFileData | undefined>
+    );
+    if (!data) return null;
+    for (const r of data.rows) out.push(r);
+  }
+  return out;
 }
 
 /** Tải lại một tệp đã lưu — trả về null nếu không tìm thấy. */
@@ -190,22 +229,24 @@ export async function loadRecentFile(id: string): Promise<{
       t.objectStore(META_STORE).get(id) as IDBRequest<RecentFileMeta | undefined>
     );
     if (!meta) return null;
-    const data = await reqAsPromise(
-      t.objectStore(DATA_STORE).get(id) as IDBRequest<RecentFileData | undefined>
-    );
-    if (!data) return null;
+    const rows = await readData(t.objectStore(DATA_STORE), meta);
+    if (!rows) return null;
     // Cập nhật thời điểm mở gần nhất
     meta.lastOpenedAt = Date.now();
     await reqAsPromise(t.objectStore(META_STORE).put(meta));
-    return { meta, rows: backfillTypedFields(data.rows) };
+    return { meta, rows: upgradeLegacyRows(rows) };
   });
 }
 
 /** Xóa một tệp khỏi danh sách. */
 export async function removeRecentFile(id: string): Promise<void> {
   await tx([META_STORE, DATA_STORE], 'readwrite', async (t) => {
-    await reqAsPromise(t.objectStore(META_STORE).delete(id));
-    await reqAsPromise(t.objectStore(DATA_STORE).delete(id));
+    const metaStore = t.objectStore(META_STORE);
+    const meta = await reqAsPromise(
+      metaStore.get(id) as IDBRequest<RecentFileMeta | undefined>
+    );
+    await reqAsPromise(metaStore.delete(id));
+    if (meta) await deleteData(t.objectStore(DATA_STORE), meta);
   });
 }
 

@@ -20,6 +20,7 @@ export interface LoanRecord {
   maDanToc: string;
   tenDanToc: string;
   soCMND: string;
+  noiCapCMND: string;
   diaChi: string;
   soDienThoai: string;
 
@@ -38,7 +39,8 @@ export interface LoanRecord {
   ngayDHHopDong: Date | null;
   ngayDHGiaHan: Date | null;
   ngayDHGDXA: Date | null;
-  thoiHanVay: number;
+  /** Giữ nguyên chữ trong Báo cáo 31 ("Ngắn hạn"/"Trung hạn"/"Dài hạn"). */
+  thoiHanVay: string;
   laiSuat: number;
   hinhThucVay: string;
   tinhTrangMonVay: string;
@@ -49,6 +51,8 @@ export interface LoanRecord {
   maQuyetDinh: string;
   tenQuyetDinh: string;
   nguonVon: string;
+  /** Đối tượng thụ hưởng (cột "Tên ĐTTH"). */
+  tenDTTH: string;
 
   // Số tiền
   mucVay: number;
@@ -103,8 +107,12 @@ export interface LoanRecord {
   /** Ngày hết hạn khoanh nợ — chỉ có ý nghĩa với khế ước có duNoKhoanh > 0. */
   ngayHetHanKhoanh: Date | null;
 
-  // Tham chiếu nguyên gốc (để hiển thị chi tiết toàn bộ 174 trường)
-  raw: Record<string, unknown>;
+  // LƯU Ý: KHÔNG còn trường `raw` (bản sao 174 cột gốc). Mỗi bản sao là một
+  // object ~350 khóa/dòng → 15k dòng ≈ 200 MB khi structured-clone từ worker
+  // sang main thread và khi ghi IndexedDB — nguyên nhân Chrome "Wait or Exit"
+  // lúc nhập sao kê. Mọi cột cần hiển thị đã được type hóa ở trên; cache
+  // IndexedDB cũ còn `raw` được dọn bằng `upgradeLegacyRows()` trong
+  // `lib/loan-record-compat.ts`.
 }
 
 export interface ImportResult {

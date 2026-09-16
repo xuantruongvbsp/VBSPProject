@@ -73,10 +73,10 @@ function mapGioiTinh(v: string): string {
   return s;
 }
 
+// Chỉ sinh các trường đã type hóa — KHÔNG sao chép 174 cột gốc vào `raw`
+// (xem ghi chú ở `LoanRecord`). Object literal có hình dạng cố định nên V8
+// giữ ở fast-mode, structured-clone sang main thread nhẹ hơn ~7×.
 function normalize(row: Row, idx: Record<string, number>): LoanRecord {
-  const raw: Record<string, unknown> = {};
-  for (const [key, i] of Object.entries(idx)) raw[key] = row[i];
-
   return {
     maCN: asString(get(row, idx, 'Mã CN')),
     maPGD: asString(get(row, idx, 'Mã PGD')),
@@ -95,6 +95,7 @@ function normalize(row: Row, idx: Record<string, number>): LoanRecord {
     maDanToc: asString(get(row, idx, 'Mã dân tộc')),
     tenDanToc: asString(get(row, idx, 'Tên DT')),
     soCMND: asString(get(row, idx, 'Số CMND')),
+    noiCapCMND: asString(get(row, idx, 'Nơi cấp CMND')),
     diaChi: asString(get(row, idx, 'Địa chỉ')),
     soDienThoai: asString(get(row, idx, 'Số điện thoại')),
 
@@ -110,7 +111,7 @@ function normalize(row: Row, idx: Record<string, number>): LoanRecord {
     ngayDHHopDong: parseVnDate(get(row, idx, 'Ngày ĐH theo hợp đồng')),
     ngayDHGiaHan: parseVnDate(get(row, idx, 'Ngày ĐH theo Gia hạn')),
     ngayDHGDXA: parseVnDate(get(row, idx, 'Ngày ĐH theo GDXA')),
-    thoiHanVay: toNumber(get(row, idx, 'Thời hạn vay')),
+    thoiHanVay: asString(get(row, idx, 'Thời hạn vay')),
     laiSuat: toNumber(get(row, idx, 'Lãi suất')),
     hinhThucVay: asString(get(row, idx, 'Hình thức vay')),
     tinhTrangMonVay: asString(get(row, idx, 'Tình trạng món vay')),
@@ -120,6 +121,7 @@ function normalize(row: Row, idx: Record<string, number>): LoanRecord {
     maQuyetDinh: asString(get(row, idx, 'Mã Quyết định')),
     tenQuyetDinh: asString(get(row, idx, 'Tên Quyết định')),
     nguonVon: asString(get(row, idx, 'Nguồn vốn')),
+    tenDTTH: asString(get(row, idx, 'Tên ĐTTH')),
 
     mucVay: toNumber(get(row, idx, 'Mức vay')),
     tongGiaiNgan: toNumber(get(row, idx, 'Tổng giải ngân')),
@@ -161,8 +163,6 @@ function normalize(row: Row, idx: Record<string, number>): LoanRecord {
     ngayGiaoDichGanNhat: parseVnDate(get(row, idx, 'Ngày giao dịch gần nhất')),
     ngaySoLieu: parseVnDate(get(row, idx, 'Ngày số liệu')),
     ngayHetHanKhoanh: parseVnDate(get(row, idx, 'Ngày hết hạn Khoanh')),
-
-    raw,
   };
 }
 

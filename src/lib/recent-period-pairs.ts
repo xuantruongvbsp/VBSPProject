@@ -3,8 +3,22 @@
 // Mỗi bản ghi giữ nguyên đủ các slot đã nạp, để khi mở lại phục hồi
 // chính xác trạng thái ban đầu (không chỉ cặp đang so sánh tại thời
 // điểm lưu). Toàn bộ dữ liệu nằm trong IndexedDB của trình duyệt.
+//
+// Store `data` chia rows của từng slot thành chunk `ROWS_PER_CHUNK` dòng,
+// key = `${id}#${slot}#${n}`; `meta.chunked = true` + `slots[k].chunks` cho
+// biết số chunk. Bản ghi cũ lưu nguyên khối ở key=id (`meta.chunked` thiếu).
+// Lý do chia chunk giống `recent-files.ts`: `put()` một khối 2–3 tệp × 15k
+// dòng structured-clone đồng bộ trên main thread nhiều giây → Chrome "Wait
+// or Exit".
 
 import type { LoanRecord } from './types';
+import { upgradeLegacyRows } from './loan-record-compat';
+
+const ROWS_PER_CHUNK = 2000;
+
+function chunkKey(id: string, slot: PeriodSlotKey, n: number): string {
+  return `${id}#${slot}#${n}`;
+}
 
 const DB_NAME = 'vsppro-period-pairs';
 // v2: schema 3 slot. Khi nâng cấp từ v1, các bản ghi cặp cũ bị xóa —
@@ -20,6 +34,8 @@ export interface PeriodSlotMeta {
   size: number;
   ngaySoLieu: Date | null;
   totalRows: number;
+  /** Số chunk của slot trong store `data` (chỉ có khi `meta.chunked`). */
+  chunks?: number;
 }
 
 export interface RecentPeriodPairMeta {
@@ -27,11 +43,20 @@ export interface RecentPeriodPairMeta {
   slots: Partial<Record<PeriodSlotKey, PeriodSlotMeta>>;
   importedAt: number;
   lastOpenedAt: number;
+  /** true ⇒ rows nằm ở các chunk `${id}#${slot}#${n}`; thiếu ⇒ nguyên khối key=id. */
+  chunked?: true;
 }
 
+/** Bản ghi cũ: toàn bộ slot trong một value. */
 interface RecentPeriodPairData {
   id: string;
   rows: Partial<Record<PeriodSlotKey, LoanRecord[]>>;
+}
+
+/** Bản ghi mới: một chunk của một slot. */
+interface RecentPeriodChunk {
+  id: string;
+  rows: LoanRecord[];
 }
 
 let dbPromise: Promise<IDBDatabase> | null = null;
@@ -165,7 +190,6 @@ export async function saveRecentPeriodPair(
   const now = Date.now();
 
   const slotsMeta: Partial<Record<PeriodSlotKey, PeriodSlotMeta>> = {};
-  const rowsBySlot: Partial<Record<PeriodSlotKey, LoanRecord[]>> = {};
   for (const k of SLOT_ORDER) {
     const s = input.slots[k];
     if (!s) continue;
@@ -174,8 +198,8 @@ export async function saveRecentPeriodPair(
       size: s.size ?? 0,
       ngaySoLieu: s.ngaySoLieu,
       totalRows: s.rows.length,
+      chunks: Math.ceil(s.rows.length / ROWS_PER_CHUNK),
     };
-    rowsBySlot[k] = s.rows;
   }
 
   const meta: RecentPeriodPairMeta = {
@@ -183,18 +207,80 @@ export async function saveRecentPeriodPair(
     slots: slotsMeta,
     importedAt: now,
     lastOpenedAt: now,
+    chunked: true,
   };
-  const data: RecentPeriodPairData = { id, rows: rowsBySlot };
 
   await tx([META_STORE, DATA_STORE], 'readwrite', async (t) => {
+    const metaStore = t.objectStore(META_STORE);
+    const dataStore = t.objectStore(DATA_STORE);
     const existing = await reqAsPromise(
-      t.objectStore(META_STORE).get(id) as IDBRequest<RecentPeriodPairMeta | undefined>
+      metaStore.get(id) as IDBRequest<RecentPeriodPairMeta | undefined>
     );
-    if (existing) meta.importedAt = existing.importedAt;
-    await reqAsPromise(t.objectStore(META_STORE).put(meta));
-    await reqAsPromise(t.objectStore(DATA_STORE).put(data));
+    if (existing) {
+      meta.importedAt = existing.importedAt;
+      await deleteData(dataStore, existing);
+    }
+    for (const k of SLOT_ORDER) {
+      const s = input.slots[k];
+      if (!s) continue;
+      const chunks = slotsMeta[k]!.chunks!;
+      for (let n = 0; n < chunks; n++) {
+        const chunk: RecentPeriodChunk = {
+          id: chunkKey(id, k, n),
+          rows: s.rows.slice(n * ROWS_PER_CHUNK, (n + 1) * ROWS_PER_CHUNK),
+        };
+        // `await` từng put → mỗi lần chỉ serialize một chunk nhỏ.
+        await reqAsPromise(dataStore.put(chunk));
+      }
+    }
+    await reqAsPromise(metaStore.put(meta));
   });
   return meta;
+}
+
+/** Xóa toàn bộ dữ liệu (nguyên khối hoặc chunk) thuộc một meta. */
+async function deleteData(
+  dataStore: IDBObjectStore,
+  meta: RecentPeriodPairMeta
+): Promise<void> {
+  if (!meta.chunked) {
+    await reqAsPromise(dataStore.delete(meta.id));
+    return;
+  }
+  for (const k of SLOT_ORDER) {
+    const chunks = meta.slots[k]?.chunks ?? 0;
+    for (let n = 0; n < chunks; n++) {
+      await reqAsPromise(dataStore.delete(chunkKey(meta.id, k, n)));
+    }
+  }
+}
+
+/** Đọc rows của mọi slot — null nếu thiếu dữ liệu. */
+async function readData(
+  dataStore: IDBObjectStore,
+  meta: RecentPeriodPairMeta
+): Promise<Partial<Record<PeriodSlotKey, LoanRecord[]>> | null> {
+  if (!meta.chunked) {
+    const data = await reqAsPromise(
+      dataStore.get(meta.id) as IDBRequest<RecentPeriodPairData | undefined>
+    );
+    return data ? data.rows : null;
+  }
+  const out: Partial<Record<PeriodSlotKey, LoanRecord[]>> = {};
+  for (const k of SLOT_ORDER) {
+    const slotMeta = meta.slots[k];
+    if (!slotMeta) continue;
+    const rows: LoanRecord[] = [];
+    for (let n = 0; n < (slotMeta.chunks ?? 0); n++) {
+      const chunk = await reqAsPromise(
+        dataStore.get(chunkKey(meta.id, k, n)) as IDBRequest<RecentPeriodChunk | undefined>
+      );
+      if (!chunk) return null;
+      for (const r of chunk.rows) rows.push(r);
+    }
+    out[k] = rows;
+  }
+  return out;
 }
 
 export interface LoadRecentTripleResult {
@@ -210,20 +296,27 @@ export async function loadRecentPeriodPair(
       t.objectStore(META_STORE).get(id) as IDBRequest<RecentPeriodPairMeta | undefined>
     );
     if (!meta) return null;
-    const data = await reqAsPromise(
-      t.objectStore(DATA_STORE).get(id) as IDBRequest<RecentPeriodPairData | undefined>
-    );
-    if (!data) return null;
+    const rows = await readData(t.objectStore(DATA_STORE), meta);
+    if (!rows) return null;
     meta.lastOpenedAt = Date.now();
     await reqAsPromise(t.objectStore(META_STORE).put(meta));
-    return { meta, rows: data.rows };
+    // Cache cũ còn `raw` (174 cột/dòng) → dọn ngay để không giữ trong RAM.
+    for (const k of SLOT_ORDER) {
+      const r = rows[k];
+      if (r) rows[k] = upgradeLegacyRows(r);
+    }
+    return { meta, rows };
   });
 }
 
 export async function removeRecentPeriodPair(id: string): Promise<void> {
   await tx([META_STORE, DATA_STORE], 'readwrite', async (t) => {
-    await reqAsPromise(t.objectStore(META_STORE).delete(id));
-    await reqAsPromise(t.objectStore(DATA_STORE).delete(id));
+    const metaStore = t.objectStore(META_STORE);
+    const meta = await reqAsPromise(
+      metaStore.get(id) as IDBRequest<RecentPeriodPairMeta | undefined>
+    );
+    await reqAsPromise(metaStore.delete(id));
+    if (meta) await deleteData(t.objectStore(DATA_STORE), meta);
   });
 }
 

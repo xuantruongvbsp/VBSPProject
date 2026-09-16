@@ -8,128 +8,111 @@ interface Props {
   onClose: () => void;
 }
 
-const sections: { title: string; fields: { label: string; key: string }[] }[] = [
+// Drawer đọc thẳng các trường đã type hóa của `LoanRecord` (không còn `raw`
+// 174 cột — xem ghi chú ở `LoanRecord`). Cột Excel tương ứng ghi trong
+// `label`/comment để đối chiếu với Báo cáo 31.
+type FieldKey = keyof LoanRecord;
+type Kind = 'text' | 'money' | 'date' | 'percent' | 'number';
+interface Field {
+  label: string;
+  key: FieldKey;
+  kind?: Kind;
+}
+
+const sections: { title: string; fields: Field[] }[] = [
   {
     title: 'Đơn vị quản lý',
     fields: [
-      { label: 'Mã chi nhánh', key: 'Mã CN' },
-      { label: 'Mã PGD', key: 'Mã PGD' },
-      { label: 'Tên PGD', key: 'Tên PGD' },
-      { label: 'Mã xã', key: 'Mã xã' },
-      { label: 'Tên xã', key: 'Tên xã' },
-      { label: 'Tên thôn', key: 'Tên thôn' },
+      { label: 'Mã chi nhánh', key: 'maCN' },
+      { label: 'Mã PGD', key: 'maPGD' },
+      { label: 'Tên PGD', key: 'tenPGD' },
+      { label: 'Mã xã', key: 'maXa' },
+      { label: 'Tên xã', key: 'tenXa' },
+      { label: 'Tên thôn', key: 'tenThon' },
     ],
   },
   {
     title: 'Khách hàng',
     fields: [
-      { label: 'Mã KH', key: 'Mã KH' },
-      { label: 'Họ tên', key: 'Tên KH' },
-      { label: 'Ngày sinh', key: 'Ngày sinh' },
-      { label: 'Giới tính', key: 'Giới tính' },
-      { label: 'Phân loại', key: 'Phân loại' },
-      { label: 'Loại KH', key: 'Loại KH' },
-      { label: 'Dân tộc', key: 'Tên DT' },
-      { label: 'Số CMND', key: 'Số CMND' },
-      { label: 'Nơi cấp CMND', key: 'Nơi cấp CMND' },
-      { label: 'Địa chỉ', key: 'Địa chỉ' },
-      { label: 'Số điện thoại', key: 'Số điện thoại' },
+      { label: 'Mã KH', key: 'maKH' },
+      { label: 'Họ tên', key: 'tenKH' },
+      { label: 'Ngày sinh', key: 'ngaySinh', kind: 'date' },
+      { label: 'Giới tính', key: 'gioiTinh' },
+      { label: 'Phân loại', key: 'phanLoai' },
+      { label: 'Loại KH', key: 'loaiKH' },
+      { label: 'Dân tộc', key: 'tenDanToc' },
+      { label: 'Số CMND', key: 'soCMND' },
+      { label: 'Nơi cấp CMND', key: 'noiCapCMND' },
+      { label: 'Địa chỉ', key: 'diaChi' },
+      { label: 'Số điện thoại', key: 'soDienThoai' },
     ],
   },
   {
     title: 'Tổ TK&VV và Đơn vị ủy thác',
     fields: [
-      { label: 'Mã tổ', key: 'Mã tổ' },
-      { label: 'Tên tổ', key: 'Tên tổ' },
-      { label: 'Loại tổ', key: 'Loại tổ' },
-      { label: 'Mã ĐVUT', key: 'Mã ĐVUT' },
-      { label: 'Tên ĐVUT', key: 'Tên ĐVUT' },
+      { label: 'Mã tổ', key: 'maTo' },
+      { label: 'Tên tổ', key: 'tenTo' },
+      { label: 'Loại tổ', key: 'loaiTo' },
+      { label: 'Mã ĐVUT', key: 'maDVUT' },
+      { label: 'Tên ĐVUT', key: 'tenDVUT' },
     ],
   },
   {
     title: 'Khế ước',
     fields: [
-      { label: 'Số khế ước', key: 'Số khế ước' },
-      { label: 'Ngày vay', key: 'Ngày vay' },
-      { label: 'Ngày đến hạn HĐ', key: 'Ngày ĐH theo hợp đồng' },
-      { label: 'Ngày đến hạn (gia hạn)', key: 'Ngày ĐH theo Gia hạn' },
-      { label: 'Thời hạn vay', key: 'Thời hạn vay' },
-      { label: 'Lãi suất (%)', key: 'Lãi suất' },
-      { label: 'Hình thức vay', key: 'Hình thức vay' },
-      { label: 'Tình trạng món vay', key: 'Tình trạng món vay' },
+      { label: 'Số khế ước', key: 'soKheUoc' },
+      { label: 'Ngày vay', key: 'ngayVay', kind: 'date' },
+      { label: 'Ngày đến hạn HĐ', key: 'ngayDHHopDong', kind: 'date' },
+      { label: 'Ngày đến hạn (gia hạn)', key: 'ngayDHGiaHan', kind: 'date' },
+      { label: 'Thời hạn vay', key: 'thoiHanVay' },
+      { label: 'Lãi suất (%)', key: 'laiSuat', kind: 'percent' },
+      { label: 'Hình thức vay', key: 'hinhThucVay' },
+      { label: 'Tình trạng món vay', key: 'tinhTrangMonVay' },
     ],
   },
   {
     title: 'Số dư & Giải ngân',
     fields: [
-      { label: 'Mức vay', key: 'Mức vay' },
-      { label: 'Tổng giải ngân', key: 'Tổng giải ngân' },
-      { label: 'Dư nợ trong hạn', key: 'Dư nợ trong hạn' },
-      { label: 'Dư nợ quá hạn', key: 'Dư nợ quá hạn' },
-      { label: 'Dư nợ khoanh', key: 'Dư nợ khoanh' },
-      { label: 'Tổng dư nợ', key: 'Tổng dư nợ' },
-      { label: 'Gốc đã trả', key: 'Gốc đã trả' },
-      { label: 'Giải ngân trong tháng', key: 'Giải ngân trong tháng' },
-      { label: 'Số dư tiền gửi 105', key: 'Số dư tiền gửi 105' },
+      { label: 'Mức vay', key: 'mucVay', kind: 'money' },
+      { label: 'Tổng giải ngân', key: 'tongGiaiNgan', kind: 'money' },
+      { label: 'Dư nợ trong hạn', key: 'duNoTrongHan', kind: 'money' },
+      { label: 'Dư nợ quá hạn', key: 'duNoQuaHan', kind: 'money' },
+      { label: 'Dư nợ khoanh', key: 'duNoKhoanh', kind: 'money' },
+      { label: 'Tổng dư nợ', key: 'tongDuNo', kind: 'money' },
+      { label: 'Gốc đã trả', key: 'gocDaTra', kind: 'money' },
+      { label: 'Giải ngân trong tháng', key: 'giaiNganTrongThang', kind: 'money' },
+      { label: 'Số dư tiền gửi 105', key: 'soDuTienGui105', kind: 'money' },
     ],
   },
   {
     title: 'Lãi & Thu nợ',
     fields: [
-      { label: 'Tổng thu lãi TH', key: 'Tổng thu lãi TH' },
-      { label: 'Lãi tồn TH', key: 'Lãi tồn TH' },
-      { label: 'Tổng thu lãi QH', key: 'Tổng thu lãi QH' },
-      { label: 'Lãi tồn QH', key: 'Lãi tồn QH' },
-      { label: 'Lãi DT chưa đến hạn', key: 'Lãi DT chưa đến hạn' },
-      { label: 'Thu lãi tháng', key: 'Thu lãi TH tháng' },
-      { label: 'Thu nợ tháng', key: 'Thu nợ TH tháng' },
+      { label: 'Tổng thu lãi TH', key: 'tongThuLaiTH', kind: 'money' },
+      { label: 'Lãi tồn TH', key: 'laiTonTH', kind: 'money' },
+      { label: 'Tổng thu lãi QH', key: 'tongThuLaiQH', kind: 'money' },
+      { label: 'Lãi tồn QH', key: 'laiTonQH', kind: 'money' },
+      { label: 'Lãi DT chưa đến hạn', key: 'laiDTChuaDenHan', kind: 'money' },
+      { label: 'Thu lãi tháng', key: 'thuLaiTHThang', kind: 'money' },
+      { label: 'Thu nợ tháng', key: 'thuNoTHThang', kind: 'money' },
     ],
   },
   {
     title: 'Chương trình tín dụng',
     fields: [
-      { label: 'Mã chương trình', key: 'Mã chương trình' },
-      { label: 'Tên chương trình', key: 'Tên chương trình' },
-      { label: 'Tên Quyết định', key: 'Tên Quyết định' },
-      { label: 'Nguồn vốn', key: 'Nguồn vốn' },
-      { label: 'Đối tượng thụ hưởng', key: 'Tên ĐTTH' },
+      { label: 'Mã chương trình', key: 'maChuongTrinh' },
+      { label: 'Tên chương trình', key: 'tenChuongTrinh' },
+      { label: 'Tên Quyết định', key: 'tenQuyetDinh' },
+      { label: 'Nguồn vốn', key: 'nguonVon' },
+      { label: 'Đối tượng thụ hưởng', key: 'tenDTTH' },
     ],
   },
 ];
 
-const moneyKeys = new Set([
-  'Mức vay',
-  'Tổng giải ngân',
-  'Dư nợ trong hạn',
-  'Dư nợ quá hạn',
-  'Dư nợ khoanh',
-  'Tổng dư nợ',
-  'Gốc đã trả',
-  'Số dư tiền gửi 105',
-  'Tổng thu lãi TH',
-  'Lãi tồn TH',
-  'Tổng thu lãi QH',
-  'Lãi tồn QH',
-  'Lãi DT chưa đến hạn',
-  'Thu lãi TH tháng',
-  'Thu nợ TH tháng',
-  'Giải ngân trong tháng',
-]);
-const dateKeys = new Set([
-  'Ngày sinh',
-  'Ngày vay',
-  'Ngày ĐH theo hợp đồng',
-  'Ngày ĐH theo Gia hạn',
-]);
-
-function format(key: string, v: unknown): string {
+function format(kind: Kind | undefined, v: unknown): string {
   if (v === null || v === undefined || v === '') return '—';
-  if (key === 'Lãi suất') return fmtPercent(Number(v), 3);
-  if (moneyKeys.has(key)) return fmtCurrency(Number(v));
-  if (dateKeys.has(key)) {
-    if (typeof v === 'string') return v;
-    if (v instanceof Date) return fmtDate(v);
-  }
+  if (kind === 'percent') return fmtPercent(Number(v), 3);
+  if (kind === 'money') return fmtCurrency(Number(v));
+  if (kind === 'date') return v instanceof Date ? fmtDate(v) : String(v);
   if (typeof v === 'number') return fmtNumber(v);
   return String(v);
 }
@@ -195,7 +178,7 @@ export function LoanDetailDrawer({ record, onClose }: Props) {
                   <div key={f.key} className="flex flex-col py-1">
                     <span className="text-[10px] uppercase text-slate-500 dark:text-slate-400">{f.label}</span>
                     <span className="font-medium text-slate-900 dark:text-slate-100">
-                      {format(f.key, record.raw[f.key])}
+                      {format(f.kind, record[f.key])}
                     </span>
                   </div>
                 ))}
