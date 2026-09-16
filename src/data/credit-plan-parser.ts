@@ -34,6 +34,21 @@ export async function parseActualFile(
   nq11NoxhIds?: Set<string>
 ): Promise<ActualImportResult> {
   const buf = await file.arrayBuffer();
+  return parseActualBuffer(buf, nq11Ids, gqvlXaNdtSet, nq11NoxhIds);
+}
+
+/**
+ * Bản nhận sẵn ArrayBuffer — dùng trong Web Worker
+ * (`credit-plan-parser.worker.ts`). `XLSX.read` + `sheet_to_json` trên Báo cáo
+ * 31 ~15 MB mất 30–45 s; chạy trên main thread sẽ treo tab và Chrome hiện
+ * "Wait or Exit". UI phải gọi qua `parseActualFileInWorker`.
+ */
+export function parseActualBuffer(
+  buf: ArrayBuffer,
+  nq11Ids?: Set<string>,
+  gqvlXaNdtSet?: Set<string>,
+  nq11NoxhIds?: Set<string>
+): ActualImportResult {
   const wb = XLSX.read(buf, { type: 'array' });
   const ws = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: '' });
@@ -735,4 +750,45 @@ export function mergeNq11NoxhIntoActuals(
       a.maNguonVon.localeCompare(b.maNguonVon) ||
       a.maChuongTrinh.localeCompare(b.maChuongTrinh)
   );
+}
+
+/**
+ * Parse Báo cáo 31 trong Web Worker — bản dùng cho UI. Cùng chữ ký với
+ * `parseActualFile` nhưng không chặn main thread (file 15 MB ≈ 30–45 s CPU).
+ */
+export function parseActualFileInWorker(
+  file: File,
+  nq11Ids?: Set<string>,
+  gqvlXaNdtSet?: Set<string>,
+  nq11NoxhIds?: Set<string>
+): Promise<ActualImportResult> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const buf = await file.arrayBuffer();
+      const worker = new Worker(
+        new URL('./credit-plan-parser.worker.ts', import.meta.url),
+        { type: 'module' }
+      );
+      worker.onmessage = (e) => {
+        if (e.data?.ok) resolve(e.data.result as ActualImportResult);
+        else reject(new Error(e.data?.error || 'Lỗi không xác định khi đọc tệp'));
+        worker.terminate();
+      };
+      worker.onerror = (e) => {
+        reject(new Error(e.message));
+        worker.terminate();
+      };
+      worker.postMessage(
+        {
+          buf,
+          nq11Ids: nq11Ids ? [...nq11Ids] : null,
+          gqvlXaNdt: gqvlXaNdtSet ? [...gqvlXaNdtSet] : null,
+          nq11NoxhIds: nq11NoxhIds ? [...nq11NoxhIds] : null,
+        },
+        [buf]
+      );
+    } catch (e) {
+      reject(e);
+    }
+  });
 }

@@ -23,7 +23,7 @@ import { ColumnFilter } from '@/components/ui/ColumnFilter';
 import { useGridFilter } from '@/lib/grid-filter';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
 import { useIsOwner } from '@/store/useAuthStore';
-import { parseActualFile, parseNq11File, parseNq11NoxhFile } from '@/data/credit-plan-parser';
+import { parseActualFileInWorker, parseNq11File, parseNq11NoxhFile } from '@/data/credit-plan-parser';
 import { nguonVonLabel } from '@/lib/credit-plan-types';
 
 function fmtMoney(n: number) {
@@ -122,7 +122,7 @@ export function ActualImport() {
       );
       // Set Số khế ước NOXH-NQ11 → parser sẽ tách dòng CT=12 sang 12N tại lúc parse.
       const noxhSet = nq11NoxhMonVayIds.length > 0 ? new Set(nq11NoxhMonVayIds) : undefined;
-      const result = await parseActualFile(
+      const result = await parseActualFileInWorker(
         file,
         idSet,
         ndtSet.size > 0 ? ndtSet : undefined,
