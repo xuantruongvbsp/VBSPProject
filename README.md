@@ -22,6 +22,34 @@ Cả ba đều: chạy hoàn toàn trên trình duyệt, hỗ trợ **giao diệ
 
 ---
 
+## Chạy kiểu portable: copy sang máy khác là mở được
+
+Cách này dành cho người chia sẻ app cho máy khác dùng, không bắt người nhận cài Node.js hay chạy `npm install`.
+
+Trên máy dùng để đóng gói, làm một lần:
+
+1. Cài Node.js LTS nếu máy đóng gói chưa có.
+2. Mở thư mục dự án.
+3. Chạy file:
+   ```
+   build-portable.bat
+   ```
+4. Sau khi xong, copy nguyên thư mục:
+   ```
+   portable\VSPPRO
+   ```
+   sang máy Windows khác.
+5. Trên máy nhận, mở:
+   ```
+   Mo VSPPRO.bat
+   ```
+
+App sẽ tự mở trong trình duyệt ở địa chỉ nội bộ dạng `http://127.0.0.1:4173/`. Khi dùng xong, đóng cửa sổ đen hoặc nhấn `Ctrl + C`.
+
+> Thư mục `portable\VSPPRO` đã chứa bản build, server cục bộ và `node.exe` tối thiểu để chạy app. Đừng xóa các thư mục `app`, `runtime` hoặc file `server.mjs` bên trong đó.
+
+---
+
 ## Hướng dẫn cài đặt cho người chưa biết lập trình
 
 Bạn cần làm 4 việc, **một lần duy nhất**:

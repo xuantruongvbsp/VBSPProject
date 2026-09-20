@@ -6,6 +6,25 @@ Toàn bộ quá trình mất khoảng **15–20 phút** (tuỳ tốc độ mạn
 
 ---
 
+## Nếu bạn nhận được bản portable
+
+Nếu người chia sẻ gửi cho bạn một thư mục tên **VSPPRO** đã đóng gói sẵn, bạn không cần cài Git, Node.js hay chạy lệnh nào.
+
+1. Copy nguyên thư mục **VSPPRO** vào máy.
+2. Mở thư mục đó.
+3. Bấm đúp file **Mo VSPPRO.bat**.
+4. Giữ cửa sổ đen đang mở trong lúc dùng app.
+
+Nếu trình duyệt không tự mở, nhìn trong cửa sổ đen sẽ có dòng địa chỉ dạng:
+
+```text
+http://127.0.0.1:4173/
+```
+
+Copy địa chỉ đó vào Chrome hoặc Edge.
+
+---
+
 ## Bước 1 — Cài Git (công cụ tải mã nguồn)
 
 1. Mở trình duyệt, truy cập: https://git-scm.com/download/win
