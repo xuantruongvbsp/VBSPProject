@@ -22,6 +22,7 @@ import { listRecentPeriodPairs } from '@/lib/recent-period-pairs';
 import { fmtDate, fmtNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { OwnerLoginModal } from '@/components/auth/OwnerLoginModal';
+import { AppBackupMenu } from '@/components/backup/AppBackupMenu';
 
 export function Lobby() {
   const navigate = useNavigate();
@@ -66,7 +67,7 @@ export function Lobby() {
           </div>
           <div className="min-w-0 leading-tight">
             <div className="truncate text-sm font-bold">VSPPRO</div>
-            <div className="truncate text-[11px] text-slate-500 dark:text-slate-400">
+            <div className="hidden truncate text-[11px] text-slate-500 dark:text-slate-400 sm:block">
               Phân tích danh mục tín dụng
             </div>
           </div>
@@ -91,6 +92,7 @@ export function Lobby() {
             >
               {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
             </button>
+            {isOwner && <AppBackupMenu />}
             <button
               type="button"
               onClick={isOwner ? logout : () => setLoginOpen(true)}

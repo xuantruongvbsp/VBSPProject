@@ -1,40 +1,42 @@
-import { useEffect, useRef } from 'react';
+import { lazy, Suspense, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useDataStore } from '@/store/useDataStore';
 import { useIsOwner } from '@/store/useAuthStore';
 import { ImportDropzone } from '@/components/import/ImportDropzone';
 import { ViewerBootstrap } from '@/components/auth/ViewerBootstrap';
 import { ViewerEmptyState } from '@/components/auth/ViewerEmptyState';
 import { AppShell } from '@/components/layout/AppShell';
-import { OverviewPage } from '@/pages/Overview';
-import { ComparePage } from '@/pages/Compare';
-import { ExplorerPage } from '@/pages/Explorer';
-import { NplPage } from '@/pages/Npl';
-import { KhoanhPage } from '@/pages/Khoanh';
-import { DoanhSoPage } from '@/pages/DoanhSo';
-import { StaffPage } from '@/pages/Staff';
-import { StaffPerformancePage } from '@/pages/StaffPerformance';
-import { TxnPointPage } from '@/pages/TxnPoint';
-import { TxnPointPerformancePage } from '@/pages/TxnPointPerformance';
+import { AppErrorBoundary } from '@/components/ui/AppErrorBoundary';
 import { Lobby } from '@/pages/Lobby';
 import { PeriodShell } from '@/components/layout/PeriodShell';
-import { PeriodOverviewPage } from '@/pages/period/PeriodOverview';
-import { PeriodMigrationPage } from '@/pages/period/PeriodMigration';
-import { PeriodAssetQualityPage } from '@/pages/period/PeriodAssetQuality';
-import { PeriodMoversPage } from '@/pages/period/PeriodMovers';
-import { PeriodOrgGroupsPage } from '@/pages/period/PeriodOrgGroups';
-import { PeriodExplorerPage } from '@/pages/period/PeriodExplorer';
-import { PeriodOutreachPage } from '@/pages/period/PeriodOutreach';
-import { PeriodStaffComparisonPage } from '@/pages/period/PeriodStaffComparison';
-import { PeriodPointComparisonPage } from '@/pages/period/PeriodPointComparison';
 import { CreditPlanShell } from '@/components/layout/CreditPlanShell';
-import { PlanManager } from '@/pages/credit-plan/PlanManager';
-import { ActualImport } from '@/pages/credit-plan/ActualImport';
-import { PlanReports } from '@/pages/credit-plan/PlanReports';
-import { PerformanceReport } from '@/pages/credit-plan/PerformanceReport';
-import { DecisionManager } from '@/pages/credit-plan/DecisionManager';
-import { XaCatalogManager } from '@/pages/credit-plan/XaCatalogManager';
+
+const OverviewPage = lazy(() => import('@/pages/Overview').then((m) => ({ default: m.OverviewPage })));
+const ComparePage = lazy(() => import('@/pages/Compare').then((m) => ({ default: m.ComparePage })));
+const ExplorerPage = lazy(() => import('@/pages/Explorer').then((m) => ({ default: m.ExplorerPage })));
+const NplPage = lazy(() => import('@/pages/Npl').then((m) => ({ default: m.NplPage })));
+const KhoanhPage = lazy(() => import('@/pages/Khoanh').then((m) => ({ default: m.KhoanhPage })));
+const DoanhSoPage = lazy(() => import('@/pages/DoanhSo').then((m) => ({ default: m.DoanhSoPage })));
+const StaffPage = lazy(() => import('@/pages/Staff').then((m) => ({ default: m.StaffPage })));
+const StaffPerformancePage = lazy(() => import('@/pages/StaffPerformance').then((m) => ({ default: m.StaffPerformancePage })));
+const TxnPointPage = lazy(() => import('@/pages/TxnPoint').then((m) => ({ default: m.TxnPointPage })));
+const TxnPointPerformancePage = lazy(() => import('@/pages/TxnPointPerformance').then((m) => ({ default: m.TxnPointPerformancePage })));
+const PeriodOverviewPage = lazy(() => import('@/pages/period/PeriodOverview').then((m) => ({ default: m.PeriodOverviewPage })));
+const PeriodMigrationPage = lazy(() => import('@/pages/period/PeriodMigration').then((m) => ({ default: m.PeriodMigrationPage })));
+const PeriodAssetQualityPage = lazy(() => import('@/pages/period/PeriodAssetQuality').then((m) => ({ default: m.PeriodAssetQualityPage })));
+const PeriodMoversPage = lazy(() => import('@/pages/period/PeriodMovers').then((m) => ({ default: m.PeriodMoversPage })));
+const PeriodOrgGroupsPage = lazy(() => import('@/pages/period/PeriodOrgGroups').then((m) => ({ default: m.PeriodOrgGroupsPage })));
+const PeriodExplorerPage = lazy(() => import('@/pages/period/PeriodExplorer').then((m) => ({ default: m.PeriodExplorerPage })));
+const PeriodOutreachPage = lazy(() => import('@/pages/period/PeriodOutreach').then((m) => ({ default: m.PeriodOutreachPage })));
+const PeriodStaffComparisonPage = lazy(() => import('@/pages/period/PeriodStaffComparison').then((m) => ({ default: m.PeriodStaffComparisonPage })));
+const PeriodPointComparisonPage = lazy(() => import('@/pages/period/PeriodPointComparison').then((m) => ({ default: m.PeriodPointComparisonPage })));
+const PlanManager = lazy(() => import('@/pages/credit-plan/PlanManager').then((m) => ({ default: m.PlanManager })));
+const ActualImport = lazy(() => import('@/pages/credit-plan/ActualImport').then((m) => ({ default: m.ActualImport })));
+const PlanReports = lazy(() => import('@/pages/credit-plan/PlanReports').then((m) => ({ default: m.PlanReports })));
+const PerformanceReport = lazy(() => import('@/pages/credit-plan/PerformanceReport').then((m) => ({ default: m.PerformanceReport })));
+const DecisionManager = lazy(() => import('@/pages/credit-plan/DecisionManager').then((m) => ({ default: m.DecisionManager })));
+const XaCatalogManager = lazy(() => import('@/pages/credit-plan/XaCatalogManager').then((m) => ({ default: m.XaCatalogManager })));
 
 /**
  * Lớp bao trang ngoài cùng cho ứng dụng "Phân tích một kỳ" (snapshot).
@@ -122,7 +124,9 @@ export default function App() {
     <>
       <ViewerBootstrap />
       <DrillDownClearer />
-      <Routes>
+      <AppErrorBoundary>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
         {/* Lobby — luôn hiển thị tại / */}
         <Route path="/" element={<Lobby />} />
 
@@ -160,7 +164,19 @@ export default function App() {
 
       {/* Mọi đường dẫn lạ → quay về lobby */}
       <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          </Routes>
+        </Suspense>
+      </AppErrorBoundary>
     </>
+  );
+}
+
+function PageLoader() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-500 dark:bg-slate-950 dark:text-slate-400">
+      <div className="flex items-center gap-2 text-sm font-medium">
+        <Loader2 className="h-4 w-4 animate-spin" /> Đang mở báo cáo...
+      </div>
+    </div>
   );
 }

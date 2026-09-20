@@ -32,6 +32,7 @@ import { saveRecentPeriodPair } from '@/lib/recent-period-pairs';
 import { PeriodImportDropzone } from '@/components/import/PeriodImportDropzone';
 import { ViewerEmptyState } from '@/components/auth/ViewerEmptyState';
 import { DataAutoSync } from '@/components/owner/DataAutoSync';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 const navItems = [
   { to: '/period/dien-bien', label: 'Diễn biến', icon: Activity },
@@ -67,6 +68,7 @@ export function PeriodShell() {
   // ô loading nhấp nháy trong các trang con khác.
   const [replacing, setReplacing] = useState<PeriodSlotKey | null>(null);
   const [replaceError, setReplaceError] = useState<string | null>(null);
+  const [changeFilesOpen, setChangeFilesOpen] = useState(false);
   const fileInputs = useRef<Record<PeriodSlotKey, HTMLInputElement | null>>({
     lastYear: null,
     lastMonth: null,
@@ -163,7 +165,7 @@ export function PeriodShell() {
       return <ViewerEmptyState app="period" />;
     }
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-period-50/30 px-6 py-12">
+      <div className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 sm:py-10">
         <div className="mx-auto max-w-5xl">
           <button
             type="button"
@@ -172,7 +174,7 @@ export function PeriodShell() {
           >
             <ArrowLeft className="h-3.5 w-3.5" /> Quay lại trang chính
           </button>
-          <header className="mb-8 text-center">
+          <header className="mb-7 text-left sm:text-center">
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-period-200 bg-period-50 px-4 py-1.5">
               <GitCompareArrows className="h-4 w-4 text-period-700" />
               <span className="text-xs font-semibold uppercase tracking-wide text-period-700">
@@ -203,8 +205,8 @@ export function PeriodShell() {
   }
 
   return (
-    <div className="flex h-screen w-full">
-      <aside className="flex w-64 flex-col border-r border-slate-200 bg-white">
+    <div className="flex h-dvh w-full flex-col md:flex-row">
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-slate-200 bg-white md:flex">
         <div className="border-b border-slate-200 px-3 py-3">
           <button
             type="button"
@@ -226,7 +228,7 @@ export function PeriodShell() {
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1 p-3">
+        <nav className="scrollbar-thin flex-1 space-y-1 overflow-y-auto p-3">
           {navItems.map((it) => (
             <NavLink
               key={it.to}
@@ -363,10 +365,7 @@ export function PeriodShell() {
           {isOwner && (
             <>
               <button
-                onClick={() => {
-                  reset();
-                  navigate('/period');
-                }}
+                onClick={() => setChangeFilesOpen(true)}
                 className="mt-3 inline-flex items-center gap-1 text-xs text-slate-500 hover:text-rose-600"
               >
                 <RefreshCw className="h-3 w-3" /> Đổi tệp
@@ -379,9 +378,106 @@ export function PeriodShell() {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto bg-slate-50">
+      <header className="sticky top-0 z-20 flex shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-3 py-2 md:hidden">
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100"
+          title="Quay lại trang chính"
+          aria-label="Quay lại trang chính"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-period-700 text-white">
+          <GitCompareArrows className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <div className="truncate text-sm font-bold text-slate-800">So sánh hai kỳ</div>
+          <div className="truncate text-[10px] text-slate-500">
+            {fmtDate(prev.ngaySoLieu)} → {fmtDate(curr.ngaySoLieu)}
+          </div>
+        </div>
+        {isOwner && (
+          <button
+            type="button"
+            onClick={() => setChangeFilesOpen(true)}
+            className="ml-auto inline-flex h-9 items-center gap-1 rounded-md px-2 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-rose-600"
+            title="Chọn lại bộ tệp"
+          >
+            <RefreshCw className="h-3.5 w-3.5" /> Đổi tệp
+          </button>
+        )}
+      </header>
+
+      <nav className="scrollbar-thin flex shrink-0 gap-1 overflow-x-auto border-b border-slate-200 bg-white px-2 py-1.5 md:hidden">
+        {navItems.map((it) => (
+          <NavLink
+            key={it.to}
+            to={it.to}
+            className={({ isActive }) =>
+              cn(
+                'inline-flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-2 text-xs font-medium transition-colors',
+                isActive
+                  ? 'bg-period-50 text-period-800'
+                  : 'text-slate-600 hover:bg-slate-50'
+              )
+            }
+          >
+            <it.icon className="h-3.5 w-3.5" />
+            {it.label}
+          </NavLink>
+        ))}
+      </nav>
+
+      <section className="scrollbar-thin flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-slate-200 bg-slate-50 px-3 py-2 md:hidden">
+        <span className="shrink-0 text-[10px] font-semibold uppercase text-slate-500">Chọn kỳ</span>
+        {PERIOD_SLOT_KEYS.map((key) => {
+          const snap = slotMap[key];
+          if (!snap) return null;
+          const role: 'a' | 'b' | null =
+            comparePair.a === key ? 'a' : comparePair.b === key ? 'b' : null;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onPickSlot(key, comparePair, setComparePair)}
+              className={cn(
+                'inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] font-semibold',
+                role === 'a' && 'border-slate-400 bg-white text-slate-800',
+                role === 'b' && 'border-period-400 bg-period-50 text-period-800',
+                role === null && 'border-slate-200 bg-white text-slate-500'
+              )}
+              title={role ? `Đang dùng làm Kỳ ${role.toUpperCase()}` : 'Dùng kỳ này để so sánh'}
+            >
+              {role && (
+                <span className={cn(
+                  'inline-flex h-4 w-4 items-center justify-center rounded text-[9px] text-white',
+                  role === 'a' ? 'bg-slate-700' : 'bg-period-700'
+                )}>
+                  {role.toUpperCase()}
+                </span>
+              )}
+              {PERIOD_SLOT_LABEL[key]} · {fmtDate(snap.ngaySoLieu)}
+            </button>
+          );
+        })}
+      </section>
+
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-slate-50">
         <Outlet />
       </main>
+
+      <ConfirmDialog
+        open={changeFilesOpen}
+        onOpenChange={setChangeFilesOpen}
+        title="Chọn lại bộ tệp so sánh?"
+        description="Các kỳ đang mở và lựa chọn Kỳ A/Kỳ B sẽ được đóng. Những bộ tệp gần đây vẫn còn để bạn mở lại."
+        confirmLabel="Chọn lại bộ tệp"
+        onConfirm={() => {
+          reset();
+          navigate('/period');
+        }}
+      />
     </div>
   );
 }

@@ -29,6 +29,7 @@ await writeFile(
   `@echo off\r\n` +
     `setlocal\r\n` +
     `cd /d "%~dp0"\r\n` +
+    `set "VSPPRO_BROWSER=chrome"\r\n` +
     `set "NODE_EXE=%~dp0runtime\\node.exe"\r\n` +
     `if not exist "%NODE_EXE%" set "NODE_EXE=node"\r\n` +
     `"%NODE_EXE%" "%~dp0server.mjs"\r\n` +

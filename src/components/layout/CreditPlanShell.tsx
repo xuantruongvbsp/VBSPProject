@@ -47,7 +47,7 @@ export function CreditPlanShell() {
   }
 
   return (
-    <div className="flex h-screen w-full flex-col bg-white dark:bg-slate-900 md:flex-row">
+    <div className="flex h-dvh w-full flex-col bg-white dark:bg-slate-900 md:flex-row">
       {/* Sidebar — desktop */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 md:flex">
         <div className="border-b border-slate-200 px-3 py-3 dark:border-slate-700">
@@ -73,7 +73,7 @@ export function CreditPlanShell() {
           </div>
         </div>
 
-        <nav className="flex-1 space-y-0.5 p-3">
+        <nav className="scrollbar-thin flex-1 space-y-0.5 overflow-y-auto p-3">
           {navItems.map((it) => (
             <NavLink
               key={it.to}
@@ -160,7 +160,7 @@ export function CreditPlanShell() {
       </header>
 
       {/* Mobile tabs */}
-      <nav className="flex shrink-0 gap-1 overflow-x-auto border-b border-slate-200 bg-white px-2 py-1.5 dark:border-slate-700 dark:bg-slate-900 md:hidden">
+      <nav className="scrollbar-thin flex shrink-0 gap-1 overflow-x-auto border-b border-slate-200 bg-white px-2 py-1.5 dark:border-slate-700 dark:bg-slate-900 md:hidden">
         {navItems.map((it) => (
           <NavLink
             key={it.to}
@@ -180,7 +180,7 @@ export function CreditPlanShell() {
         ))}
       </nav>
 
-      <main className="min-w-0 flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950">
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950">
         <Outlet />
       </main>
     </div>

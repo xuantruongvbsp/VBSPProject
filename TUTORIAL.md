@@ -44,10 +44,10 @@ Dừng: bấm `Ctrl + C` trong cửa sổ đó. Đóng cửa sổ = ứng dụng
 Mỗi trình duyệt mới mặc định ở vai **Người xem**.
 
 1. Vào trang chủ (Lobby) `http://localhost:5173/`
-2. Cuộn xuống cuối trang, bấm dòng chữ nhỏ **"Chế độ quản trị"**
+2. Bấm **"Mở chế độ quản trị"** ở góc trên bên phải. Nếu đang ở màn hình chưa có dữ liệu, có thể bấm nút này ngay tại màn hình đó.
 3. Nhập mật khẩu → **Mở khóa**
 
-Xong, cuối Lobby đổi thành **"Đang ở chế độ quản trị · Thoát"**. Vai trò lưu trong `localStorage` — cùng máy, cùng trình duyệt thì không phải đăng nhập lại.
+Xong, thanh trên cùng hiển thị **"Quản trị viên"** và nút **"Thoát quản trị"**. Vai trò lưu trong `localStorage` — cùng máy, cùng trình duyệt thì không phải đăng nhập lại.
 
 Muốn xem thử người xem nhìn thấy gì: bấm **Thoát** → trình duyệt trở về vai người xem.
 
@@ -160,9 +160,11 @@ Mục tiêu: "Chưa gán" và "Gán trùng" đều về **0**.
 
 ### 6.4 Sao lưu & chuyển sang máy khác
 
-- Nút **Export JSON** tải danh mục hiện tại về máy để sao lưu.
-- Muốn dựng lại danh mục trên **máy khác**: giữ chính file Excel bạn đã điền, copy sang máy đó rồi bấm *Import Excel*. (Nút Import JSON đã bỏ — nhập danh mục nay chỉ qua Excel/CSV.)
-- Danh mục **không** đi theo `git pull`: nó nằm trong localStorage của từng trình duyệt.
+- Ở trang chính, khi đang trong chế độ quản trị, bấm **Sao lưu → Xuất bản sao lưu**. Tệp này chứa danh mục cán bộ, điểm giao dịch, danh mục xã, quyết định và kế hoạch tín dụng.
+- Trên máy mới, mở chế độ quản trị rồi chọn **Sao lưu → Khôi phục từ tệp**. Kiểm tra thông báo và xác nhận; ứng dụng sẽ tải lại với dữ liệu vừa khôi phục.
+- Các tệp Báo cáo 31 và bộ so sánh gần đây có dung lượng lớn nên không nằm trong tệp sao lưu. Hãy copy các tệp Excel gốc sang máy mới và nhập lại khi cần.
+- Nút **Export JSON** trong từng trang danh mục vẫn có thể dùng để sao lưu riêng danh mục đó.
+- Dữ liệu trình duyệt **không** đi theo `git pull` hoặc khi chỉ copy thư mục ứng dụng; cần dùng tệp sao lưu như trên.
 
 > Sửa từng ĐGD / cán bộ bằng tay vẫn được: dùng nút **Thêm** hoặc biểu tượng bút chì trên từng dòng. Excel chỉ để nhập hàng loạt cho nhanh.
 

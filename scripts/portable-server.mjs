@@ -55,25 +55,57 @@ function sendFile(response, filePath) {
   createReadStream(filePath).pipe(response);
 }
 
+function spawnDetached(command, args) {
+  const child = spawn(command, args, {
+    detached: true,
+    stdio: 'ignore',
+    windowsHide: true,
+  });
+  child.unref();
+}
+
+function openDefaultBrowser(url) {
+  if (process.platform === 'win32') {
+    spawnDetached('cmd', ['/c', 'start', '""', url]);
+    return;
+  }
+
+  spawnDetached(process.platform === 'darwin' ? 'open' : 'xdg-open', [url]);
+}
+
+function getChromeCandidates() {
+  const candidates = [
+    process.env.VSPPRO_CHROME_PATH,
+    path.join(process.env.ProgramFiles || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    path.join(process.env['ProgramFiles(x86)'] || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    path.join(process.env.LocalAppData || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+  ];
+
+  return candidates.filter((candidate) => candidate && existsSync(candidate));
+}
+
+function openChromeOrDefault(url) {
+  const chromePath = getChromeCandidates()[0];
+
+  if (!chromePath) {
+    openDefaultBrowser(url);
+    return;
+  }
+
+  spawnDetached(chromePath, ['--new-window', url]);
+}
+
 function openBrowser(url) {
   if (process.env.VSPPRO_NO_OPEN === '1') {
     return;
   }
 
-  if (process.platform === 'win32') {
-    spawn('cmd', ['/c', 'start', '""', url], {
-      detached: true,
-      stdio: 'ignore',
-      windowsHide: true,
-    }).unref();
+  if (process.platform === 'win32' && process.env.VSPPRO_BROWSER === 'chrome') {
+    openChromeOrDefault(url);
     return;
   }
 
-  const opener = process.platform === 'darwin' ? 'open' : 'xdg-open';
-  spawn(opener, [url], {
-    detached: true,
-    stdio: 'ignore',
-  }).unref();
+  openDefaultBrowser(url);
 }
 
 function createServer() {

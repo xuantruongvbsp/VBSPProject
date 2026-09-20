@@ -20,6 +20,7 @@ import {
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ColumnFilter } from '@/components/ui/ColumnFilter';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useGridFilter } from '@/lib/grid-filter';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
 import { useIsOwner } from '@/store/useAuthStore';
@@ -104,6 +105,7 @@ export function ActualImport() {
   const [noxhError, setNoxhError] = useState<string | null>(null);
   const [noxhDragOver, setNoxhDragOver] = useState(false);
   const [noxhExpanded, setNoxhExpanded] = useState<Record<string, boolean>>({});
+  const [clearTarget, setClearTarget] = useState<'actuals' | 'nq11' | 'noxh' | null>(null);
 
   const handleFile = useCallback(async (file: File) => {
     if (!file.name.match(/\.xlsx?$/i)) {
@@ -280,7 +282,7 @@ export function ActualImport() {
           </p>
         </div>
         {actuals.length > 0 && isOwner && (
-          <Button variant="outline" onClick={clearActuals}>
+          <Button variant="outline" onClick={() => setClearTarget('actuals')}>
             <Trash2 className="h-4 w-4" /> Xóa dữ liệu
           </Button>
         )}
@@ -363,7 +365,7 @@ export function ActualImport() {
             </CardDescription>
           </div>
           {nq11Summaries.length > 0 && isOwner && (
-            <Button variant="outline" size="sm" onClick={clearNq11}>
+            <Button variant="outline" size="sm" onClick={() => setClearTarget('nq11')}>
               <Trash2 className="h-4 w-4" /> Xóa NQ11
             </Button>
           )}
@@ -565,7 +567,7 @@ export function ActualImport() {
             </CardDescription>
           </div>
           {nq11NoxhSummaries.length > 0 && isOwner && (
-            <Button variant="outline" size="sm" onClick={clearNq11Noxh}>
+            <Button variant="outline" size="sm" onClick={() => setClearTarget('noxh')}>
               <Trash2 className="h-4 w-4" /> Xóa NOXH-NQ11
             </Button>
           )}
@@ -952,6 +954,33 @@ export function ActualImport() {
           </Card>
         </>
       )}
+
+      <ConfirmDialog
+        open={clearTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setClearTarget(null);
+        }}
+        title={
+          clearTarget === 'actuals'
+            ? 'Xóa dữ liệu thực tế?'
+            : clearTarget === 'nq11'
+              ? 'Xóa dữ liệu NQ11?'
+              : 'Xóa dữ liệu NOXH-NQ11?'
+        }
+        description={
+          clearTarget === 'actuals'
+            ? 'Toàn bộ số liệu thực tế đã nhập sẽ bị xóa khỏi máy này. Các quyết định và kế hoạch không bị ảnh hưởng.'
+            : 'Dữ liệu danh sách món vay tương ứng sẽ bị xóa khỏi máy này và không còn được tách riêng trong báo cáo.'
+        }
+        confirmLabel="Xóa dữ liệu"
+        tone="danger"
+        onConfirm={() => {
+          if (clearTarget === 'actuals') clearActuals();
+          if (clearTarget === 'nq11') clearNq11();
+          if (clearTarget === 'noxh') clearNq11Noxh();
+          setClearTarget(null);
+        }}
+      />
     </div>
   );
 }

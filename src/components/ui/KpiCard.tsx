@@ -137,7 +137,7 @@ export function KpiCard({
   const hasInfo = info !== undefined || infoKey !== undefined;
 
   return (
-    <div className={cn('relative overflow-hidden rounded-xl p-4 shadow-sm', t.card)}>
+    <div className={cn('relative overflow-hidden rounded-lg p-3 shadow-sm sm:p-4', t.card)}>
       <span className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full bg-black/5 dark:bg-white/5" />
       {hasInfo && (
         <div className="absolute right-2 top-2 z-10">
@@ -150,11 +150,17 @@ export function KpiCard({
             {label}
           </div>
           {numeric ? (
-            <motion.div className={cn('truncate text-2xl font-bold tracking-tight', t.value)}>
+            <motion.div
+              className={cn('whitespace-nowrap text-xl font-bold tracking-normal sm:text-2xl', t.value)}
+              title={formatter ? formatter(value as number) : (value as number).toLocaleString('vi-VN')}
+            >
               {display}
             </motion.div>
           ) : (
-            <div className={cn('truncate text-2xl font-bold tracking-tight', t.value)}>
+            <div
+              className={cn('whitespace-nowrap text-xl font-bold tracking-normal sm:text-2xl', t.value)}
+              title={String(value)}
+            >
               {value}
             </div>
           )}
@@ -162,7 +168,7 @@ export function KpiCard({
         </div>
         <div className="flex flex-col items-end gap-2">
           {icon && (
-            <div className={cn('rounded-full p-1.5', t.chip)}>{icon}</div>
+            <div className={cn('hidden rounded-full p-1.5 sm:block', t.chip)}>{icon}</div>
           )}
           {delta !== undefined && (
             <div className={cn('flex items-center gap-1 text-xs font-semibold', deltaColor)}>

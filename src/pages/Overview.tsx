@@ -1082,36 +1082,37 @@ function NguonVonCard({
 }) {
   const total = tw + dp;
   return (
-    <div className="relative overflow-hidden rounded-xl bg-brand-50 p-4 shadow-sm ring-1 ring-brand-200 dark:bg-brand-500/10 dark:ring-brand-500/25">
+    <div className="relative overflow-hidden rounded-lg bg-brand-50 p-3 shadow-sm ring-1 ring-brand-200 sm:p-4 dark:bg-brand-500/10 dark:ring-brand-500/25">
       <span className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full bg-black/5 dark:bg-white/5" />
       <div className="absolute right-2 top-2 z-10">
         <InfoPopover metricKey="tongDuNo" />
       </div>
       <div className="flex items-center justify-between gap-3">
-        <div className="text-xs font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-300">
-          Tổng dư nợ TW/DP
+        <div className="pr-7 text-[11px] font-semibold uppercase tracking-wide text-brand-700 sm:text-xs dark:text-brand-300">
+          <span className="sm:hidden">Nguồn vốn TW / DP</span>
+          <span className="hidden sm:inline">Tổng dư nợ TW/DP</span>
         </div>
-        <div className="rounded-full bg-brand-100 p-1.5 text-brand-800 dark:bg-brand-500/20 dark:text-brand-200">
+        <div className="hidden rounded-full bg-brand-100 p-1.5 text-brand-800 sm:block dark:bg-brand-500/20 dark:text-brand-200">
           <Banknote className="h-4 w-4" />
         </div>
       </div>
-      <div className="mt-2 grid grid-cols-2 gap-3">
+      <div className="mt-2 grid grid-cols-2 gap-0 sm:gap-3">
         <div className="min-w-0">
           <div className="text-[10px] font-semibold uppercase tracking-wide text-brand-700/80 dark:text-brand-300/80">
             TW
           </div>
-          <div className="truncate text-lg font-bold tracking-tight text-brand-900 dark:text-brand-200">
+          <div className="whitespace-nowrap text-sm font-bold tracking-normal text-brand-900 sm:text-lg dark:text-brand-200" title={fmtCompact(tw)}>
             {fmtCompact(tw)}
           </div>
           <div className="text-[10px] text-brand-700/70 dark:text-brand-300/70">
             {total > 0 ? fmtPercent((tw / total) * 100, 1) : '—'}
           </div>
         </div>
-        <div className="min-w-0 border-l border-brand-200 pl-3 dark:border-brand-500/25">
+        <div className="min-w-0 border-l border-brand-200 pl-1 sm:pl-3 dark:border-brand-500/25">
           <div className="text-[10px] font-semibold uppercase tracking-wide text-brand-700/80 dark:text-brand-300/80">
             DP
           </div>
-          <div className="truncate text-lg font-bold tracking-tight text-brand-900 dark:text-brand-200">
+          <div className="whitespace-nowrap text-sm font-bold tracking-normal text-brand-900 sm:text-lg dark:text-brand-200" title={fmtCompact(dp)}>
             {fmtCompact(dp)}
           </div>
           <div className="text-[10px] text-brand-700/70 dark:text-brand-300/70">
@@ -1144,36 +1145,37 @@ function QuaHanKhoanhCard({
   tyLeQuaHan: number;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-xl bg-rose-50 p-4 shadow-sm ring-1 ring-rose-200 dark:bg-rose-500/10 dark:ring-rose-500/25">
+    <div className="relative overflow-hidden rounded-lg bg-rose-50 p-3 shadow-sm ring-1 ring-rose-200 sm:p-4 dark:bg-rose-500/10 dark:ring-rose-500/25">
       <span className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full bg-black/5 dark:bg-white/5" />
       <div className="absolute right-2 top-2 z-10">
         <InfoPopover metricKey="duNoQuaHanKhoanh" />
       </div>
       <div className="flex items-center justify-between gap-3">
-        <div className="text-xs font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-300">
-          Dư nợ quá hạn / khoanh
+        <div className="pr-7 text-[11px] font-semibold uppercase tracking-wide text-rose-700 sm:text-xs dark:text-rose-300">
+          <span className="sm:hidden">Quá hạn / khoanh</span>
+          <span className="hidden sm:inline">Dư nợ quá hạn / khoanh</span>
         </div>
-        <div className="rounded-full bg-rose-100 p-1.5 text-rose-800 dark:bg-rose-500/20 dark:text-rose-200">
+        <div className="hidden rounded-full bg-rose-100 p-1.5 text-rose-800 sm:block dark:bg-rose-500/20 dark:text-rose-200">
           <AlertTriangle className="h-4 w-4" />
         </div>
       </div>
-      <div className="mt-2 grid grid-cols-2 gap-3">
+      <div className="mt-2 grid grid-cols-2 gap-0 sm:gap-3">
         <div className="min-w-0">
           <div className="text-[10px] font-semibold uppercase tracking-wide text-rose-700/80 dark:text-rose-300/80">
             Quá hạn
           </div>
-          <div className="truncate text-lg font-bold tracking-tight text-rose-900 dark:text-rose-200">
+          <div className="whitespace-nowrap text-sm font-bold tracking-normal text-rose-900 sm:text-lg dark:text-rose-200" title={fmtCompact(quaHan)}>
             {fmtCompact(quaHan)}
           </div>
           <div className="text-[10px] text-rose-700/70 dark:text-rose-300/70">
             Tỷ lệ {fmtPercent(tyLeQuaHan)}
           </div>
         </div>
-        <div className="min-w-0 border-l border-rose-200 pl-3 dark:border-rose-500/25">
+        <div className="min-w-0 border-l border-rose-200 pl-1 sm:pl-3 dark:border-rose-500/25">
           <div className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700/90 dark:text-amber-300/90">
             <Snowflake className="h-3 w-3" /> Khoanh
           </div>
-          <div className="truncate text-lg font-bold tracking-tight text-amber-800 dark:text-amber-200">
+          <div className="whitespace-nowrap text-sm font-bold tracking-normal text-amber-800 sm:text-lg dark:text-amber-200" title={fmtCompact(khoanh)}>
             {fmtCompact(khoanh)}
           </div>
         </div>

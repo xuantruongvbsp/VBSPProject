@@ -26,11 +26,11 @@ export function ViewerEmptyState({ app }: Props) {
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="mb-6 inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-brand-700 dark:text-slate-400 dark:hover:text-brand-300"
+          className="mx-auto mb-6 flex w-fit items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-brand-700 dark:text-slate-400 dark:hover:text-brand-300"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Quay lại trang chính
         </button>
-        <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-lg bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300">
           <Hourglass className="h-6 w-6" />
         </div>
         <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">{title}</h1>

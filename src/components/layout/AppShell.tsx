@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -21,6 +22,7 @@ import { useThemeStore } from '@/store/useThemeStore';
 import { useIsOwner } from '@/store/useAuthStore';
 import { fmtDate } from '@/lib/format';
 import { DataAutoSync } from '@/components/owner/DataAutoSync';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 const navItems = [
   { to: '/snapshot', label: 'Tổng quan', icon: LayoutDashboard, end: true },
@@ -41,8 +43,9 @@ export function AppShell() {
   const navigate = useNavigate();
   const isOwner = useIsOwner();
   const { theme, toggle: toggleTheme } = useThemeStore();
+  const [changeFileOpen, setChangeFileOpen] = useState(false);
   return (
-    <div className="flex h-screen w-full flex-col bg-white dark:bg-slate-900 md:flex-row">
+    <div className="flex h-dvh w-full flex-col bg-white dark:bg-slate-900 md:flex-row">
       <aside className="hidden w-64 shrink-0 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 md:flex">
         <div className="border-b border-slate-200 px-3 py-3 dark:border-slate-800">
           <button
@@ -111,7 +114,7 @@ export function AppShell() {
           {isOwner && (
             <>
               <button
-                onClick={reset}
+                onClick={() => setChangeFileOpen(true)}
                 className="mt-3 inline-flex items-center gap-1 text-xs text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400"
               >
                 <RefreshCw className="h-3 w-3" /> Tải tệp khác
@@ -143,12 +146,26 @@ export function AppShell() {
             {rows.length.toLocaleString('vi-VN')} khế ước · {fmtDate(ngaySoLieu)}
           </div>
         </div>
+        {isOwner && (
+          <button
+            type="button"
+            onClick={() => setChangeFileOpen(true)}
+            title="Chọn tệp dữ liệu khác"
+            aria-label="Chọn tệp dữ liệu khác"
+            className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-brand-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-brand-300"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
+        )}
         <button
           type="button"
           onClick={toggleTheme}
           title={theme === 'light' ? 'Chuyển sang giao diện tối' : 'Chuyển sang giao diện sáng'}
           aria-label={theme === 'light' ? 'Chuyển sang giao diện tối' : 'Chuyển sang giao diện sáng'}
-          className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+          className={cn(
+            'inline-flex h-9 w-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800',
+            !isOwner && 'ml-auto'
+          )}
         >
           {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
         </button>
@@ -178,6 +195,15 @@ export function AppShell() {
       <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950">
         <Outlet />
       </main>
+
+      <ConfirmDialog
+        open={changeFileOpen}
+        onOpenChange={setChangeFileOpen}
+        title="Chọn tệp dữ liệu khác?"
+        description="Báo cáo đang mở và toàn bộ bộ lọc hiện tại sẽ được đóng. Tệp gần đây vẫn còn để bạn mở lại."
+        confirmLabel="Chọn tệp khác"
+        onConfirm={reset}
+      />
     </div>
   );
 }
