@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { useDataStore } from '@/store/useDataStore';
 import { useIsOwner } from '@/store/useAuthStore';
 import { ImportDropzone } from '@/components/import/ImportDropzone';
@@ -43,6 +44,7 @@ import { XaCatalogManager } from '@/pages/credit-plan/XaCatalogManager';
 function SnapshotApp() {
   const rows = useDataStore((s) => s.rows);
   const isOwner = useIsOwner();
+  const navigate = useNavigate();
 
   if (!rows.length) {
     // Người xem: không bao giờ thấy ô nhập tệp; hiển thị trạng thái trống
@@ -50,14 +52,22 @@ function SnapshotApp() {
       return <ViewerEmptyState app="snapshot" />;
     }
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-12">
-        <div className="w-full">
-          <div className="mb-8 text-center">
-            <h1 className="text-2xl font-bold text-slate-900">
-              Hệ thống phân tích danh mục tín dụng
+      <div className="min-h-screen bg-slate-50 px-4 py-6 dark:bg-slate-950 sm:px-6 sm:py-10">
+        <div className="mx-auto w-full max-w-3xl">
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="mb-6 inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-brand-700 dark:text-slate-400 dark:hover:text-brand-300"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Quay lại trang chính
+          </button>
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase text-brand-700 dark:text-brand-300">Phân tích một kỳ</p>
+            <h1 className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">
+              Chọn Báo cáo 31 cần phân tích
             </h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Phân tích một kỳ — Báo cáo 31 NHCSXH
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              Bạn có thể mở lại tệp gần đây hoặc chọn một tệp Excel mới trên máy.
             </p>
           </div>
           <ImportDropzone />

@@ -51,11 +51,11 @@ export function ImportDropzone() {
           if (f) handleFile(f);
         }}
         className={cn(
-          'flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-slate-300 bg-white p-12 text-center transition-colors',
-          drag && 'border-brand-500 bg-brand-50'
+          'flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed border-slate-300 bg-white px-5 py-9 text-center transition-colors dark:border-slate-700 dark:bg-slate-900 sm:p-12',
+          drag && 'border-brand-500 bg-brand-50 dark:bg-brand-500/10'
         )}
       >
-        <div className="rounded-full bg-brand-100 p-4 text-brand-700">
+        <div className="rounded-lg bg-brand-100 p-4 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
           {isLoading ? (
             <Loader2 className="h-8 w-8 animate-spin" />
           ) : (
@@ -63,10 +63,10 @@ export function ImportDropzone() {
           )}
         </div>
         <div className="space-y-1">
-          <h2 className="text-lg font-semibold text-slate-800">
+          <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
             Tải lên tệp báo cáo tín dụng
           </h2>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Hỗ trợ định dạng <strong>.xlsx</strong> – Báo cáo 31: Hồ sơ tín dụng
             chi tiết theo ngày
           </p>
@@ -85,7 +85,7 @@ export function ImportDropzone() {
             if (f) handleFile(f);
           }}
         />
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-400 dark:text-slate-500">
           Toàn bộ dữ liệu được xử lý cục bộ trên trình duyệt, không gửi lên máy
           chủ.
         </p>
