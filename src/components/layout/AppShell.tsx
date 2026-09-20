@@ -42,8 +42,8 @@ export function AppShell() {
   const isOwner = useIsOwner();
   const { theme, toggle: toggleTheme } = useThemeStore();
   return (
-    <div className="flex h-screen w-full bg-white dark:bg-slate-900">
-      <aside className="flex w-64 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+    <div className="flex h-screen w-full flex-col bg-white dark:bg-slate-900 md:flex-row">
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 md:flex">
         <div className="border-b border-slate-200 px-3 py-3 dark:border-slate-800">
           <button
             type="button"
@@ -67,7 +67,7 @@ export function AppShell() {
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1 p-3">
+        <nav className="scrollbar-thin flex-1 space-y-1 overflow-y-auto p-3">
           {navItems.map((it) => (
             <NavLink
               key={it.to}
@@ -124,7 +124,58 @@ export function AppShell() {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950">
+      <header className="sticky top-0 z-20 flex shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900 md:hidden">
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+          title="Quay lại trang chính"
+          aria-label="Quay lại trang chính"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-brand-700 text-white dark:bg-brand-500 dark:text-slate-950">
+          <Landmark className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <div className="truncate text-sm font-bold text-slate-800 dark:text-slate-100">Phân tích một kỳ</div>
+          <div className="truncate text-[10px] text-slate-500 dark:text-slate-400">
+            {rows.length.toLocaleString('vi-VN')} khế ước · {fmtDate(ngaySoLieu)}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={toggleTheme}
+          title={theme === 'light' ? 'Chuyển sang giao diện tối' : 'Chuyển sang giao diện sáng'}
+          aria-label={theme === 'light' ? 'Chuyển sang giao diện tối' : 'Chuyển sang giao diện sáng'}
+          className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+        >
+          {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+        </button>
+      </header>
+
+      <nav className="scrollbar-thin flex shrink-0 gap-1 overflow-x-auto border-b border-slate-200 bg-white px-2 py-1.5 dark:border-slate-800 dark:bg-slate-900 md:hidden">
+        {navItems.map((it) => (
+          <NavLink
+            key={it.to}
+            to={it.to}
+            end={it.end}
+            className={({ isActive }) =>
+              cn(
+                'inline-flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-2 text-xs font-medium transition-colors',
+                isActive
+                  ? 'bg-brand-50 text-brand-800 dark:bg-brand-500/15 dark:text-brand-200'
+                  : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'
+              )
+            }
+          >
+            <it.icon className="h-3.5 w-3.5" />
+            {it.label}
+          </NavLink>
+        ))}
+      </nav>
+
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950">
         <Outlet />
       </main>
     </div>
