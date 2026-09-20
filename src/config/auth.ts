@@ -1,17 +1,57 @@
 // Cấu hình mật khẩu chế độ quản trị (chủ sở hữu).
 //
-// Chỉ lưu hash SHA-256 (hex) trong mã nguồn, không bao giờ lưu mật khẩu thô.
-// Bạn NÊN đổi hash dưới đây trước khi triển khai cho người khác sử dụng.
+// Chỉ lưu hash SHA-256 (hex), không bao giờ lưu mật khẩu thô.
 //
-// Cách tạo hash mới:
+// Hash ưu tiên được đọc từ tệp cấu hình runtime `public/config.json` (được
+// chép sang `dist/config.json` khi build, và sang `app/config.json` khi đóng
+// gói portable). Nhờ vậy bạn có thể ĐỔI mật khẩu quản trị mà không cần sửa
+// mã nguồn hay rebuild — chỉ cần sửa giá trị `ownerPasswordSha256` trong tệp
+// đó rồi khởi động lại app.
+//
+// Nếu `config.json` không tồn tại, không đọc được, hoặc `ownerPasswordSha256`
+// để trống / không đúng định dạng hex 64 ký tự → app dùng giá trị mặc định
+// dưới đây làm phương án dự phòng.
+//
+// Cách tạo hash mới (dùng cho cả config.json lẫn giá trị mặc định):
 //  1. Mở DevTools console của trình duyệt (F12)
 //  2. Chạy:
 //       crypto.subtle.digest('SHA-256', new TextEncoder().encode('mật-khẩu-mới'))
 //         .then(b => console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
-//  3. Dán chuỗi hex 64 ký tự vào hằng số dưới đây thay cho giá trị cũ.
+//  3. Dán chuỗi hex 64 ký tự vào `ownerPasswordSha256` trong `config.json`
+//     (hoặc vào hằng số bên dưới nếu muốn đổi giá trị dự phòng).
 
 export const OWNER_PASSWORD_SHA256 =
   'bfcc7267ef30908bb0cf73a560d5038848478a872991dbb4524fb7794dc98b33';
+
+const CONFIG_URL = '/config.json';
+const HASH_PATTERN = /^[0-9a-fA-F]{64}$/;
+
+let cachedOwnerHash: string | null = null;
+
+/** Trả về hash mật khẩu quản trị đang có hiệu lực, ưu tiên từ `config.json`.
+ *
+ * Kết quả được cache trong suốt phiên chạy để không phải fetch lại mỗi lần
+ * mở hộp thoại đăng nhập. Dùng `cache: 'no-store'` để bỏ qua Cache-Control
+ * `immutable` mà portable-server gán cho tệp tĩnh — nếu không, sau khi sửa
+ * `config.json` và khởi động lại, trình duyệt vẫn có thể dùng bản cũ. */
+export async function getOwnerPasswordSha256(): Promise<string> {
+  if (cachedOwnerHash !== null) return cachedOwnerHash;
+  try {
+    const res = await fetch(CONFIG_URL, { cache: 'no-store' });
+    if (res.ok) {
+      const cfg = (await res.json()) as { ownerPasswordSha256?: unknown };
+      const v = cfg?.ownerPasswordSha256;
+      if (typeof v === 'string' && HASH_PATTERN.test(v)) {
+        cachedOwnerHash = v.toLowerCase();
+        return cachedOwnerHash;
+      }
+    }
+  } catch {
+    // config.json không tồn tại / không parse được → dùng giá trị mặc định
+  }
+  cachedOwnerHash = OWNER_PASSWORD_SHA256;
+  return cachedOwnerHash;
+}
 
 /** Băm mật khẩu (UTF-8 → SHA-256 → hex) để so sánh với hằng số trên.
  *

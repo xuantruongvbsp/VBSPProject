@@ -52,7 +52,8 @@ export function OwnerLoginModal({ open, onClose }: Props) {
     setError(null);
     try {
       const h = await hashPassword(password);
-      if (h === OWNER_PASSWORD_SHA256) {
+      const expected = await getOwnerPasswordSha256();
+      if (h === expected) {
         setRole('owner');
         onClose();
       } else {

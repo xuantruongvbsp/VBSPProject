@@ -1,0 +1,4 @@
+{
+  "_comment": "Đặt ownerPasswordSha256 bằng hash SHA-256 (chuỗi hex 64 ký tự) của mật khẩu quản trị. Để trống để dùng mật khẩu mặc định trong mã nguồn.",
+  "ownerPasswordSha256": "a665a45920422f9d417e4867efdc4fb8a04a1fff3fa899e3144e3cb5c1083e97"
+}
