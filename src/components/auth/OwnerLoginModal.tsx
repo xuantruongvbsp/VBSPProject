@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Eye, EyeOff, ShieldCheck, X } from 'lucide-react';
-import { OWNER_PASSWORD_SHA256, hashPassword } from '@/config/auth';
+import { getOwnerPasswordSha256, hashPassword } from '@/config/auth';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/Button';
 
