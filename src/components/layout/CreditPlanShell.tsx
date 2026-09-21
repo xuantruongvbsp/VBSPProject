@@ -157,6 +157,11 @@ export function CreditPlanShell() {
           </div>
           <div className="text-sm font-bold text-slate-800 dark:text-slate-100">Kế hoạch tín dụng</div>
         </div>
+        {!isOwner && creditPlanAt && (
+          <div className="shrink-0">
+            <PublishedAtBadge publishedAt={creditPlanAt} compact />
+          </div>
+        )}
         <button
           type="button"
           onClick={toggleTheme}

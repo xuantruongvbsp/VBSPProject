@@ -25,6 +25,24 @@ const attachmentDir = 'decision-attachments';
 const maxAttachmentBytes = 30 * 1024 * 1024;
 const safeIdPattern = /^[a-zA-Z0-9-]{1,64}$/;
 
+// Sau khi server bind 0.0.0.0, bất kỳ ai cùng mạng LAN đều có thể gọi API
+// ghi. Vì app là 100% client-side nên không thể dùng token thực sự; giải pháp
+// thực dụng nhất là chỉ cho máy chủ (loopback) được POST/PUT/DELETE. Viewer ở
+// máy khác vẫn GET bình thường. Đặt VSPPRO_ALLOW_REMOTE_PUBLISH=1 để tắt (dev).
+const allowRemotePublish = process.env.VSPPRO_ALLOW_REMOTE_PUBLISH === '1';
+
+function isLoopback(req) {
+  const addr = req.socket?.remoteAddress || '';
+  // Chuẩn hóa IPv4-mapped IPv6 (::ffff:127.0.0.1) về dạng IPv4.
+  const normalized = addr.replace(/^::ffff:/i, '');
+  return normalized === '127.0.0.1' || normalized === '::1';
+}
+
+function isWriteMethod(method) {
+  const m = (method || 'GET').toUpperCase();
+  return m === 'POST' || m === 'PUT' || m === 'DELETE';
+}
+
 const mimeTypes = new Map([
   ['.html', 'text/html; charset=utf-8'],
   ['.js', 'text/javascript; charset=utf-8'],
@@ -182,6 +200,13 @@ async function handleAttachment(request, response, decisionId) {
 async function handlePublishRequest(request, response) {
   const urlPath = (request.url || '').split('?')[0];
 
+  if (isWriteMethod(request.method) && !allowRemotePublish && !isLoopback(request)) {
+    writeJson(response, 403, {
+      error: 'Chỉ chủ máy (localhost) mới được xuất bản dữ liệu.',
+    });
+    return true;
+  }
+
   if (urlPath.startsWith(attachmentPrefix)) {
     const decisionId = decodeURIComponent(urlPath.slice(attachmentPrefix.length));
     await handleAttachment(request, response, decisionId);
@@ -259,6 +284,13 @@ function createServer() {
         const requestedFile = safeResolve(request.url || '/');
         let filePath = requestedFile;
 
+        // Chặn lộ hash mật khẩu quản trị ra LAN: config.json chỉ serve cho
+        // máy chủ (loopback). Viewer ở máy khác nhận 404 như không tồn tại.
+        if (!allowRemotePublish && !isLoopback(request) && filePath.endsWith(path.sep + 'config.json')) {
+          writeJson(response, 404, { error: 'Not found' });
+          return;
+        }
+
         if (existsSync(filePath) && statSync(filePath).isDirectory()) {
           filePath = path.join(filePath, 'index.html');
         }
@@ -321,6 +353,11 @@ function start(port) {
     console.log('');
     console.log('Keep this window open while using the app.');
     console.log('Press Ctrl+C to stop.');
+    if (allowRemotePublish) {
+      console.log('WARNING: remote publishing is ENABLED (VSPPRO_ALLOW_REMOTE_PUBLISH=1).');
+    } else {
+      console.log('Publishing is restricted to this computer (localhost).');
+    }
     openBrowser(localUrl);
   });
 }

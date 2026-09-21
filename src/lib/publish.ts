@@ -256,7 +256,9 @@ export interface DeserializedPeriod {
 export function deserializePeriod(text: string): DeserializedPeriod {
   const obj = JSON.parse(text) as PeriodPublishPayload;
   const publishedAt =
-    typeof obj.publishedAt === 'string' ? obj.publishedAt : null;
+    'publishedAt' in obj && typeof obj.publishedAt === 'string'
+      ? obj.publishedAt
+      : null;
   if (obj.v === 2) {
     const slots: PeriodPublishSlots = {
       lastYear: obj.slots.lastYear ? jsonToSnapshot(obj.slots.lastYear) : null,
@@ -412,6 +414,11 @@ async function uploadBlob(url: string, blob: Blob): Promise<void> {
       detail = await res.text();
     } catch {
       /* bỏ qua */
+    }
+    if (res.status === 403) {
+      throw new Error(
+        'Bạn đang mở ứng dụng qua địa chỉ LAN. Việc xuất bản chỉ thực hiện được trên máy chủ (http://127.0.0.1:<port>/).'
+      );
     }
     throw new Error(`HTTP ${res.status} ${detail || res.statusText}`);
   }
@@ -632,7 +639,7 @@ export function deserializeCreditPlan(text: string): DeserializedCreditPlan | nu
 }
 
 export async function publishCreditPlan(
-  payload: Omit<CreditPlanPublishPayload, 'v'>
+  payload: Omit<CreditPlanPublishPayload, 'v' | 'publishedAt'>
 ): Promise<void> {
   try {
     const blob = new Blob([serializeCreditPlan(payload)], {

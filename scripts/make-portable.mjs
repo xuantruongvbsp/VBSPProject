@@ -124,6 +124,9 @@ await writeFile(
     `setlocal enabledelayedexpansion\r\n` +
     `cd /d "%~dp0"\r\n` +
     `\r\n` +
+    `set "PORT=%VSPPRO_PORT%"\r\n` +
+    `if "%PORT%"=="" set "PORT=4173"\r\n` +
+    `\r\n` +
     `set "SRC=%~1"\r\n` +
     `if "%SRC%"=="" (\r\n` +
     `  echo Cach dung: keo-tha thu muc VSPPRO moi vao file nay, hoac chay:\r\n` +
@@ -139,11 +142,26 @@ await writeFile(
     `  exit /b 1\r\n` +
     `)\r\n` +
     `\r\n` +
+    `rem Dung server neu dang chay de tranh node.exe bi lock khi robocopy.\r\n` +
+    `echo Kiem tra server dang chay (port %PORT%)...\r\n` +
+    `set "RUNNING="\r\n` +
+    `for /f "tokens=5" %%a in ('netstat -ano ^| findstr "LISTENING" ^| findstr ":%PORT%"') do set "RUNNING=%%a"\r\n` +
+    `if defined RUNNING (\r\n` +
+    `  echo Server dang chay. Can dung truoc khi cap nhat.\r\n` +
+    `  set /p "ans=Dung server va tiep tuc? (Y/N): "\r\n` +
+    `  if /i not "!ans!"=="Y" (\r\n` +
+    `    echo Da huy. Khong co gi thay doi.\r\n` +
+    `    pause\r\n` +
+    `    exit /b 0\r\n` +
+    `  )\r\n` +
+    `  for /f "tokens=5" %%a in ('netstat -ano ^| findstr "LISTENING" ^| findstr ":%PORT%"') do taskkill /F /PID %%a >nul 2>nul\r\n` +
+    `)\r\n` +
+    `\r\n` +
     `set "BAK=%~dp0_backup_tmp"\r\n` +
     `if exist "%BAK%" rmdir /S /Q "%BAK%"\r\n` +
     `mkdir "%BAK%\\app" 2>nul\r\n` +
     `\r\n` +
-    `echo [1/3] Sao luu du lieu da xuat ban va mat khau quan tri...\r\n` +
+    `echo [1/4] Sao luu du lieu da xuat ban va mat khau quan tri...\r\n` +
     `for %%F in (published.json published.json.gz published-period.json published-period.json.gz published-catalog.json published-catalog.json.gz published-credit-plan.json published-credit-plan.json.gz config.json) do (\r\n` +
     `  if exist "%~dp0app\\%%F" copy /Y "%~dp0app\\%%F" "%BAK%\\app\\%%F" >nul\r\n` +
     `)\r\n` +
@@ -151,9 +169,15 @@ await writeFile(
     `  robocopy "%~dp0app\\decision-attachments" "%BAK%\\app\\decision-attachments" /E /NFL /NDL /NJH /NJS /NP >nul\r\n` +
     `)\r\n` +
     `\r\n` +
-    `echo [2/3] Chep ban moi...\r\n` +
+    `echo [2/4] Chep ban moi...\r\n` +
     `robocopy "%SRC%\\app" "%~dp0app" /MIR /NFL /NDL /NJH /NJS /NP >nul\r\n` +
-    `if exist "%SRC%\\runtime\\node.exe" robocopy "%SRC%\\runtime" "%~dp0runtime" /MIR /NFL /NDL /NJH /NJS /NP >nul\r\n` +
+    `if errorlevel 8 goto :rollback\r\n` +
+    `\r\n` +
+    `if exist "%SRC%\\runtime\\node.exe" (\r\n` +
+    `  robocopy "%SRC%\\runtime" "%~dp0runtime" /MIR /NFL /NDL /NJH /NJS /NP >nul\r\n` +
+    `  if errorlevel 8 goto :rollback\r\n` +
+    `)\r\n` +
+    `\r\n` +
     `copy /Y "%SRC%\\server.mjs" "%~dp0server.mjs" >nul 2>nul\r\n` +
     `copy /Y "%SRC%\\setup.ps1" "%~dp0setup.ps1" >nul 2>nul\r\n` +
     `copy /Y "%SRC%\\setup.bat" "%~dp0setup.bat" >nul 2>nul\r\n` +
@@ -161,19 +185,32 @@ await writeFile(
     `copy /Y "%SRC%\\VSPPRO.bat" "%~dp0VSPPRO.bat" >nul 2>nul\r\n` +
     `copy /Y "%SRC%\\Them Firewall Rule.bat" "%~dp0Them Firewall Rule.bat" >nul 2>nul\r\n` +
     `\r\n` +
-    `echo [3/3] Khoi phuc du lieu da xuat ban...\r\n` +
+    `echo [3/4] Khoi phuc du lieu da xuat ban...\r\n` +
+    `call :restore\r\n` +
+    `\r\n` +
+    `rmdir /S /Q "%BAK%" 2>nul\r\n` +
+    `echo.\r\n` +
+    `echo Cap nhat xong. Hay chay "VSPPRO.bat" de su dung.\r\n` +
+    `pause\r\n` +
+    `exit /b 0\r\n` +
+    `\r\n` +
+    `:rollback\r\n` +
+    `echo.\r\n` +
+    `echo LOI khi chep ban moi (robocopy). Khoi phuc du lieu da xuat ban...\r\n` +
+    `call :restore\r\n` +
+    `rmdir /S /Q "%BAK%" 2>nul\r\n` +
+    `echo Cap nhat THAT BAI. Du lieu da duoc giu nguyen.\r\n` +
+    `pause\r\n` +
+    `exit /b 1\r\n` +
+    `\r\n` +
+    `:restore\r\n` +
     `for %%F in (published.json published.json.gz published-period.json published-period.json.gz published-catalog.json published-catalog.json.gz published-credit-plan.json published-credit-plan.json.gz config.json) do (\r\n` +
     `  if exist "%BAK%\\app\\%%F" copy /Y "%BAK%\\app\\%%F" "%~dp0app\\%%F" >nul\r\n` +
     `)\r\n` +
     `if exist "%BAK%\\app\\decision-attachments" (\r\n` +
     `  robocopy "%BAK%\\app\\decision-attachments" "%~dp0app\\decision-attachments" /E /NFL /NDL /NJH /NJS /NP >nul\r\n` +
     `)\r\n` +
-    `\r\n` +
-    `rmdir /S /Q "%BAK%" 2>nul\r\n` +
-    `\r\n` +
-    `echo.\r\n` +
-    `echo Cap nhat xong. Hay chay "VSPPRO.bat" de su dung.\r\n` +
-    `pause\r\n`,
+    `goto :eof\r\n`,
   'utf8',
 );
 
@@ -197,6 +234,10 @@ await writeFile(
     '- Trong cua so den co danh sach dia chi LAN (dang http://192.168.x.x:4173/).',
     '- Dong nghiep mo mot dia chi LAN do tren trinh duyet cua ho.',
     '- Neu dong nghiep khong truy cap duoc, chay "Them Firewall Rule.bat" (Run as administrator) mot lan.',
+    '',
+    'Bao mat:',
+    '- Chi may chu (localhost) moi xuat ban duoc du lieu. Dong nghiep chi xem.',
+    '- Mat khau quan tri khong duoc gui ra LAN. Nen dat mat khau tu 8 ky tu tro len.',
     '',
     'Luu y:',
     '- Khong xoa thu muc app, runtime hoac file server.mjs.',

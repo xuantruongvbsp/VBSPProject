@@ -4,9 +4,12 @@
 
 import { Clock } from 'lucide-react';
 
-function fmtPublishedAt(iso: string): string {
+function fmtPublishedAt(iso: string, compact: boolean): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
+  if (compact) {
+    return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  }
   const date = d.toLocaleDateString('vi-VN');
   const time = d.toLocaleTimeString('vi-VN', {
     hour: '2-digit',
@@ -17,16 +20,20 @@ function fmtPublishedAt(iso: string): string {
 
 export function PublishedAtBadge({
   publishedAt,
+  compact = false,
 }: {
   publishedAt: string | null;
+  compact?: boolean;
 }) {
   if (!publishedAt) return null;
-  const label = fmtPublishedAt(publishedAt);
+  const label = fmtPublishedAt(publishedAt, compact);
   if (!label) return null;
   return (
     <div className="flex items-center gap-1.5 rounded-md bg-slate-100 px-2 py-1 text-[11px] text-slate-600 dark:bg-slate-800 dark:text-slate-300">
       <Clock className="h-3 w-3 shrink-0" />
-      <span className="truncate">Cập nhật lúc {label}</span>
+      <span className="truncate">
+        {compact ? `Cập nhật ${label}` : `Cập nhật lúc ${label}`}
+      </span>
     </div>
   );
 }

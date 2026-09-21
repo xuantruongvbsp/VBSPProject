@@ -405,6 +405,11 @@ export function PeriodShell() {
             {fmtDate(prev.ngaySoLieu)} → {fmtDate(curr.ngaySoLieu)}
           </div>
         </div>
+        {!isOwner && periodAt && (
+          <div className="ml-auto shrink-0">
+            <PublishedAtBadge publishedAt={periodAt} compact />
+          </div>
+        )}
         {isOwner && (
           <button
             type="button"

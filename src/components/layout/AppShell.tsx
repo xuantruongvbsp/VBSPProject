@@ -154,6 +154,11 @@ export function AppShell() {
             {rows.length.toLocaleString('vi-VN')} khế ước · {fmtDate(ngaySoLieu)}
           </div>
         </div>
+        {!isOwner && snapshotAt && (
+          <div className="shrink-0">
+            <PublishedAtBadge publishedAt={snapshotAt} compact />
+          </div>
+        )}
         {isOwner && (
           <button
             type="button"

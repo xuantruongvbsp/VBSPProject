@@ -49,6 +49,11 @@ if (-not $plain) {
     if ($plain -cne $confirm) { Write-Host 'Passwords do not match.' -ForegroundColor Red; exit 1 }
 }
 
+if ($plain.Length -lt 8) {
+    Write-Host 'WARNING: password shorter than 8 characters is easy to guess.' -ForegroundColor Yellow
+    Write-Host 'Consider using a longer password before sharing over the LAN.' -ForegroundColor Yellow
+}
+
 # --- SHA-256 (UTF-8, matches the app) --------------------------------------
 function Get-Sha256Hex([string]$text) {
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($text)

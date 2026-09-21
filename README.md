@@ -41,12 +41,24 @@ Trên máy dùng để đóng gói, làm một lần:
    sang máy Windows khác.
 5. Trên máy nhận, mở:
    ```
-   Mo VSPPRO.bat
+   VSPPRO.bat
    ```
+   rồi chọn **1** để khởi động server (đây là menu chính). `Mo VSPPRO.bat` vẫn chạy server trực tiếp nếu bạn thích.
 
 App sẽ tự mở trong trình duyệt ở địa chỉ nội bộ dạng `http://127.0.0.1:4173/`. Khi dùng xong, đóng cửa sổ đen hoặc nhấn `Ctrl + C`.
 
 > Thư mục `portable\VSPPRO` đã chứa bản build, server cục bộ và `node.exe` tối thiểu để chạy app. Đừng xóa các thư mục `app`, `runtime` hoặc file `server.mjs` bên trong đó.
+
+### Chia sẻ cho đồng nghiệp cùng mạng LAN
+
+Sau khi server chạy, cửa sổ đen sẽ in danh sách địa chỉ LAN (dạng `http://192.168.x.x:4173/`). Đồng nghiệp mở một địa chỉ đó trên trình duyệt của họ là xem được dữ liệu.
+
+- Nếu đồng nghiệp không truy cập được, chạy **`Them Firewall Rule.bat`** (chuột phải → **Run as administrator**) một lần để mở cổng qua Windows Firewall.
+- **Bảo mật:** chỉ máy chủ (`localhost`) mới **xuất bản** được dữ liệu; đồng nghiệp chỉ xem. File `config.json` (chứa hash mật khẩu) không được gửi ra LAN.
+
+### Cập nhật bản portable mới (giữ dữ liệu)
+
+Khi có bản mới, kéo-thả thư mục `VSPPRO` mới vào file **`update.bat`** (hoặc chạy `update.bat "D:\đường-dẫn\VSPPRO-moi"`). Script tự dừng server nếu đang chạy, giữ nguyên dữ liệu đã xuất bản và mật khẩu quản trị.
 
 ---
 

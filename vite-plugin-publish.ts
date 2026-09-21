@@ -54,6 +54,28 @@ const MAX_ATTACHMENT_BYTES = 30 * 1024 * 1024;
 // traversal khi nhận id từ URL ngoài.
 const SAFE_ID_REGEX = /^[a-zA-Z0-9-]{1,64}$/;
 
+// Khi dev/preview server được expose ra mạng (`--host` / host 0.0.0.0 hoặc IP
+// cụ thể), chỉ cho phép máy chủ (loopback) ghi publish — tránh người khác cùng
+// LAN ghi đè/xóa dữ liệu. Mặc định Vite chỉ bind localhost nên không cần siết.
+function isLoopback(req: IncomingMessage): boolean {
+  const addr = req.socket?.remoteAddress || '';
+  const normalized = addr.replace(/^::ffff:/i, '');
+  return normalized === '127.0.0.1' || normalized === '::1';
+}
+
+function isWriteMethod(method: string | undefined): boolean {
+  const m = (method || 'GET').toUpperCase();
+  return m === 'POST' || m === 'PUT' || m === 'DELETE';
+}
+
+function isExposedHost(host: unknown): boolean {
+  if (host === true) return true;
+  if (typeof host === 'string') {
+    return host !== '127.0.0.1' && host !== 'localhost' && host !== '::1';
+  }
+  return false;
+}
+
 function readBody(req: IncomingMessage): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
@@ -159,9 +181,17 @@ async function handleAttachment(
 async function handle(
   req: IncomingMessage,
   res: ServerResponse,
-  targetDir: string
+  targetDir: string,
+  enforceLocalOnly = false
 ): Promise<void> {
   const url = (req.url || '').split('?')[0];
+
+  if (enforceLocalOnly && isWriteMethod(req.method) && !isLoopback(req)) {
+    writeJson(res, 403, {
+      error: 'Chỉ chủ máy (localhost) mới được xuất bản dữ liệu.',
+    });
+    return;
+  }
 
   // Routes động cho file đính kèm PDF: /__publish/decision-attachment/<id>
   if (url.startsWith(ATTACHMENT_PREFIX)) {
@@ -225,10 +255,12 @@ export function publishPlugin(): Plugin {
     configureServer(server: ViteDevServer) {
       // Chế độ dev: ghi vào public/ — Vite sẽ tự phục vụ ngay
       const publicDir = server.config.publicDir || path.resolve('public');
+      const enforce = isExposedHost(server.config.server.host) &&
+        process.env.VSPPRO_ALLOW_REMOTE_PUBLISH !== '1';
       server.middlewares.use((req, res, next) => {
         const url = (req.url || '').split('?')[0];
         if (url in ROUTES || url.startsWith(ATTACHMENT_PREFIX)) {
-          handle(req, res, publicDir);
+          handle(req, res, publicDir, enforce);
           return;
         }
         next();
@@ -238,10 +270,12 @@ export function publishPlugin(): Plugin {
     configurePreviewServer(server: PreviewServer) {
       // Chế độ preview: ghi vào dist/ vì public/ không còn được phục vụ
       const distDir = server.config.build.outDir || path.resolve('dist');
+      const enforce = isExposedHost(server.config.preview.host) &&
+        process.env.VSPPRO_ALLOW_REMOTE_PUBLISH !== '1';
       server.middlewares.use((req, res, next) => {
         const url = (req.url || '').split('?')[0];
         if (url in ROUTES || url.startsWith(ATTACHMENT_PREFIX)) {
-          handle(req, res, distDir);
+          handle(req, res, distDir, enforce);
           return;
         }
         next();
