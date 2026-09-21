@@ -118,6 +118,33 @@ function writeJson(res: ServerResponse, code: number, body: unknown) {
   res.end(JSON.stringify(body));
 }
 
+// Serve /version.json KHÔNG cache — nếu rơi vào static mặc định của Vite sẽ bị
+// cache lâu → viewer so version sai. Route này mở cho mọi IP (viewer cần đọc).
+// Ở dev chưa build nên chưa có version.json → trả 404, client phải chịu được.
+function handleVersionJson(req: IncomingMessage, res: ServerResponse, targetDir: string) {
+  if (req.method !== 'GET') {
+    res.statusCode = 405;
+    res.end();
+    return;
+  }
+  const filepath = path.join(targetDir, 'version.json');
+  if (!fs.existsSync(filepath)) {
+    res.statusCode = 404;
+    res.end();
+    return;
+  }
+  try {
+    const content = fs.readFileSync(filepath, 'utf8');
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
+    res.end(content);
+  } catch {
+    res.statusCode = 500;
+    res.end();
+  }
+}
+
 async function readAttachmentBody(req: IncomingMessage): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
@@ -259,6 +286,10 @@ export function publishPlugin(): Plugin {
         process.env.VSPPRO_ALLOW_REMOTE_PUBLISH !== '1';
       server.middlewares.use((req, res, next) => {
         const url = (req.url || '').split('?')[0];
+        if (url === '/version.json') {
+          handleVersionJson(req, res, publicDir);
+          return;
+        }
         if (url in ROUTES || url.startsWith(ATTACHMENT_PREFIX)) {
           handle(req, res, publicDir, enforce);
           return;
@@ -274,6 +305,10 @@ export function publishPlugin(): Plugin {
         process.env.VSPPRO_ALLOW_REMOTE_PUBLISH !== '1';
       server.middlewares.use((req, res, next) => {
         const url = (req.url || '').split('?')[0];
+        if (url === '/version.json') {
+          handleVersionJson(req, res, distDir);
+          return;
+        }
         if (url in ROUTES || url.startsWith(ATTACHMENT_PREFIX)) {
           handle(req, res, distDir, enforce);
           return;

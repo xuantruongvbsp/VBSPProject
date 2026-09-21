@@ -8,6 +8,8 @@ import { ViewerBootstrap } from '@/components/auth/ViewerBootstrap';
 import { ViewerEmptyState } from '@/components/auth/ViewerEmptyState';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppErrorBoundary } from '@/components/ui/AppErrorBoundary';
+import { NewVersionBanner } from '@/components/auth/NewVersionBanner';
+import { useNewVersionCheck } from '@/hooks/useNewVersionCheck';
 import { Lobby } from '@/pages/Lobby';
 import { PeriodShell } from '@/components/layout/PeriodShell';
 import { CreditPlanShell } from '@/components/layout/CreditPlanShell';
@@ -120,6 +122,7 @@ function DrillDownClearer() {
 }
 
 export default function App() {
+  const version = useNewVersionCheck();
   return (
     <>
       <ViewerBootstrap />
@@ -167,6 +170,13 @@ export default function App() {
           </Routes>
         </Suspense>
       </AppErrorBoundary>
+      {version.hasNewVersion && !version.dismissed && (
+        <NewVersionBanner
+          remoteBuildId={version.remoteBuildId}
+          onReload={version.reload}
+          onDismiss={version.dismiss}
+        />
+      )}
     </>
   );
 }

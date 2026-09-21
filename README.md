@@ -56,9 +56,30 @@ Sau khi server chạy, cửa sổ đen sẽ in danh sách địa chỉ LAN (dạ
 - Nếu đồng nghiệp không truy cập được, chạy **`Them Firewall Rule.bat`** (chuột phải → **Run as administrator**) một lần để mở cổng qua Windows Firewall.
 - **Bảo mật:** chỉ máy chủ (`localhost`) mới **xuất bản** được dữ liệu; đồng nghiệp chỉ xem. File `config.json` (chứa hash mật khẩu) không được gửi ra LAN.
 
-### Cập nhật bản portable mới (giữ dữ liệu)
+### Cập nhật phiên bản mới (giữ dữ liệu)
 
-Khi có bản mới, kéo-thả thư mục `VSPPRO` mới vào file **`update.bat`** (hoặc chạy `update.bat "D:\đường-dẫn\VSPPRO-moi"`). Script tự dừng server nếu đang chạy, giữ nguyên dữ liệu đã xuất bản và mật khẩu quản trị.
+Cách cập nhật **một chạm** từ một thư mục chia sẻ trên mạng LAN:
+
+1. Trên **máy dev**: chạy `build-portable.bat` để tạo `portable\VSPPRO` mới (kèm file `app\version.json`).
+2. Copy thư mục `portable\VSPPRO` vừa build vào thư mục chia sẻ, ví dụ `\\FILESERVER\Share\VSPPRO`.
+3. Trên **máy chủ**: mở `VSPPRO.bat` → chọn **`5. Kiem tra cap nhat`**. Nếu thấy bản mới, gõ `Y` để cập nhật.
+
+Để bước 3 hoạt động, máy chủ cần chỉnh file **`update-source.txt`** nằm cạnh `VSPPRO.bat` — ghi đúng một dòng là đường dẫn thư mục chia sẻ chứa bản mới (không bỏ dấu ngoặc kép):
+
+```text
+\\FILESERVER\Share\VSPPRO
+```
+
+hoặc một ổ đĩa cục bộ:
+
+```text
+D:\Builds\VSPPRO
+```
+
+Script tự dừng server nếu đang chạy, giữ nguyên dữ liệu đã xuất bản, mật khẩu quản trị và chính file `update-source.txt`.
+
+- **Người xem (viewer):** khi máy chủ đã cập nhật, tab đang mở sẽ tự hiện banner **"Chủ máy đã cập nhật bản mới"** — chỉ cần bấm **"Tải lại"**, không phải làm gì thêm.
+- **Xem phiên bản đang chạy:** nhìn dòng `v... · ...` ở cuối thanh bên trái của app, hoặc dòng `Version: ...` trong cửa sổ đen của server.
 
 ---
 

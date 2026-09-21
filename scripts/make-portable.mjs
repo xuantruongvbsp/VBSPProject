@@ -22,6 +22,7 @@ if (existsSync(path.join(repoRoot, 'public', 'config.json'))) {
   await copyFile(path.join(repoRoot, 'public', 'config.json'), path.join(appDir, 'config.json'));
 }
 await copyFile(path.join(repoRoot, 'scripts', 'portable-server.mjs'), path.join(outDir, 'server.mjs'));
+await copyFile(path.join(repoRoot, 'scripts', 'check-update.mjs'), path.join(outDir, 'check-update.mjs'));
 await copyFile(path.join(repoRoot, 'setup.ps1'), path.join(outDir, 'setup.ps1'));
 await copyFile(path.join(repoRoot, 'setup.bat'), path.join(outDir, 'setup.bat'));
 
@@ -83,11 +84,23 @@ await writeFile(
 );
 
 await writeFile(
+  path.join(outDir, 'update-source.txt'),
+  `# Duong dan thu muc chua ban VSPPRO moi (1 dong duy nhat, khong dau ngoac kep).\r\n` +
+    `# Vi du: \\\\FILESERVER\\Share\\VSPPRO\r\n` +
+    `# Hoac : D:\\Builds\\VSPPRO\r\n`,
+  'utf8',
+);
+
+await writeFile(
   path.join(outDir, 'VSPPRO.bat'),
   `@echo off\r\n` +
-    `setlocal\r\n` +
+    `setlocal enabledelayedexpansion\r\n` +
     `cd /d "%~dp0"\r\n` +
     `title VSPPRO - Bo dieu khien\r\n` +
+    `\r\n` +
+    `set "NODE_EXE=%~dp0runtime\\node.exe"\r\n` +
+    `if not exist "%NODE_EXE%" set "NODE_EXE=node"\r\n` +
+    `\r\n` +
     `:menu\r\n` +
     `cls\r\n` +
     `echo ============================================\r\n` +
@@ -96,15 +109,33 @@ await writeFile(
     `echo   1. Khoi dong server\r\n` +
     `echo   2. Doi mat khau quan tri\r\n` +
     `echo   3. Dung server\r\n` +
-    `echo   4. Them quy tac tuong lua (Firewall)\r\n` +
-    `echo   5. Thoat\r\n` +
+    `echo   4. Them Firewall rule\r\n` +
+    `echo   5. Kiem tra cap nhat\r\n` +
+    `echo   6. Thoat\r\n` +
     `echo ============================================\r\n` +
-    `set /p "chon=Nhap lua chon 1-5: "\r\n` +
+    `set /p "chon=Nhap lua chon 1-6: "\r\n` +
     `if "%chon%"=="1" start "VSPPRO Server" "%~dp0Mo VSPPRO.bat"\r\n` +
     `if "%chon%"=="2" call "%~dp0setup.bat"\r\n` +
     `if "%chon%"=="3" call :stopserver\r\n` +
     `if "%chon%"=="4" call "%~dp0Them Firewall Rule.bat"\r\n` +
-    `if "%chon%"=="5" exit /b 0\r\n` +
+    `if "%chon%"=="5" call :checkupdate\r\n` +
+    `if "%chon%"=="6" exit /b 0\r\n` +
+    `goto menu\r\n` +
+    `\r\n` +
+    `:checkupdate\r\n` +
+    `"%NODE_EXE%" "%~dp0check-update.mjs"\r\n` +
+    `if errorlevel 3 ( echo Loi khi kiem tra. & pause & goto menu )\r\n` +
+    `if errorlevel 2 ( echo. & pause & goto menu )\r\n` +
+    `if errorlevel 1 (\r\n` +
+    `  set "SRC_PATH="\r\n` +
+    `  for /f "delims=" %%p in ('"%NODE_EXE%" "%~dp0check-update.mjs" --print-source') do set "SRC_PATH=%%p"\r\n` +
+    `  if not defined SRC_PATH ( echo Khong doc duoc nguon cap nhat. & pause & goto menu )\r\n` +
+    `  set /p "ans=Cap nhat ngay? (Y/N): "\r\n` +
+    `  if /i "!ans!"=="Y" call "%~dp0update.bat" "!SRC_PATH!"\r\n` +
+    `  goto menu\r\n` +
+    `)\r\n` +
+    `echo.\r\n` +
+    `pause\r\n` +
     `goto menu\r\n` +
     `\r\n` +
     `:stopserver\r\n` +
@@ -168,6 +199,7 @@ await writeFile(
     `if exist "%~dp0app\\decision-attachments" (\r\n` +
     `  robocopy "%~dp0app\\decision-attachments" "%BAK%\\app\\decision-attachments" /E /NFL /NDL /NJH /NJS /NP >nul\r\n` +
     `)\r\n` +
+    `if exist "%~dp0update-source.txt" copy /Y "%~dp0update-source.txt" "%BAK%\\update-source.txt" >nul\r\n` +
     `\r\n` +
     `echo [2/4] Chep ban moi...\r\n` +
     `robocopy "%SRC%\\app" "%~dp0app" /MIR /NFL /NDL /NJH /NJS /NP >nul\r\n` +
@@ -179,6 +211,7 @@ await writeFile(
     `)\r\n` +
     `\r\n` +
     `copy /Y "%SRC%\\server.mjs" "%~dp0server.mjs" >nul 2>nul\r\n` +
+    `copy /Y "%SRC%\\check-update.mjs" "%~dp0check-update.mjs" >nul 2>nul\r\n` +
     `copy /Y "%SRC%\\setup.ps1" "%~dp0setup.ps1" >nul 2>nul\r\n` +
     `copy /Y "%SRC%\\setup.bat" "%~dp0setup.bat" >nul 2>nul\r\n` +
     `copy /Y "%SRC%\\Mo VSPPRO.bat" "%~dp0Mo VSPPRO.bat" >nul 2>nul\r\n` +
@@ -210,6 +243,7 @@ await writeFile(
     `if exist "%BAK%\\app\\decision-attachments" (\r\n` +
     `  robocopy "%BAK%\\app\\decision-attachments" "%~dp0app\\decision-attachments" /E /NFL /NDL /NJH /NJS /NP >nul\r\n` +
     `)\r\n` +
+    `if exist "%BAK%\\update-source.txt" copy /Y "%BAK%\\update-source.txt" "%~dp0update-source.txt" >nul\r\n` +
     `goto :eof\r\n`,
   'utf8',
 );
@@ -226,9 +260,15 @@ await writeFile(
     '4. Trinh duyet se tu mo app. Neu khong tu mo, vao dia chi hien trong cua so den.',
     '',
     'Cap nhat phien ban moi (giu nguyen du lieu da xuat ban va mat khau):',
-    '- Copy ban moi vao mot thu muc rieng (vd D:\\VSPPRO-moi).',
-    '- Keo-tha thu muc do vao "update.bat", hoac chay: update.bat "D:\\VSPPRO-moi".',
-    '- Script se tu dong giu lai du lieu da xuat ban va mat khau quan tri.',
+    '1. May dev chay build-portable.bat roi copy thu muc portable\\VSPPRO moi',
+    '   vao thu muc chia se, vi du \\\\FILESERVER\\Share\\VSPPRO.',
+    '2. May chu: mo "VSPPRO.bat" -> chon "5. Kiem tra cap nhat" -> go Y neu co ban moi.',
+    '   (Truoc do ghi dung mot dong duong dan thu muc chia se vao file update-source.txt)',
+    '3. Dong nghiep thay banner "Chu may da cap nhat ban moi" -> bam "Tai lai".',
+    '',
+    'Xem phien ban dang chay:',
+    '- Trong app, nhin dong "v... - ..." o cuoi thanh ben trai.',
+    '- Hoac nhin dong "Version: ..." trong cua so den cua server.',
     '',
     'Chia se cho dong nghiep cung mang LAN (cung van phong):',
     '- Trong cua so den co danh sach dia chi LAN (dang http://192.168.x.x:4173/).',

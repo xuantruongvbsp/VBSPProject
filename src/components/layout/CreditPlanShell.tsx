@@ -138,6 +138,9 @@ export function CreditPlanShell() {
           <div className="mt-2">
             <CreditPlanAutoSync />
           </div>
+          <div className="mt-3 min-w-0 truncate text-[10px] text-slate-400 dark:text-slate-500">
+            v{__APP_BUILD__.version} · {__APP_BUILD__.buildId}
+          </div>
         </div>
       </aside>
 

@@ -1,4 +1,12 @@
-import { createReadStream, existsSync, mkdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import {
+  createReadStream,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import http from 'node:http';
 import path from 'node:path';
@@ -96,6 +104,30 @@ function writeJson(response, statusCode, body) {
     'Cache-Control': 'no-store',
   });
   response.end(JSON.stringify(body));
+}
+
+// Serve /version.json KHÔNG cache. Nếu rơi vào sendFile() mặc định sẽ bị
+// Cache-Control: immutable, max-age=31536000 → browser cache 1 năm → kiểm tra
+// phiên bản sai vĩnh viễn. Route này mở cho mọi IP (viewer cần đọc để phát
+// hiện bản mới); nội dung chỉ là version/buildId, không nhạy cảm.
+function serveVersionJson(response) {
+  const versionPath = path.join(appDir, 'version.json');
+  if (!existsSync(versionPath)) {
+    response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    response.end('version.json not found');
+    return;
+  }
+  try {
+    const content = readFileSync(versionPath, 'utf8');
+    response.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+    });
+    response.end(content);
+  } catch {
+    response.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+    response.end('version.json unreadable');
+  }
 }
 
 function readRequestBody(request, maxBytes) {
@@ -281,7 +313,14 @@ function createServer() {
       .then((handled) => {
         if (handled) return;
 
-        const requestedFile = safeResolve(request.url || '/');
+        // /version.json phải xử lý TRƯỚC nhánh static mặc định.
+        const urlPath = (request.url || '').split('?')[0];
+        if (request.method === 'GET' && urlPath === '/version.json') {
+          serveVersionJson(response);
+          return;
+        }
+
+        const requestedFile = safeResolve(request.url || '');
         let filePath = requestedFile;
 
         // Chặn lộ hash mật khẩu quản trị ra LAN: config.json chỉ serve cho
@@ -326,6 +365,19 @@ function getLanUrls(port) {
   return urls;
 }
 
+function readLocalVersion() {
+  try {
+    const raw = readFileSync(path.join(appDir, 'version.json'), 'utf8');
+    const v = JSON.parse(raw);
+    const version = typeof v.version === 'string' ? v.version : 'unknown';
+    const buildId = typeof v.buildId === 'string' ? v.buildId : 'unknown';
+    return `Version: ${version} (build ${buildId})`;
+  } catch {
+    // Thiếu file / JSON hỏng → vẫn chạy bình thường, không crash.
+    return 'Version: unknown';
+  }
+}
+
 function start(port) {
   const server = createServer();
 
@@ -342,6 +394,7 @@ function start(port) {
   server.listen(port, '0.0.0.0', () => {
     const localUrl = `http://127.0.0.1:${port}/`;
     console.log('VSPPRO is running.');
+    console.log(readLocalVersion());
     console.log(`Local: ${localUrl}`);
     const lanUrls = getLanUrls(port);
     if (lanUrls.length > 0) {

@@ -24,4 +24,7 @@ echo.
 echo Done. Copy this folder to another Windows computer:
 echo %CD%\portable\VSPPRO
 echo.
+echo Next: copy the folder below into your shared folder, then on the host
+echo machine run VSPPRO.bat -^> 5. Kiem tra cap nhat
+echo.
 pause
