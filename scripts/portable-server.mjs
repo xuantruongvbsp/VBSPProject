@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import http from 'node:http';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+import { networkInterfaces } from 'node:os';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appDir = path.join(__dirname, 'app');
@@ -280,6 +281,19 @@ function createServer() {
   });
 }
 
+function getLanUrls(port) {
+  const urls = [];
+  const interfaces = networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const info of interfaces[name] || []) {
+      if (info.family === 'IPv4' && !info.internal) {
+        urls.push(`http://${info.address}:${port}/`);
+      }
+    }
+  }
+  return urls;
+}
+
 function start(port) {
   const server = createServer();
 
@@ -293,14 +307,21 @@ function start(port) {
     process.exitCode = 1;
   });
 
-  server.listen(port, '127.0.0.1', () => {
-    const url = `http://127.0.0.1:${port}/`;
-    console.log('VSPPRO is running locally.');
-    console.log(`Open: ${url}`);
+  server.listen(port, '0.0.0.0', () => {
+    const localUrl = `http://127.0.0.1:${port}/`;
+    console.log('VSPPRO is running.');
+    console.log(`Local: ${localUrl}`);
+    const lanUrls = getLanUrls(port);
+    if (lanUrls.length > 0) {
+      console.log('LAN (colleagues on the same network):');
+      for (const url of lanUrls) {
+        console.log(`  ${url}`);
+      }
+    }
     console.log('');
     console.log('Keep this window open while using the app.');
     console.log('Press Ctrl+C to stop.');
-    openBrowser(url);
+    openBrowser(localUrl);
   });
 }
 

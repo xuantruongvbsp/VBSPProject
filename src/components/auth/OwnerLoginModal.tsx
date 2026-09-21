@@ -15,24 +15,105 @@ interface Props {
   onClose: () => void;
 }
 
+const LOGIN_GUARD_STORAGE_KEY = 'vsppro.owner-login-guard';
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCK_MS = 30_000;
+
+interface LoginGuardState {
+  failedAttempts: number;
+  lockedUntil: number;
+}
+
+function readLoginGuard(): LoginGuardState {
+  try {
+    const raw = localStorage.getItem(LOGIN_GUARD_STORAGE_KEY);
+    if (!raw) return { failedAttempts: 0, lockedUntil: 0 };
+    const parsed = JSON.parse(raw) as Partial<LoginGuardState>;
+    return {
+      failedAttempts:
+        typeof parsed.failedAttempts === 'number' ? parsed.failedAttempts : 0,
+      lockedUntil: typeof parsed.lockedUntil === 'number' ? parsed.lockedUntil : 0,
+    };
+  } catch {
+    return { failedAttempts: 0, lockedUntil: 0 };
+  }
+}
+
+function writeLoginGuard(state: LoginGuardState): void {
+  try {
+    localStorage.setItem(LOGIN_GUARD_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    /* noop */
+  }
+}
+
+function resetLoginGuard(): void {
+  try {
+    localStorage.removeItem(LOGIN_GUARD_STORAGE_KEY);
+  } catch {
+    /* noop */
+  }
+}
+
 export function OwnerLoginModal({ open, onClose }: Props) {
   const setRole = useAuthStore((s) => s.setRole);
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockedUntil, setLockedUntil] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const remainingLockMs = Math.max(0, lockedUntil - now);
+  const remainingLockSeconds = Math.ceil(remainingLockMs / 1000);
+  const isLocked = remainingLockMs > 0;
 
   useEffect(() => {
     if (open) {
+      const guard = readLoginGuard();
+      const currentTime = Date.now();
+      const stillLocked = guard.lockedUntil > currentTime;
+      const expiredLock = guard.lockedUntil > 0 && !stillLocked;
       setPassword('');
       setError(null);
       setBusy(false);
       setShowPassword(false);
+      setNow(currentTime);
+      setFailedAttempts(expiredLock ? 0 : guard.failedAttempts);
+      setLockedUntil(stillLocked ? guard.lockedUntil : 0);
+      if (expiredLock) {
+        resetLoginGuard();
+      }
+      if (stillLocked) {
+        setError(
+          `Tạm khóa đăng nhập. Vui lòng thử lại sau ${Math.ceil(
+            (guard.lockedUntil - currentTime) / 1000
+          )} giây.`
+        );
+        return;
+      }
       // Cho focus vào ô mật khẩu sau khi modal hiển thị
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [open]);
+
+  useEffect(() => {
+    if (!open || !isLocked) return;
+    const id = window.setInterval(() => {
+      const currentTime = Date.now();
+      setNow(currentTime);
+      if (lockedUntil <= currentTime) {
+        resetLoginGuard();
+        setFailedAttempts(0);
+        setLockedUntil(0);
+        setError(null);
+        setTimeout(() => inputRef.current?.focus(), 50);
+      }
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [open, isLocked, lockedUntil]);
 
   useEffect(() => {
     if (!open) return;
@@ -48,16 +129,52 @@ export function OwnerLoginModal({ open, onClose }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy) return;
+    const currentTime = Date.now();
+    if (lockedUntil > currentTime) {
+      setNow(currentTime);
+      setError(
+        `Tạm khóa đăng nhập. Vui lòng thử lại sau ${Math.ceil(
+          (lockedUntil - currentTime) / 1000
+        )} giây.`
+      );
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
       const h = await hashPassword(password);
       const expected = await getOwnerPasswordSha256();
       if (h === expected) {
+        resetLoginGuard();
+        setFailedAttempts(0);
+        setLockedUntil(0);
         setRole('owner');
         onClose();
       } else {
-        setError('Mật khẩu không đúng');
+        const nextFailedAttempts = failedAttempts + 1;
+        if (nextFailedAttempts >= MAX_FAILED_ATTEMPTS) {
+          const nextLockedUntil = Date.now() + LOCK_MS;
+          writeLoginGuard({
+            failedAttempts: nextFailedAttempts,
+            lockedUntil: nextLockedUntil,
+          });
+          setFailedAttempts(nextFailedAttempts);
+          setLockedUntil(nextLockedUntil);
+          setNow(Date.now());
+          setPassword('');
+          setError('Sai mật khẩu 5 lần. Tạm khóa đăng nhập trong 30 giây.');
+        } else {
+          writeLoginGuard({
+            failedAttempts: nextFailedAttempts,
+            lockedUntil: 0,
+          });
+          setFailedAttempts(nextFailedAttempts);
+          setError(
+            `Mật khẩu không đúng. Còn ${
+              MAX_FAILED_ATTEMPTS - nextFailedAttempts
+            } lần thử.`
+          );
+        }
       }
     } catch {
       setError('Không kiểm tra được mật khẩu');
@@ -121,6 +238,7 @@ export function OwnerLoginModal({ open, onClose }: Props) {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 pr-10 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-brand-500/20"
                 placeholder="Nhập mật khẩu"
+                disabled={isLocked}
               />
               <button
                 type="button"
@@ -128,6 +246,7 @@ export function OwnerLoginModal({ open, onClose }: Props) {
                 className="absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                 aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                 title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                disabled={isLocked}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -144,8 +263,12 @@ export function OwnerLoginModal({ open, onClose }: Props) {
             <Button type="button" variant="ghost" size="sm" onClick={onClose}>
               Hủy
             </Button>
-            <Button type="submit" size="sm" disabled={busy || !password}>
-              {busy ? 'Đang kiểm tra…' : 'Mở khóa'}
+            <Button type="submit" size="sm" disabled={busy || !password || isLocked}>
+              {isLocked
+                ? `Thử lại sau ${remainingLockSeconds}s`
+                : busy
+                  ? 'Đang kiểm tra…'
+                  : 'Mở khóa'}
             </Button>
           </div>
         </form>

@@ -93,6 +93,8 @@ function jsonToRows(rows: Record<string, unknown>[]): LoanRecord[] {
 export interface SnapshotPublishPayload {
   v: 1;
   ngaySoLieu: string | null;
+  /** Thời điểm chủ sở hữu xuất bản (ISO). Dùng để hiển thị cho người xem. */
+  publishedAt?: string;
   rows: Record<string, unknown>[];
 }
 
@@ -103,6 +105,7 @@ export function serializeSnapshot(
   const payload: SnapshotPublishPayload = {
     v: 1,
     ngaySoLieu: ngaySoLieu ? ngaySoLieu.toISOString() : null,
+    publishedAt: new Date().toISOString(),
     rows: rows.map(rowToJson),
   };
   return JSON.stringify(payload);
@@ -111,6 +114,7 @@ export function serializeSnapshot(
 export interface DeserializedSnapshot {
   rows: LoanRecord[];
   ngaySoLieu: Date | null;
+  publishedAt: string | null;
 }
 
 export function deserializeSnapshot(text: string): DeserializedSnapshot {
@@ -118,6 +122,7 @@ export function deserializeSnapshot(text: string): DeserializedSnapshot {
   return {
     rows: jsonToRows(obj.rows),
     ngaySoLieu: obj.ngaySoLieu ? new Date(obj.ngaySoLieu) : null,
+    publishedAt: typeof obj.publishedAt === 'string' ? obj.publishedAt : null,
   };
 }
 
@@ -192,6 +197,8 @@ export interface PeriodPublishPayloadV2 {
     now?: PeriodSnapshotJson | null;
   };
   comparePair: ComparePair;
+  /** Thời điểm chủ sở hữu xuất bản (ISO). */
+  publishedAt?: string;
 }
 
 export type PeriodPublishPayload =
@@ -235,6 +242,7 @@ export function serializePeriod(
       now: slots.now ? snapshotToJsonInline(slots.now) : null,
     },
     comparePair,
+    publishedAt: new Date().toISOString(),
   };
   return JSON.stringify(payload);
 }
@@ -242,10 +250,13 @@ export function serializePeriod(
 export interface DeserializedPeriod {
   slots: PeriodPublishSlots;
   comparePair: ComparePair;
+  publishedAt: string | null;
 }
 
 export function deserializePeriod(text: string): DeserializedPeriod {
   const obj = JSON.parse(text) as PeriodPublishPayload;
+  const publishedAt =
+    typeof obj.publishedAt === 'string' ? obj.publishedAt : null;
   if (obj.v === 2) {
     const slots: PeriodPublishSlots = {
       lastYear: obj.slots.lastYear ? jsonToSnapshot(obj.slots.lastYear) : null,
@@ -254,7 +265,7 @@ export function deserializePeriod(text: string): DeserializedPeriod {
         : null,
       now: obj.slots.now ? jsonToSnapshot(obj.slots.now) : null,
     };
-    return { slots, comparePair: obj.comparePair };
+    return { slots, comparePair: obj.comparePair, publishedAt };
   }
   // v1 legacy: chỉ có prev/curr → đổ vào lastMonth/now (giữ nguyên hành vi cũ).
   const slots: PeriodPublishSlots = {
@@ -262,7 +273,7 @@ export function deserializePeriod(text: string): DeserializedPeriod {
     lastMonth: jsonToSnapshot(obj.prev),
     now: jsonToSnapshot(obj.curr),
   };
-  return { slots, comparePair: { a: 'lastMonth', b: 'now' } };
+  return { slots, comparePair: { a: 'lastMonth', b: 'now' }, publishedAt };
 }
 
 export async function fetchPublishedPeriod(): Promise<DeserializedPeriod | null> {
@@ -328,6 +339,8 @@ async function buildSnapshotBlob(
   const parts: BlobPart[] = [];
   parts.push('{"v":1,"ngaySoLieu":');
   parts.push(JSON.stringify(ngaySoLieu ? ngaySoLieu.toISOString() : null));
+  parts.push(',"publishedAt":');
+  parts.push(JSON.stringify(new Date().toISOString()));
   parts.push(',"rows":[');
   await pushRowsAsJson(rows, parts);
   parts.push(']}');
@@ -361,6 +374,8 @@ async function buildPeriodBlob(
   const parts: BlobPart[] = [];
   parts.push('{"v":2,"comparePair":');
   parts.push(JSON.stringify(comparePair));
+  parts.push(',"publishedAt":');
+  parts.push(JSON.stringify(new Date().toISOString()));
   parts.push(',"slots":{');
   await pushSlotAsJson('lastYear', slots.lastYear, parts, true);
   await pushSlotAsJson('lastMonth', slots.lastMonth, parts, false);
@@ -460,18 +475,26 @@ export interface CatalogPublishPayload {
   v: 1;
   staff: StaffRecord[];
   txnPoints: TxnPointRecord[];
+  /** Thời điểm chủ sở hữu xuất bản (ISO). */
+  publishedAt?: string;
 }
 
 export interface DeserializedCatalog {
   staff: StaffRecord[];
   txnPoints: TxnPointRecord[];
+  publishedAt: string | null;
 }
 
 export function serializeCatalog(
   staff: StaffRecord[],
   txnPoints: TxnPointRecord[]
 ): string {
-  const payload: CatalogPublishPayload = { v: 1, staff, txnPoints };
+  const payload: CatalogPublishPayload = {
+    v: 1,
+    staff,
+    txnPoints,
+    publishedAt: new Date().toISOString(),
+  };
   return JSON.stringify(payload);
 }
 
@@ -482,6 +505,7 @@ export function deserializeCatalog(text: string): DeserializedCatalog {
     txnPoints: Array.isArray(obj.txnPoints)
       ? (obj.txnPoints as TxnPointRecord[])
       : [],
+    publishedAt: typeof obj.publishedAt === 'string' ? obj.publishedAt : null,
   };
 }
 
@@ -535,6 +559,8 @@ export async function unpublishCatalog(): Promise<void> {
 
 export interface CreditPlanPublishPayload {
   v: 1;
+  /** Thời điểm chủ sở hữu xuất bản (ISO). */
+  publishedAt?: string;
   /** Danh mục xã. Tùy chọn để tương thích ngược với bản publish cũ (v1 không
    *  có trường này) — khi thiếu, viewer rơi về danh mục mặc định. */
   xaCatalog?: XaCatalogEntry[];
@@ -562,10 +588,19 @@ export interface CreditPlanPublishPayload {
   nq11NoxhTotalRows: number;
 }
 
-export type DeserializedCreditPlan = CreditPlanPublishPayload;
+export type DeserializedCreditPlan = Omit<
+  CreditPlanPublishPayload,
+  'publishedAt'
+> & { publishedAt: string | null };
 
-export function serializeCreditPlan(p: Omit<CreditPlanPublishPayload, 'v'>): string {
-  return JSON.stringify({ v: 1, ...p } satisfies CreditPlanPublishPayload);
+export function serializeCreditPlan(
+  p: Omit<CreditPlanPublishPayload, 'v' | 'publishedAt'>
+): string {
+  return JSON.stringify({
+    v: 1,
+    publishedAt: new Date().toISOString(),
+    ...p,
+  } satisfies CreditPlanPublishPayload);
 }
 
 export function deserializeCreditPlan(text: string): DeserializedCreditPlan | null {
@@ -573,6 +608,7 @@ export function deserializeCreditPlan(text: string): DeserializedCreditPlan | nu
   if (!obj || obj.v !== 1) return null;
   return {
     v: 1,
+    publishedAt: typeof obj.publishedAt === 'string' ? obj.publishedAt : null,
     xaCatalog:
       Array.isArray(obj.xaCatalog) && obj.xaCatalog.length > 0
         ? obj.xaCatalog

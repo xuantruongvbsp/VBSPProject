@@ -37,9 +37,142 @@ await writeFile(
     `set "VSPPRO_BROWSER=chrome"\r\n` +
     `set "NODE_EXE=%~dp0runtime\\node.exe"\r\n` +
     `if not exist "%NODE_EXE%" set "NODE_EXE=node"\r\n` +
+    `set "FW_PROGRAM=%~dp0runtime\\node.exe"\r\n` +
+    `if exist "%FW_PROGRAM%" (\r\n` +
+    `  netsh advfirewall firewall show rule name="VSPPRO Portable Server" >nul 2>nul\r\n` +
+    `  if errorlevel 1 (\r\n` +
+    `    netsh advfirewall firewall add rule name="VSPPRO Portable Server" dir=in action=allow program="%FW_PROGRAM%" enable=yes >nul 2>nul\r\n` +
+    `    if errorlevel 1 (\r\n` +
+    `      echo.\r\n` +
+    `      echo [Luu y] Chua them duoc quy tac tuong lua Windows Firewall.\r\n` +
+    `      echo   Neu dong nghiep khong mo duoc app, chay "Them Firewall Rule.bat"\r\n` +
+    `      echo   voi quyen Administrator: chuot phai file, chon Run as administrator.\r\n` +
+    `    )\r\n` +
+    `  )\r\n` +
+    `)\r\n` +
     `"%NODE_EXE%" "%~dp0server.mjs"\r\n` +
     `echo.\r\n` +
     `echo VSPPRO stopped.\r\n` +
+    `pause\r\n`,
+  'utf8',
+);
+
+await writeFile(
+  path.join(outDir, 'Them Firewall Rule.bat'),
+  `@echo off\r\n` +
+    `setlocal\r\n` +
+    `cd /d "%~dp0"\r\n` +
+    `set "FW_PROGRAM=%~dp0runtime\\node.exe"\r\n` +
+    `if not exist "%FW_PROGRAM%" (\r\n` +
+    `  echo Khong tim thay runtime\\node.exe. Hay chay lai build-portable.bat.\r\n` +
+    `  pause\r\n` +
+    `  exit /b 1\r\n` +
+    `)\r\n` +
+    `netsh advfirewall firewall delete rule name="VSPPRO Portable Server" >nul 2>nul\r\n` +
+    `netsh advfirewall firewall add rule name="VSPPRO Portable Server" dir=in action=allow program="%FW_PROGRAM%" enable=yes\r\n` +
+    `if errorlevel 1 (\r\n` +
+    `  echo.\r\n` +
+    `  echo KHONG thanh cong. Hay chay file nay voi quyen Administrator:\r\n` +
+    `  echo   chuot phai file, chon Run as administrator.\r\n` +
+    `) else (\r\n` +
+    `  echo.\r\n` +
+    `  echo Da them quy tac tuong lua. Dong nghiep cung mang LAN co the truy cap.\r\n` +
+    `)\r\n` +
+    `pause\r\n`,
+  'utf8',
+);
+
+await writeFile(
+  path.join(outDir, 'VSPPRO.bat'),
+  `@echo off\r\n` +
+    `setlocal\r\n` +
+    `cd /d "%~dp0"\r\n` +
+    `title VSPPRO - Bo dieu khien\r\n` +
+    `:menu\r\n` +
+    `cls\r\n` +
+    `echo ============================================\r\n` +
+    `echo   VSPPRO - Bo dieu khien\r\n` +
+    `echo ============================================\r\n` +
+    `echo   1. Khoi dong server\r\n` +
+    `echo   2. Doi mat khau quan tri\r\n` +
+    `echo   3. Dung server\r\n` +
+    `echo   4. Them quy tac tuong lua (Firewall)\r\n` +
+    `echo   5. Thoat\r\n` +
+    `echo ============================================\r\n` +
+    `set /p "chon=Nhap lua chon 1-5: "\r\n` +
+    `if "%chon%"=="1" start "VSPPRO Server" "%~dp0Mo VSPPRO.bat"\r\n` +
+    `if "%chon%"=="2" call "%~dp0setup.bat"\r\n` +
+    `if "%chon%"=="3" call :stopserver\r\n` +
+    `if "%chon%"=="4" call "%~dp0Them Firewall Rule.bat"\r\n` +
+    `if "%chon%"=="5" exit /b 0\r\n` +
+    `goto menu\r\n` +
+    `\r\n` +
+    `:stopserver\r\n` +
+    `set "PORT=%VSPPRO_PORT%"\r\n` +
+    `if "%PORT%"=="" set "PORT=4173"\r\n` +
+    `for /f "tokens=5" %%a in ('netstat -ano ^| findstr "LISTENING" ^| findstr ":%PORT%"') do taskkill /F /PID %%a >nul 2>nul\r\n` +
+    `echo.\r\n` +
+    `echo Da dung server (neu dang chay).\r\n` +
+    `pause\r\n` +
+    `goto :eof\r\n`,
+  'utf8',
+);
+
+await writeFile(
+  path.join(outDir, 'update.bat'),
+  `@echo off\r\n` +
+    `setlocal enabledelayedexpansion\r\n` +
+    `cd /d "%~dp0"\r\n` +
+    `\r\n` +
+    `set "SRC=%~1"\r\n` +
+    `if "%SRC%"=="" (\r\n` +
+    `  echo Cach dung: keo-tha thu muc VSPPRO moi vao file nay, hoac chay:\r\n` +
+    `  echo   update.bat "D:\\duong-dan\\den\\VSPPRO-moi"\r\n` +
+    `  echo.\r\n` +
+    `  pause\r\n` +
+    `  exit /b 1\r\n` +
+    `)\r\n` +
+    `\r\n` +
+    `if not exist "%SRC%\\app\\index.html" (\r\n` +
+    `  echo Thu muc moi khong hop le - thieu app\\index.html.\r\n` +
+    `  pause\r\n` +
+    `  exit /b 1\r\n` +
+    `)\r\n` +
+    `\r\n` +
+    `set "BAK=%~dp0_backup_tmp"\r\n` +
+    `if exist "%BAK%" rmdir /S /Q "%BAK%"\r\n` +
+    `mkdir "%BAK%\\app" 2>nul\r\n` +
+    `\r\n` +
+    `echo [1/3] Sao luu du lieu da xuat ban va mat khau quan tri...\r\n` +
+    `for %%F in (published.json published.json.gz published-period.json published-period.json.gz published-catalog.json published-catalog.json.gz published-credit-plan.json published-credit-plan.json.gz config.json) do (\r\n` +
+    `  if exist "%~dp0app\\%%F" copy /Y "%~dp0app\\%%F" "%BAK%\\app\\%%F" >nul\r\n` +
+    `)\r\n` +
+    `if exist "%~dp0app\\decision-attachments" (\r\n` +
+    `  robocopy "%~dp0app\\decision-attachments" "%BAK%\\app\\decision-attachments" /E /NFL /NDL /NJH /NJS /NP >nul\r\n` +
+    `)\r\n` +
+    `\r\n` +
+    `echo [2/3] Chep ban moi...\r\n` +
+    `robocopy "%SRC%\\app" "%~dp0app" /MIR /NFL /NDL /NJH /NJS /NP >nul\r\n` +
+    `if exist "%SRC%\\runtime\\node.exe" robocopy "%SRC%\\runtime" "%~dp0runtime" /MIR /NFL /NDL /NJH /NJS /NP >nul\r\n` +
+    `copy /Y "%SRC%\\server.mjs" "%~dp0server.mjs" >nul 2>nul\r\n` +
+    `copy /Y "%SRC%\\setup.ps1" "%~dp0setup.ps1" >nul 2>nul\r\n` +
+    `copy /Y "%SRC%\\setup.bat" "%~dp0setup.bat" >nul 2>nul\r\n` +
+    `copy /Y "%SRC%\\Mo VSPPRO.bat" "%~dp0Mo VSPPRO.bat" >nul 2>nul\r\n` +
+    `copy /Y "%SRC%\\VSPPRO.bat" "%~dp0VSPPRO.bat" >nul 2>nul\r\n` +
+    `copy /Y "%SRC%\\Them Firewall Rule.bat" "%~dp0Them Firewall Rule.bat" >nul 2>nul\r\n` +
+    `\r\n` +
+    `echo [3/3] Khoi phuc du lieu da xuat ban...\r\n` +
+    `for %%F in (published.json published.json.gz published-period.json published-period.json.gz published-catalog.json published-catalog.json.gz published-credit-plan.json published-credit-plan.json.gz config.json) do (\r\n` +
+    `  if exist "%BAK%\\app\\%%F" copy /Y "%BAK%\\app\\%%F" "%~dp0app\\%%F" >nul\r\n` +
+    `)\r\n` +
+    `if exist "%BAK%\\app\\decision-attachments" (\r\n` +
+    `  robocopy "%BAK%\\app\\decision-attachments" "%~dp0app\\decision-attachments" /E /NFL /NDL /NJH /NJS /NP >nul\r\n` +
+    `)\r\n` +
+    `\r\n` +
+    `rmdir /S /Q "%BAK%" 2>nul\r\n` +
+    `\r\n` +
+    `echo.\r\n` +
+    `echo Cap nhat xong. Hay chay "VSPPRO.bat" de su dung.\r\n` +
     `pause\r\n`,
   'utf8',
 );
@@ -52,8 +185,18 @@ await writeFile(
     'Cach dung tren may Windows khac:',
     '1. Copy nguyen thu muc VSPPRO nay sang may can chay.',
     '2. (Lan dau) Chay "setup.bat" de dat mat khau quan tri.',
-    '3. Mo file "Mo VSPPRO.bat".',
+    '3. Mo file "VSPPRO.bat" (menu) - chon 1 de khoi dong server.',
     '4. Trinh duyet se tu mo app. Neu khong tu mo, vao dia chi hien trong cua so den.',
+    '',
+    'Cap nhat phien ban moi (giu nguyen du lieu da xuat ban va mat khau):',
+    '- Copy ban moi vao mot thu muc rieng (vd D:\\VSPPRO-moi).',
+    '- Keo-tha thu muc do vao "update.bat", hoac chay: update.bat "D:\\VSPPRO-moi".',
+    '- Script se tu dong giu lai du lieu da xuat ban va mat khau quan tri.',
+    '',
+    'Chia se cho dong nghiep cung mang LAN (cung van phong):',
+    '- Trong cua so den co danh sach dia chi LAN (dang http://192.168.x.x:4173/).',
+    '- Dong nghiep mo mot dia chi LAN do tren trinh duyet cua ho.',
+    '- Neu dong nghiep khong truy cap duoc, chay "Them Firewall Rule.bat" (Run as administrator) mot lan.',
     '',
     'Luu y:',
     '- Khong xoa thu muc app, runtime hoac file server.mjs.',

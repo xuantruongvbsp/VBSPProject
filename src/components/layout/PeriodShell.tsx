@@ -26,6 +26,8 @@ import {
   type PeriodSnapshot,
 } from '@/store/usePeriodStore';
 import { useIsOwner } from '@/store/useAuthStore';
+import { usePublishedMetaStore } from '@/store/usePublishedMetaStore';
+import { PublishedAtBadge } from '@/components/auth/PublishedAtBadge';
 import { fmtDate } from '@/lib/format';
 import { parseExcelFile } from '@/data/parser';
 import { saveRecentPeriodPair } from '@/lib/recent-period-pairs';
@@ -63,6 +65,7 @@ export function PeriodShell() {
   const reset = usePeriodStore((s) => s.reset);
   const navigate = useNavigate();
   const isOwner = useIsOwner();
+  const periodAt = usePublishedMetaStore((s) => s.periodAt);
 
   // Trạng thái thay tệp tại chỗ cho từng slot — không dùng store để tránh
   // ô loading nhấp nháy trong các trang con khác.
@@ -362,6 +365,11 @@ export function PeriodShell() {
               {prev.rows.length.toLocaleString('vi-VN')} → {curr.rows.length.toLocaleString('vi-VN')}
             </span>
           </div>
+          {!isOwner && periodAt && (
+            <div className="mt-2">
+              <PublishedAtBadge publishedAt={periodAt} />
+            </div>
+          )}
           {isOwner && (
             <>
               <button

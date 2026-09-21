@@ -15,6 +15,8 @@ import { cn } from '@/lib/utils';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import { useIsOwner } from '@/store/useAuthStore';
+import { usePublishedMetaStore } from '@/store/usePublishedMetaStore';
+import { PublishedAtBadge } from '@/components/auth/PublishedAtBadge';
 import { CreditPlanAutoSync } from '@/components/owner/CreditPlanAutoSync';
 import { ViewerEmptyState } from '@/components/auth/ViewerEmptyState';
 
@@ -37,6 +39,7 @@ export function CreditPlanShell() {
   const decisions = useCreditPlanStore((s) => s.decisions);
   const { theme, toggle: toggleTheme } = useThemeStore();
   const isOwner = useIsOwner();
+  const creditPlanAt = usePublishedMetaStore((s) => s.creditPlanAt);
 
   // Người xem chưa thấy dữ liệu nào — owner chưa nhập kế hoạch nào lên server.
   // (Khác Snapshot/Period: ở đây "chưa có dữ liệu" = không có decisions/plans
@@ -125,6 +128,11 @@ export function CreditPlanShell() {
           {nq11Summaries.length > 0 && (
             <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-medium text-rose-700 ring-1 ring-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:ring-rose-800">
               NQ11 · {nq11TotalRows.toLocaleString('vi-VN')} món / {nq11Summaries.length} xã
+            </div>
+          )}
+          {!isOwner && creditPlanAt && (
+            <div className="mt-2">
+              <PublishedAtBadge publishedAt={creditPlanAt} />
             </div>
           )}
           <div className="mt-2">
