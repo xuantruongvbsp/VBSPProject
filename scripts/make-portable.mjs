@@ -18,7 +18,12 @@ await mkdir(appDir, { recursive: true });
 await mkdir(runtimeDir, { recursive: true });
 
 await cp(distDir, appDir, { recursive: true });
+if (existsSync(path.join(repoRoot, 'public', 'config.json'))) {
+  await copyFile(path.join(repoRoot, 'public', 'config.json'), path.join(appDir, 'config.json'));
+}
 await copyFile(path.join(repoRoot, 'scripts', 'portable-server.mjs'), path.join(outDir, 'server.mjs'));
+await copyFile(path.join(repoRoot, 'setup.ps1'), path.join(outDir, 'setup.ps1'));
+await copyFile(path.join(repoRoot, 'setup.bat'), path.join(outDir, 'setup.bat'));
 
 if (process.platform === 'win32' && existsSync(process.execPath)) {
   await copyFile(process.execPath, path.join(runtimeDir, 'node.exe'));
@@ -46,8 +51,9 @@ await writeFile(
     '',
     'Cach dung tren may Windows khac:',
     '1. Copy nguyen thu muc VSPPRO nay sang may can chay.',
-    '2. Mo file "Mo VSPPRO.bat".',
-    '3. Trinh duyet se tu mo app. Neu khong tu mo, vao dia chi hien trong cua so den.',
+    '2. (Lan dau) Chay "setup.bat" de dat mat khau quan tri.',
+    '3. Mo file "Mo VSPPRO.bat".',
+    '4. Trinh duyet se tu mo app. Neu khong tu mo, vao dia chi hien trong cua so den.',
     '',
     'Luu y:',
     '- Khong xoa thu muc app, runtime hoac file server.mjs.',
