@@ -39,7 +39,7 @@ export function AppBackupMenu() {
               <div>
                 <div className="text-sm font-bold text-slate-900 dark:text-slate-100">Sao lưu dữ liệu</div>
                 <div className="mt-0.5 text-[11px] leading-4 text-slate-500 dark:text-slate-400">
-                  Danh mục, quyết định và kế hoạch
+                  Danh mục, quyết định, kế hoạch và PDF đính kèm
                 </div>
               </div>
               <Popover.Close className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200" aria-label="Đóng">
@@ -52,14 +52,20 @@ export function AppBackupMenu() {
               disabled={!canExport}
               onClick={() => {
                 setError(null);
-                downloadAppBackup();
+                void (async () => {
+                  try {
+                    await downloadAppBackup();
+                  } catch (cause) {
+                    setError(cause instanceof Error ? cause.message : 'Không thể xuất bản sao lưu.');
+                  }
+                })();
               }}
               className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               <Download className="h-4 w-4 text-brand-600 dark:text-brand-300" />
               <span>
                 <span className="block font-semibold">Xuất bản sao lưu</span>
-                <span className="block text-[11px] text-slate-500 dark:text-slate-400">Lưu thành một tệp JSON</span>
+                <span className="block text-[11px] text-slate-500 dark:text-slate-400">Lưu thành một tệp nén .json.gz</span>
               </span>
             </button>
 
@@ -80,7 +86,7 @@ export function AppBackupMenu() {
             <input
               ref={inputRef}
               type="file"
-              accept="application/json,.json"
+              accept="application/json,application/gzip,.json,.json.gz,.gz"
               className="hidden"
               onChange={async (event) => {
                 const file = event.target.files?.[0];
@@ -110,17 +116,19 @@ export function AppBackupMenu() {
           if (!open) setPending(null);
         }}
         title="Khôi phục bản sao lưu?"
-        description="Danh mục cán bộ, điểm giao dịch, quyết định và kế hoạch hiện tại trên máy này sẽ được thay bằng dữ liệu trong tệp sao lưu."
+        description="Danh mục cán bộ, điểm giao dịch, quyết định, kế hoạch và PDF đính kèm hiện tại trên máy này sẽ được thay bằng dữ liệu trong tệp sao lưu."
         confirmLabel="Khôi phục dữ liệu"
         onConfirm={() => {
           if (!pending) return;
-          try {
-            restoreAppBackup(pending);
-            window.location.reload();
-          } catch {
-            setPending(null);
-            setError('Không thể lưu bản sao trên trình duyệt này. Dữ liệu cũ đã được giữ nguyên.');
-          }
+          void (async () => {
+            try {
+              await restoreAppBackup(pending);
+              window.location.reload();
+            } catch {
+              setPending(null);
+              setError('Không thể lưu bản sao trên trình duyệt này. Dữ liệu cũ đã được giữ nguyên.');
+            }
+          })();
         }}
       />
     </>
