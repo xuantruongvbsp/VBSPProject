@@ -554,7 +554,557 @@ npm run dev</code></pre>
 </table>
 </section>
 
-<!-- MORE -->
+<!-- ============ 5. APP 1 ============ -->
+<section id="app1">
+<h2><span class="n">5</span>Ứng dụng 1 — Phân tích một kỳ</h2>
+<p class="lead">Phân tích sâu một thời điểm số liệu từ một file Báo cáo 31. Gồm 10 trang trên thanh menu (cộng 1 trang ẩn).</p>
+
+<h3>5.0. Thanh menu của ứng dụng 1</h3>
+<div class="mock">
+  <div class="mock-bar"><i></i><i></i><i></i><div class="mock-url">localhost:5173/snapshot</div></div>
+  <div class="mock-body">
+    <div class="mk-side">
+      <span class="back">← Quay lại trang chính</span>
+      <div class="brandrow"><em>V</em><div><b>NHCSXH</b><span>Phân tích danh mục</span></div></div>
+      <span class="mk-nav on">◫ Tổng quan</span>
+      <span class="mk-nav">⚠ Báo cáo nợ quá hạn</span>
+      <span class="mk-nav">❄ Báo cáo Dư nợ khoanh</span>
+      <span class="mk-nav">⇄ Báo cáo so sánh</span>
+      <span class="mk-nav">✓ Hiệu quả cán bộ</span>
+      <span class="mk-nav">↕ Hiệu quả ĐGD</span>
+      <span class="mk-nav">▤ Tra cứu chi tiết</span>
+      <span class="mk-nav">👥 Danh mục cán bộ</span>
+      <span class="mk-nav">📍 Điểm giao dịch</span>
+      <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:10px">
+        <div style="display:flex;justify-content:space-between;font-size:9.3px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink3);font-weight:700">Tệp dữ liệu hiện tại <span>🌙</span></div>
+        <div style="font-size:11.5px;font-weight:700;margin-top:3px">12.480 khế ước</div>
+        <div style="font-size:9.8px;color:var(--ink3)">Ngày số liệu: 31/08/2026</div>
+        <div style="font-size:9.8px;color:var(--ink3);margin-top:7px">↻ Tải tệp khác</div>
+        <div style="margin-top:8px"><span class="pill">● Đã đồng bộ · 2 phút trước</span></div>
+      </div>
+    </div>
+    <div class="mk-main">
+      <div class="mk-head">Tổng quan</div>
+      <div class="mk-sub">Nội dung báo cáo hiển thị ở khu vực này</div>
+      <div class="mk-kpis">
+        <div class="kpi blue"><div class="l">Tổng dư nợ</div><div class="v">486,2 tỷ</div></div>
+        <div class="kpi"><div class="l">Khách hàng</div><div class="v">11.204</div></div>
+        <div class="kpi red"><div class="l">Nợ quá hạn</div><div class="v">3,8 tỷ</div></div>
+        <div class="kpi green"><div class="l">Trong hạn</div><div class="v">478,1 tỷ</div></div>
+      </div>
+      <div class="card"><div class="t">Cơ cấu dư nợ theo chương trình</div>
+        <div class="bars">
+          <div><i style="height:88px"></i><span>Hộ nghèo</span></div>
+          <div><i style="height:64px"></i><span>HSSV</span></div>
+          <div><i style="height:47px"></i><span>NS&amp;VSMT</span></div>
+          <div><i style="height:33px"></i><span>GQVL</span></div>
+          <div><i style="height:21px"></i><span>NOXH</span></div>
+          <div><i style="height:13px"></i><span>Khác</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="mock-cap"><b>Bố cục chung của ứng dụng 1.</b> Trái: thanh menu 9 mục + thông tin tệp ở chân. Phải: nội dung báo cáo. Trên điện thoại, menu chuyển thành dải tab ngang cuộn được.</div>
+</div>
+
+<table class="tbl">
+  <thead><tr><th style="width:24%">Menu</th><th style="width:24%">Địa chỉ</th><th>Dùng để làm gì</th></tr></thead>
+  <tbody>
+    <tr><td><b>Tổng quan</b></td><td><code>/snapshot</code></td><td>Bức tranh toàn cảnh: 8 chỉ số + ~12 khối biểu đồ cơ cấu.</td></tr>
+    <tr><td><b>Báo cáo nợ quá hạn</b></td><td><code>/snapshot/no-xau</code></td><td>Phân tích nợ xấu, danh sách chuyển quá hạn trong tháng, cảnh báo sớm.</td></tr>
+    <tr><td><b>Báo cáo Dư nợ khoanh</b></td><td><code>/snapshot/no-khoanh</code></td><td>Dư nợ được khoanh, lịch hết hạn khoanh, phân rã theo đơn vị.</td></tr>
+    <tr><td><b>Báo cáo so sánh</b></td><td><code>/snapshot/so-sanh</code></td><td>Đặt tối đa 6 đối tượng cạnh nhau để so sánh trong cùng một kỳ.</td></tr>
+    <tr><td><b>Hiệu quả cán bộ</b></td><td><code>/snapshot/can-bo-bao-cao</code></td><td>Xếp hạng cán bộ tín dụng theo 5 chỉ tiêu.</td></tr>
+    <tr><td><b>Hiệu quả ĐGD</b></td><td><code>/snapshot/dgd-bao-cao</code></td><td>Xếp hạng Điểm giao dịch, cấu trúc giống trang cán bộ.</td></tr>
+    <tr><td><b>Tra cứu chi tiết</b></td><td><code>/snapshot/du-lieu</code></td><td>Bảng toàn bộ khế ước, lọc/sắp xếp/xem chi tiết từng món.</td></tr>
+    <tr><td><b>Danh mục cán bộ</b></td><td><code>/snapshot/can-bo</code></td><td>Nhập và quản lý danh sách cán bộ ↔ Điểm giao dịch.</td></tr>
+    <tr><td><b>Điểm giao dịch</b></td><td><code>/snapshot/diem-giao-dich</code></td><td>Nhập và quản lý Điểm giao dịch ↔ Mã thôn.</td></tr>
+    <tr><td><i>Báo cáo doanh số</i> <span class="b b-amber">ẩn</span></td><td><code>/snapshot/doanh-so</code></td><td>Doanh số cho vay &amp; lịch thu nợ dự kiến. Đang tạm ẩn khỏi menu nhưng <b>vẫn vào được</b> bằng cách gõ địa chỉ.</td></tr>
+  </tbody>
+</table>
+
+<div class="note"><b>Thứ tự nên làm lần đầu:</b> ① Nạp Báo cáo 31 → ② Nhập Danh mục Điểm giao dịch → ③ Nhập Danh mục cán bộ → ④ Kiểm tra bảng "Kiểm soát phủ" → ⑤ Xem các báo cáo hiệu quả. Lý do: file Báo cáo 31 <b>không có</b> cột cán bộ hay Điểm giao dịch, nên hai trang "Hiệu quả" sẽ trống nếu chưa dựng danh mục.</div>
+</section>
+
+<!-- 5.1 -->
+<section id="a1-nhap">
+<h3>5.1. Nhập file Báo cáo 31</h3>
+<p>Khi chưa có dữ liệu, ứng dụng 1 mở thẳng vào màn hình <b>"Chọn Báo cáo 31 cần phân tích"</b>.</p>
+
+<div class="mock">
+  <div class="mock-bar"><i></i><i></i><i></i><div class="mock-url">localhost:5173/snapshot</div></div>
+  <div style="padding:26px 22px;background:var(--bg2)">
+    <div class="mk-head">Chọn Báo cáo 31 cần phân tích</div>
+    <div class="mk-sub">Kéo thả file Excel vào khung bên dưới, hoặc bấm để chọn file</div>
+    <div class="dz">
+      <em>📊</em>
+      <b>Kéo thả file .xlsx vào đây</b>
+      <span>hoặc bấm để chọn tệp · Chấp nhận .xlsx, .xls</span>
+      <div style="margin-top:13px"><span class="btn">Chọn tệp</span></div>
+      <div style="margin-top:13px;font-size:10px;color:var(--ink4);border-top:1px dashed var(--line2);padding-top:10px">🔒 Dữ liệu được xử lý ngay trên máy này, không tải lên bất kỳ máy chủ nào</div>
+    </div>
+    <div style="margin-top:20px">
+      <div style="font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:8px">Tệp gần đây</div>
+      <div class="card" style="padding:9px 12px;display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <span style="font-size:15px">📗</span>
+        <div style="flex:1;min-width:0"><div style="font-size:11.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">BC31_DinhQuan_31-08-2026.xlsx</div><div style="font-size:9.8px;color:var(--ink3)">12.480 khế ước · Ngày số liệu 31/08/2026 · Đã mở 2 ngày trước</div></div>
+        <span class="btn" style="padding:4px 11px;font-size:10.5px">Mở lại</span>
+      </div>
+      <div style="font-size:10.2px;color:var(--ink3);margin-top:9px;text-align:right">Xóa tất cả tệp gần đây</div>
+    </div>
+  </div>
+  <div class="mock-cap"><b>Màn hình nhập liệu.</b> Khối "Tệp gần đây" chỉ hiện với quản trị viên. File được lưu trong IndexedDB của trình duyệt nên lần sau mở lại không cần chọn file từ ổ đĩa.</div>
+</div>
+
+<h4>Các bước thực hiện</h4>
+<ol class="steps">
+  <li><b>Đăng nhập quản trị</b>Nếu chưa, làm theo mục <a href="#dang-nhap">3.2</a>. Người xem sẽ không thấy khung nhập file.</li>
+  <li><b>Nạp file</b>Kéo thả file <code>.xlsx</code> vào khung nét đứt, hoặc bấm <span class="b b-blue">Chọn tệp</span> rồi duyệt đến file. File được đọc trong tiến trình nền, có thanh tiến trình.</li>
+  <li><b>Chờ đọc xong</b>Với file ~12.000 khế ước thường mất vài giây. Nếu file sai định dạng, thông báo lỗi sẽ hiện rõ thiếu cột gì.</li>
+  <li><b>Vào báo cáo</b>Tự động chuyển sang trang <b>Tổng quan</b>. Chân thanh menu hiện số khế ước và ngày số liệu — hãy kiểm tra hai con số này có đúng kỳ bạn cần không.</li>
+</ol>
+
+<h4>Mở lại tệp đã nạp trước đó</h4>
+<p>Trong khối <b>"Tệp gần đây"</b>, bấm <span class="b b-blue">Mở lại</span> ở dòng tương ứng. Không cần tìm file trong ổ đĩa. Bấm <b>Xóa tất cả</b> để dọn danh sách (không xóa file gốc trên máy).</p>
+
+<h4>Đổi sang file khác</h4>
+<p>Bấm <b>↻ Tải tệp khác</b> ở chân thanh menu bên trái. Hộp thoại xác nhận hiện ra:</p>
+<div class="mini"><b>"Chọn tệp dữ liệu khác?"</b><p style="margin-top:6px">"Báo cáo đang mở và toàn bộ bộ lọc hiện tại sẽ được đóng. Tệp gần đây vẫn còn để bạn mở lại."</p><div style="margin-top:10px"><span class="btn gh" style="padding:4px 11px;font-size:10.5px">Hủy</span> <span class="btn" style="padding:4px 11px;font-size:10.5px;background:var(--rose)">Chọn tệp khác</span></div></div>
+<div class="warn">Thao tác này <b>xóa toàn bộ bộ lọc</b> đang áp dụng và đóng báo cáo hiện tại. File vẫn nằm trong "Tệp gần đây" nên mở lại được.</div>
+
+<div class="tip"><b>Kiểm tra cột được nhận diện.</b> Mỗi lần nạp file, danh sách cột Excel mà phần mềm dò được sẽ in ra Console của trình duyệt (<kbd>F12</kbd> → tab Console), dòng bắt đầu bằng <code>[parser] Excel columns detected:</code>. Rất hữu ích khi báo cáo thiếu số liệu — giúp biết cột nào không được nhận.</div>
+</section>
+
+<!-- 5.2 -->
+<section id="a1-overview">
+<h3>5.2. Tổng quan <span class="b b-gray">/snapshot</span></h3>
+<p>Trang mặc định khi vào ứng dụng 1 — bức tranh toàn cảnh của toàn bộ danh mục.</p>
+
+<div class="mock">
+  <div class="mock-bar"><i></i><i></i><i></i><div class="mock-url">localhost:5173/snapshot</div></div>
+  <div style="padding:15px;background:var(--bg2)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px">
+      <div><div class="mk-head">Tổng quan danh mục</div><div class="mk-sub" style="margin:0">12.480 khế ước · Ngày số liệu 31/08/2026</div></div>
+      <div style="display:flex;gap:6px"><span class="chip">⤓ Xuất báo cáo</span></div>
+    </div>
+    <div class="mk-kpis" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi blue"><div class="l">Tổng dư nợ</div><div class="v">486,2 tỷ</div><div class="d">TW 412,8 · ĐP 73,4</div></div>
+      <div class="kpi"><div class="l">Khách hàng</div><div class="v">11.204</div><div class="d">đang còn dư nợ</div></div>
+      <div class="kpi"><div class="l">Mức vay bình quân</div><div class="v">43,5 tr</div><div class="d">/khế ước</div></div>
+      <div class="kpi"><div class="l">Số dư tiền gửi 105</div><div class="v">18,7 tỷ</div><div class="d">tính cả món đã tất toán</div></div>
+    </div>
+    <div class="mk-kpis" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi red"><div class="l">Dư nợ quá hạn</div><div class="v">3,8 tỷ</div><div class="d">0,78% tổng dư nợ</div></div>
+      <div class="kpi" style="--x:0"><div class="l">Dư nợ khoanh</div><div class="v" style="color:var(--amber)">2,1 tỷ</div><div class="d">0,43% tổng dư nợ</div></div>
+      <div class="kpi"><div class="l">Lãi tồn trong hạn</div><div class="v">1,24 tỷ</div></div>
+      <div class="kpi red"><div class="l">KH ngừng giao dịch</div><div class="v">186</div><div class="d">không phát sinh 12 tháng</div></div>
+    </div>
+    <div class="row2">
+      <div class="card" style="margin:0"><div class="t">Dư nợ theo xã <small>bấm cột để drill-down</small></div>
+        <div class="bars">
+          <div><i style="height:92px"></i><span>Định Quán</span></div>
+          <div><i style="height:71px"></i><span>Phú Hòa</span></div>
+          <div><i style="height:58px"></i><span>La Ngà</span></div>
+          <div><i style="height:44px"></i><span>Thanh Sơn</span></div>
+          <div><i style="height:29px"></i><span>Phú Vinh</span></div>
+        </div>
+      </div>
+      <div class="card" style="margin:0"><div class="t">Cơ cấu chất lượng dư nợ</div>
+        <div style="display:flex;gap:14px;align-items:center">
+          <div class="donut"></div>
+          <div class="leg">
+            <span><em style="background:var(--brand)"></em> Trong hạn — 478,1 tỷ</span>
+            <span><em style="background:#f43f5e"></em> Quá hạn — 3,8 tỷ</span>
+            <span><em style="background:#f59e0b"></em> Khoanh — 2,1 tỷ</span>
+            <span><em style="background:#22c55e"></em> Đã thu lãi đủ — 2,2 tỷ</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row2" style="margin-top:11px">
+      <div class="card" style="margin:0"><div class="t">Lịch đáo hạn theo tháng <small>Ngày ĐH theo GDXA</small></div>
+        <div class="bars">
+          <div><i class="a" style="height:38px"></i><span>T9</span></div>
+          <div><i class="a" style="height:52px"></i><span>T10</span></div>
+          <div><i class="a" style="height:29px"></i><span>T11</span></div>
+          <div><i class="a" style="height:66px"></i><span>T12</span></div>
+          <div><i class="s" style="height:21px"></i><span>T1</span></div>
+          <div><i class="s" style="height:17px"></i><span>T2</span></div>
+        </div>
+      </div>
+      <div class="card" style="margin:0"><div class="t">Phân bố mức vay</div>
+        <div class="bars">
+          <div><i class="g" style="height:24px"></i><span>&lt;20tr</span></div>
+          <div><i class="g" style="height:74px"></i><span>20-50</span></div>
+          <div><i class="g" style="height:56px"></i><span>50-100</span></div>
+          <div><i class="g" style="height:22px"></i><span>&gt;100</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="mock-cap"><b>Trang Tổng quan.</b> Số liệu chỉ là ví dụ minh họa. Mọi khối biểu đồ đều bấm được để nhảy sang Tra cứu chi tiết kèm bộ lọc tương ứng.</div>
+</div>
+
+<h4>8 chỉ số chính (KPI)</h4>
+<table class="tbl">
+  <thead><tr><th style="width:26%">Chỉ số</th><th>Ý nghĩa &amp; cách đọc</th></tr></thead>
+  <tbody>
+    <tr><td><b>Tổng dư nợ</b></td><td>Toàn bộ dư nợ đang hoạt động. Card này chia 2 cột <b>TW</b> (nguồn vốn Trung ương) và <b>ĐP</b> (Địa phương) để thấy cơ cấu nguồn.</td></tr>
+    <tr><td><b>Khách hàng</b></td><td>Số khách hàng <i>duy nhất</i> đang còn dư nợ. Một khách có thể vay nhiều khế ước, nên số này luôn nhỏ hơn số khế ước.</td></tr>
+    <tr><td><b>Mức vay bình quân</b></td><td>Tổng dư nợ chia số khế ước. Cho biết quy mô món vay trung bình.</td></tr>
+    <tr><td><b>Lãi tồn trong hạn</b></td><td>Phần lãi chưa thu được của các món <i>còn trong hạn</i>. Chỉ báo sớm về khả năng thu lãi.</td></tr>
+    <tr><td><b>Khách hàng ngừng giao dịch</b></td><td>Khách không phát sinh giao dịch trong thời gian dài. Có nút <b>Xuất Excel</b> riêng để lấy danh sách.</td></tr>
+    <tr><td><b>Số dư tiền gửi 105</b></td><td>Tiền gửi của tổ viên. <b>Chỉ số duy nhất tính trên cả khế ước đã tất toán</b> — xem mục <a href="#data-rules">13</a>.</td></tr>
+    <tr><td><b>Dư nợ quá hạn / khoanh</b></td><td>Card gộp 2 cột: quá hạn (màu đỏ) và khoanh (màu cam). Kèm tỷ lệ % trên tổng dư nợ.</td></tr>
+  </tbody>
+</table>
+
+<h4>Các khối biểu đồ trên trang</h4>
+<ul>
+  <li><b>Dư nợ theo xã / theo chương trình / theo ĐVUT</b> — biểu đồ cột. Bấm vào một cột để lọc đúng đối tượng đó.</li>
+  <li><b>Cơ cấu chất lượng dư nợ</b> — biểu đồ tròn: trong hạn / quá hạn / khoanh.</li>
+  <li><b>Lịch đáo hạn theo tháng</b> — heatmap/cột theo tháng, dùng cột <code>Ngày ĐH theo GDXA</code>.</li>
+  <li><b>Phân bố mức vay</b> — histogram chia khoảng tiền.</li>
+  <li><b>Diễn biến giải ngân / thu nợ</b> — đường theo tháng.</li>
+  <li><b>Danh sách Tổ TK&amp;VV</b> — bảng có ô tìm kiếm riêng, bấm tên tổ để drill-down.</li>
+  <li><b>Khách hàng ngừng giao dịch</b> — bảng liệt kê kèm nút xuất Excel.</li>
+</ul>
+
+<div class="tip"><b>Mẹo đọc nhanh.</b> Tiêu đề mỗi chỉ số có biểu tượng <b>ⓘ</b>. Di chuột hoặc bấm vào sẽ hiện giải thích công thức tính và ý nghĩa nghiệp vụ của chỉ số đó.</div>
+
+<div class="note"><b>Đổi loại biểu đồ.</b> Một số khối có nút chuyển dạng biểu đồ (cột ↔ ngang ↔ tròn) ở góc khối. Lựa chọn được ghi nhớ cho lần mở sau.</div>
+</section>
+
+<!-- 5.3 -->
+<section id="a1-npl">
+<h3>5.3. Báo cáo nợ quá hạn <span class="b b-gray">/snapshot/no-xau</span></h3>
+<p>Trang chuyên sâu về nợ xấu — nơi phát hiện sớm các khoản sắp chuyển nhóm.</p>
+
+<div class="mock">
+  <div class="mock-bar"><i></i><i></i><i></i><div class="mock-url">localhost:5173/snapshot/no-xau</div></div>
+  <div style="padding:15px;background:var(--bg2)">
+    <div class="mk-head">Báo cáo nợ quá hạn</div>
+    <div class="mk-sub">312 khế ước quá hạn · 3,8 tỷ đồng</div>
+    <div class="mk-kpis" style="grid-template-columns:repeat(5,1fr)">
+      <div class="kpi red"><div class="l">Dư nợ quá hạn</div><div class="v">3,8 tỷ</div></div>
+      <div class="kpi red"><div class="l">Tỷ lệ NQH</div><div class="v">0,78%</div></div>
+      <div class="kpi"><div class="l">Số khế ước QH</div><div class="v">312</div></div>
+      <div class="kpi"><div class="l">Chuyển QH trong tháng</div><div class="v">28</div><div class="d">+412 tr</div></div>
+      <div class="kpi green"><div class="l">Thu nợ QH tháng</div><div class="v">96 tr</div></div>
+    </div>
+    <div class="row2">
+      <div class="card" style="margin:0"><div class="t">Hotspot quá hạn theo xã <small>bấm để drill-down</small></div>
+        <div class="hbars">
+          <div><span class="nm">Định Quán</span><span class="tr"><i class="r" style="width:88%"></i></span><span class="vv">1,42 tỷ</span></div>
+          <div><span class="nm">La Ngà</span><span class="tr"><i class="r" style="width:61%"></i></span><span class="vv">0,98 tỷ</span></div>
+          <div><span class="nm">Phú Hòa</span><span class="tr"><i class="a" style="width:38%"></i></span><span class="vv">0,61 tỷ</span></div>
+          <div><span class="nm">Thanh Sơn</span><span class="tr"><i class="a" style="width:24%"></i></span><span class="vv">0,39 tỷ</span></div>
+          <div><span class="nm">Phú Vinh</span><span class="tr"><i style="width:14%;background:#94a3b8"></i></span><span class="vv">0,22 tỷ</span></div>
+        </div>
+      </div>
+      <div class="card" style="margin:0"><div class="t">Heatmap nợ quá hạn <small>xã × chương trình</small></div>
+        <div class="hm" style="grid-template-columns:56px repeat(5,1fr)">
+          <span style="color:var(--ink3);font-size:8.4px"></span><span style="color:var(--ink3);font-size:8.4px;text-align:center">HN</span><span style="color:var(--ink3);font-size:8.4px;text-align:center">HSSV</span><span style="color:var(--ink3);font-size:8.4px;text-align:center">GQVL</span><span style="color:var(--ink3);font-size:8.4px;text-align:center">NSVS</span><span style="color:var(--ink3);font-size:8.4px;text-align:center">NOXH</span>
+          <span style="color:var(--ink2)">Định Quán</span><i style="background:#9f1239">312</i><i style="background:#e11d48">186</i><i style="background:#fb7185">74</i><i style="background:#fecdd3;color:#881337">21</i><i style="background:#f1f5f9;color:#94a3b8">4</i>
+          <span style="color:var(--ink2)">La Ngà</span><i style="background:#e11d48">164</i><i style="background:#fb7185">92</i><i style="background:#fecdd3;color:#881337">38</i><i style="background:#f1f5f9;color:#64748b">12</i><i style="background:#f1f5f9;color:#94a3b8">2</i>
+          <span style="color:var(--ink2)">Phú Hòa</span><i style="background:#fb7185">88</i><i style="background:#fecdd3;color:#881337">41</i><i style="background:#f1f5f9;color:#64748b">19</i><i style="background:#f1f5f9;color:#94a3b8">6</i><i style="background:#f1f5f9;color:#94a3b8">1</i>
+        </div>
+        <div style="font-size:9px;color:var(--ink4);margin-top:7px">Màu càng đậm = dư nợ quá hạn càng lớn (đơn vị: triệu đồng)</div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:11px;margin-bottom:0"><div class="t">Danh sách chuyển quá hạn trong tháng <small><span class="btn gh" style="padding:3px 9px;font-size:9.8px">⤓ Xuất Excel</span></small></div>
+      <div class="tw"><table class="mt">
+        <thead><tr><th>Số khế ước</th><th>Tên KH</th><th>Xã</th><th>Chương trình</th><th class="num">Dư nợ</th><th class="num">Số ngày QH</th></tr></thead>
+        <tbody>
+          <tr><td>6612000123</td><td>Nguyễn Văn A</td><td>Định Quán</td><td>Hộ nghèo</td><td class="num neg">85.000.000</td><td class="num">42</td></tr>
+          <tr><td>6612000456</td><td>Trần Thị B</td><td>La Ngà</td><td>HSSV</td><td class="num neg">32.500.000</td><td class="num">18</td></tr>
+          <tr><td>6612000789</td><td>Lê Văn C</td><td>Phú Hòa</td><td>GQVL</td><td class="num neg">50.000.000</td><td class="num">7</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="mock-cap"><b>Báo cáo nợ quá hạn.</b> Heatmap giúp phát hiện ngay ô nào "đỏ đậm" — đó là điểm nóng cần can thiệp. Bấm vào ô heatmap để lọc xuống đúng xã + chương trình đó.</div>
+</div>
+
+<h4>Nội dung trên trang</h4>
+<table class="tbl">
+  <thead><tr><th style="width:28%">Khối</th><th>Cách sử dụng</th></tr></thead>
+  <tbody>
+    <tr><td><b>5 chỉ số NQH</b></td><td>Dư nợ quá hạn, tỷ lệ % trên tổng dư nợ, số khế ước quá hạn, số món <i>mới chuyển</i> quá hạn trong tháng, số tiền thu nợ quá hạn trong tháng.</td></tr>
+    <tr><td><b>Danh sách chuyển NQH trong tháng</b></td><td>Các món vừa xấu đi trong kỳ — ưu tiên xử lý trước. Có nút <b>Xuất Excel</b> riêng và ô tìm kiếm trong danh sách.</td></tr>
+    <tr><td><b>Cảnh báo sớm</b></td><td>Các món <i>chưa</i> quá hạn nhưng có dấu hiệu rủi ro (sắp đáo hạn, lãi tồn đọng, không phát sinh giao dịch). Có nút xuất Excel.</td></tr>
+    <tr><td><b>Heatmap xã × chương trình</b></td><td>Lưới màu: hàng là xã, cột là chương trình, độ đậm = mức dư nợ quá hạn. Bấm ô để drill-down.</td></tr>
+    <tr><td><b>Hotspot theo xã</b></td><td>Xếp hạng xã có nợ quá hạn cao nhất, dạng thanh ngang. Bấm thanh để lọc.</td></tr>
+  </tbody>
+</table>
+
+<div class="tip"><b>Quy trình xử lý nợ quá hạn gợi ý:</b> xem <b>Cảnh báo sớm</b> trước để chặn món sắp xấu → xem <b>Danh sách chuyển NQH trong tháng</b> để xử lý món vừa xấu → dùng <b>Heatmap</b> để xác định địa bàn cần tập trung → bấm drill-down để lấy danh sách chi tiết → <b>Xuất Excel</b> gửi cán bộ phụ trách.</div>
+</section>
+
+<!-- 5.4 -->
+<section id="a1-khoanh">
+<h3>5.4. Báo cáo Dư nợ khoanh <span class="b b-gray">/snapshot/no-khoanh</span></h3>
+<p>Theo dõi các khoản nợ được khoanh (tạm ngừng tính/thu lãi, gốc theo quyết định).</p>
+
+<div class="mock">
+  <div class="mock-bar"><i></i><i></i><i></i><div class="mock-url">localhost:5173/snapshot/no-khoanh</div></div>
+  <div style="padding:15px;background:var(--bg2)">
+    <div class="mk-head">Báo cáo Dư nợ khoanh</div>
+    <div class="mk-sub">148 khế ước đang khoanh</div>
+    <div class="mk-kpis" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi" style="--x:0"><div class="l">Dư nợ khoanh</div><div class="v" style="color:var(--amber)">2,1 tỷ</div></div>
+      <div class="kpi"><div class="l">Tỷ lệ khoanh</div><div class="v">0,43%</div></div>
+      <div class="kpi"><div class="l">Số khế ước</div><div class="v">148</div></div>
+      <div class="kpi red"><div class="l">Sắp hết hạn khoanh</div><div class="v">12</div><div class="d">trong 90 ngày tới</div></div>
+    </div>
+    <div class="row2">
+      <div class="card" style="margin:0"><div class="t">Phân rã theo ĐVUT → Xã → Chương trình</div>
+        <div class="hbars">
+          <div><span class="nm">Hội Nông dân</span><span class="tr"><i class="a" style="width:82%"></i></span><span class="vv">862 tr</span></div>
+          <div><span class="nm">Hội Phụ nữ</span><span class="tr"><i class="a" style="width:64%"></i></span><span class="vv">671 tr</span></div>
+          <div><span class="nm">Đoàn Thanh niên</span><span class="tr"><i class="a" style="width:37%"></i></span><span class="vv">388 tr</span></div>
+          <div><span class="nm">Hội Cựu CB</span><span class="tr"><i class="a" style="width:19%"></i></span><span class="vv">196 tr</span></div>
+        </div>
+      </div>
+      <div class="card" style="margin:0"><div class="t">Lịch hết hạn khoanh</div>
+        <div class="bars">
+          <div><i class="r" style="height:34px"></i><span>T9/26</span></div>
+          <div><i class="r" style="height:48px"></i><span>T10/26</span></div>
+          <div><i class="a" style="height:27px"></i><span>T11/26</span></div>
+          <div><i class="a" style="height:58px"></i><span>T12/26</span></div>
+          <div><i class="s" style="height:22px"></i><span>2027</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:11px;margin-bottom:0"><div class="t">Top 20 khoanh lớn nhất <small><span class="btn gh" style="padding:3px 9px;font-size:9.8px">⤓ Xuất Excel</span></small></div>
+      <div class="tw"><table class="mt">
+        <thead><tr><th>#</th><th>Tên KH</th><th>Xã</th><th>ĐVUT</th><th class="num">Dư nợ khoanh</th><th>Ngày hết hạn khoanh</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Phạm Văn D</td><td>Thanh Sơn</td><td>Hội Nông dân</td><td class="num">180.000.000</td><td>15/11/2026</td></tr>
+          <tr><td>2</td><td>Hoàng Thị E</td><td>Định Quán</td><td>Hội Phụ nữ</td><td class="num">145.000.000</td><td>30/09/2026</td></tr>
+          <tr><td>3</td><td>Vũ Văn G</td><td>La Ngà</td><td>Đoàn TN</td><td class="num">120.000.000</td><td>28/02/2027</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="mock-cap"><b>Báo cáo Dư nợ khoanh.</b> Cột "Ngày hết hạn khoanh" rất quan trọng — món sắp hết khoanh sẽ quay lại tính lãi/thu nợ, cần chuẩn bị phương án xử lý trước.</div>
+</div>
+
+<h4>Nội dung trên trang</h4>
+<ul>
+  <li><b>4 chỉ số:</b> tổng dư nợ khoanh, tỷ lệ khoanh trên tổng dư nợ, số khế ước, số món sắp hết hạn khoanh.</li>
+  <li><b>Phân rã ĐVUT → Xã → Chương trình:</b> cây phân cấp cho biết đơn vị ủy thác nào đang gánh nhiều nợ khoanh nhất.</li>
+  <li><b>Lịch hết hạn khoanh:</b> biểu đồ cột theo tháng, dùng cột <code>Ngày hết hạn Khoanh</code>. Cột đỏ = sắp tới hạn.</li>
+  <li><b>Top 20 khoanh lớn nhất:</b> bảng xếp hạng, có ô tìm kiếm và nút <b>Xuất Excel</b>.</li>
+  <li><b>Thu nợ khoanh trong tháng/quý/năm:</b> số tiền đã thu được của các món khoanh.</li>
+</ul>
+</section>
+
+<!-- 5.5 -->
+<section id="a1-compare">
+<h3>5.5. Báo cáo so sánh <span class="b b-gray">/snapshot/so-sanh</span></h3>
+<p>Đặt tối đa <b>6 đối tượng</b> cạnh nhau để so sánh <i>trong cùng một kỳ</i> số liệu.</p>
+<div class="note"><b>Phân biệt với Ứng dụng 2.</b> Trang này so sánh <b>giữa các đối tượng</b> (xã này với xã kia) trong <b>cùng một thời điểm</b>. Còn ứng dụng <a href="#app2">So sánh giữa hai kỳ</a> so sánh <b>cùng một đối tượng</b> ở <b>hai thời điểm khác nhau</b>.</div>
+
+<div class="mock">
+  <div class="mock-bar"><i></i><i></i><i></i><div class="mock-url">localhost:5173/snapshot/so-sanh</div></div>
+  <div style="padding:15px;background:var(--bg2)">
+    <div class="mk-head">Báo cáo so sánh</div>
+    <div class="mk-sub">Chọn đối tượng và tiêu chí so sánh</div>
+    <div class="chips">
+      <span class="chip on">So sánh giữa các đối tượng</span>
+      <span class="chip">Trong cùng đối tượng</span>
+      <span class="chip">Nhóm: <b>Xã</b> ▾</span>
+      <span class="chip">Đối tượng: <b>3 / 6</b> ▾</span>
+      <span class="btn gh" style="padding:3px 10px;font-size:10px">⤓ Xuất</span>
+    </div>
+    <div class="row2">
+      <div class="card" style="margin:0"><div class="t">So sánh đa tiêu chí (radar)</div>
+        <div style="display:flex;justify-content:center;padding:8px 0">
+          <svg viewBox="0 0 200 170" width="100%" style="max-width:250px">
+            <g stroke="#e2e8f0" fill="none">
+              <polygon points="100,20 172,72 145,155 55,155 28,72"/>
+              <polygon points="100,48 143,79 127,129 73,129 57,79"/>
+              <polygon points="100,76 114,86 109,103 91,103 86,86"/>
+            </g>
+            <polygon points="100,24 166,74 138,148 62,132 34,76" fill="rgba(29,78,216,.22)" stroke="#1d4ed8" stroke-width="1.6"/>
+            <polygon points="100,52 140,80 128,124 76,140 60,82" fill="rgba(126,34,206,.18)" stroke="#7e22ce" stroke-width="1.6"/>
+            <polygon points="100,70 118,84 112,110 84,116 78,88" fill="rgba(21,128,61,.16)" stroke="#15803d" stroke-width="1.6"/>
+            <g font-size="8" fill="#64748b"><text x="100" y="14" text-anchor="middle">Dư nợ</text><text x="180" y="72">KH</text><text x="150" y="166">NQH%</text><text x="34" y="166">Khoanh%</text><text x="6" y="72">TG105</text></g>
+          </svg>
+        </div>
+        <div class="leg" style="flex-direction:row;gap:12px;justify-content:center;margin-top:4px">
+          <span><em style="background:var(--brand)"></em> Định Quán</span>
+          <span><em style="background:var(--period)"></em> La Ngà</span>
+          <span><em style="background:var(--plan)"></em> Phú Hòa</span>
+        </div>
+      </div>
+      <div class="card" style="margin:0"><div class="t">Bảng đối chiếu <small>delta %</small></div>
+        <div class="tw"><table class="mt">
+          <thead><tr><th>Chỉ tiêu</th><th class="num">Định Quán</th><th class="num">La Ngà</th><th class="num">Phú Hòa</th><th class="num">Chênh</th></tr></thead>
+          <tbody>
+            <tr><td>Tổng dư nợ</td><td class="num">142,8</td><td class="num">98,4</td><td class="num">76,2</td><td class="num pos">+45,1%</td></tr>
+            <tr><td>Số khách hàng</td><td class="num">3.412</td><td class="num">2.286</td><td class="num">1.904</td><td class="num pos">+49,3%</td></tr>
+            <tr><td>Tỷ lệ NQH</td><td class="num">0,92%</td><td class="num">1,14%</td><td class="num">0,61%</td><td class="num neg">−19,3%</td></tr>
+            <tr><td>Mức vay BQ</td><td class="num">41,8</td><td class="num">43,0</td><td class="num">40,0</td><td class="num pos">+4,5%</td></tr>
+            <tr><td>Số dư TG 105</td><td class="num">5,42</td><td class="num">3,18</td><td class="num">2,94</td><td class="num pos">+70,4%</td></tr>
+          </tbody>
+        </table></div>
+        <div style="font-size:9.4px;color:var(--ink4);margin-top:7px">Đơn vị tiền: tỷ đồng · Cột "Chênh" so đối tượng thứ 2 với thứ nhất</div>
+      </div>
+    </div>
+  </div>
+  <div class="mock-cap"><b>Báo cáo so sánh.</b> Biểu đồ radar chồng nhiều đối tượng lên nhau — hình nào "to đều" thì đối tượng đó mạnh toàn diện. Bảng đối chiếu có cột delta % để thấy ngay khoảng cách.</div>
+</div>
+
+<h4>Cách dùng</h4>
+<ol class="steps">
+  <li><b>Chọn chế độ so sánh</b><b>"Giữa các đối tượng"</b>: so xã A với xã B, hoặc ĐVUT này với ĐVUT khác. <b>"Trong cùng đối tượng"</b>: so các chỉ tiêu nội bộ của một đối tượng.</li>
+  <li><b>Chọn nhóm đối tượng</b>Xã / Chương trình / ĐVUT (Hội đoàn thể) / Tổ TK&amp;VV / Cán bộ / Điểm giao dịch.</li>
+  <li><b>Chọn tối đa 6 đối tượng</b>Danh sách hiện các giá trị khả dụng. Vượt quá 6 sẽ bị chặn — biểu đồ sẽ không đọc được nếu nhiều hơn.</li>
+  <li><b>Đọc kết quả</b>Radar cho hình ảnh tổng thể, bảng đối chiếu cho số chính xác kèm delta %.</li>
+  <li><b>Xuất Excel</b>Bấm nút <b>Xuất</b> để lấy bảng đối chiếu ra file, phục vụ báo cáo giao ban.</li>
+</ol>
+</section>
+
+<!-- 5.6 -->
+<section id="a1-staff-perf">
+<h3>5.6. Hiệu quả cán bộ <span class="b b-gray">/snapshot/can-bo-bao-cao</span></h3>
+<p>Xếp hạng cán bộ tín dụng theo 5 chỉ tiêu. <b>Yêu cầu bắt buộc:</b> phải nhập Danh mục cán bộ trước (mục <a href="#a1-staff">5.9</a>).</p>
+
+<div class="mock">
+  <div class="mock-bar"><i></i><i></i><i></i><div class="mock-url">localhost:5173/snapshot/can-bo-bao-cao</div></div>
+  <div style="padding:15px;background:var(--bg2)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:11px">
+      <div><div class="mk-head">Hiệu quả cán bộ</div><div class="mk-sub" style="margin:0">Phủ 9/10 cán bộ · 96 khế ước chưa gán</div></div>
+      <span class="btn gh" style="padding:4px 11px;font-size:10.2px">⤓ Xuất Excel</span>
+    </div>
+    <div class="mk-kpis" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi blue"><div class="l">Độ phủ cán bộ</div><div class="v">90,0%</div><div class="d">9/10 cán bộ có dữ liệu</div></div>
+      <div class="kpi green"><div class="l">Dư nợ đã gán</div><div class="v">471,2 tỷ</div></div>
+      <div class="kpi red"><div class="l">Chưa gán</div><div class="v">96</div><div class="d">khế ước</div></div>
+      <div class="kpi"><div class="l">BQ dư nợ / cán bộ</div><div class="v">52,4 tỷ</div></div>
+    </div>
+    <div class="row2">
+      <div class="card" style="margin:0"><div class="t">Top 10 theo tổng dư nợ</div>
+        <div class="hbars">
+          <div><span class="nm">Ng. Minh Tuấn</span><span class="tr"><i style="width:94%"></i></span><span class="vv">68,2</span></div>
+          <div><span class="nm">Tr. Thị Lan</span><span class="tr"><i style="width:82%"></i></span><span class="vv">59,4</span></div>
+          <div><span class="nm">Lê Văn Hùng</span><span class="tr"><i style="width:71%"></i></span><span class="vv">51,8</span></div>
+          <div><span class="nm">Phạm Thu Hà</span><span class="tr"><i style="width:63%"></i></span><span class="vv">45,9</span></div>
+          <div><span class="nm">Võ Quốc Bảo</span><span class="tr"><i style="width:52%"></i></span><span class="vv">37,6</span></div>
+        </div>
+      </div>
+      <div class="card" style="margin:0"><div class="t">Tỷ lệ nợ quá hạn theo cán bộ <small>thấp = tốt</small></div>
+        <div class="hbars">
+          <div><span class="nm">Phạm Thu Hà</span><span class="tr"><i class="g" style="width:18%"></i></span><span class="vv">0,31%</span></div>
+          <div><span class="nm">Võ Quốc Bảo</span><span class="tr"><i class="g" style="width:26%"></i></span><span class="vv">0,44%</span></div>
+          <div><span class="nm">Lê Văn Hùng</span><span class="tr"><i class="a" style="width:48%"></i></span><span class="vv">0,82%</span></div>
+          <div><span class="nm">Tr. Thị Lan</span><span class="tr"><i class="a" style="width:61%"></i></span><span class="vv">1,04%</span></div>
+          <div><span class="nm">Ng. Minh Tuấn</span><span class="tr"><i class="r" style="width:88%"></i></span><span class="vv">1,51%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:11px;margin-bottom:0">
+      <div class="t">Bảng xếp hạng <small>bấm tiêu đề cột để sắp xếp · bấm dòng để drill-down</small></div>
+      <div class="tw"><table class="mt">
+        <thead><tr><th>Hạng</th><th>Mã NV ↕</th><th>Tên cán bộ ↕</th><th>ĐGD phụ trách</th><th class="num">Số KH ↕</th><th class="num">Tổng dư nợ ↕</th><th class="num">NQH% ↕</th><th class="num">Khoanh% ↕</th><th class="num">TG 105 ↕</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>CB01</td><td>Nguyễn Minh Tuấn</td><td>3</td><td class="num">1.642</td><td class="num">68,2 tỷ</td><td class="num neg">1,51%</td><td class="num">0,42%</td><td class="num">2,18 tỷ</td></tr>
+          <tr><td>2</td><td>CB02</td><td>Trần Thị Lan</td><td>2</td><td class="num">1.388</td><td class="num">59,4 tỷ</td><td class="num">1,04%</td><td class="num">0,38%</td><td class="num">1,92 tỷ</td></tr>
+          <tr><td>3</td><td>CB03</td><td>Lê Văn Hùng</td><td>2</td><td class="num">1.204</td><td class="num">51,8 tỷ</td><td class="num">0,82%</td><td class="num">0,51%</td><td class="num">1,64 tỷ</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="mock-cap"><b>Hiệu quả cán bộ.</b> "Độ phủ" là tỷ lệ cán bộ có dữ liệu khớp — nếu thấp nghĩa là danh mục cán bộ ↔ ĐGD ↔ mã thôn chưa khớp hết, cần quay lại mục 5.9 sửa.</div>
+</div>
+
+<h4>5 chỉ tiêu xếp hạng</h4>
+<table class="tbl">
+  <thead><tr><th style="width:24%">Chỉ tiêu</th><th>Cách đọc</th></tr></thead>
+  <tbody>
+    <tr><td><b>Tổng dư nợ</b></td><td>Quy mô danh mục cán bộ đang quản lý.</td></tr>
+    <tr><td><b>Số khách hàng</b></td><td>Số khách duy nhất — phản ánh khối lượng công việc quản lý.</td></tr>
+    <tr><td><b>Tỷ lệ nợ quá hạn</b></td><td><b>Thấp là tốt.</b> Đây là chỉ tiêu chất lượng quan trọng nhất.</td></tr>
+    <tr><td><b>Tỷ lệ nợ khoanh</b></td><td><b>Thấp là tốt.</b> Nợ khoanh cao kéo dài thường báo hiệu vấn đề xử lý nợ.</td></tr>
+    <tr><td><b>Số dư tiền gửi 105</b></td><td>Phản ánh chất lượng vận động tiết kiệm của Tổ TK&amp;VV do cán bộ phụ trách.</td></tr>
+  </tbody>
+</table>
+
+<h4>Cách dùng</h4>
+<ul>
+  <li><b>Top 10 theo từng chỉ tiêu:</b> 5 khối xếp hạng riêng, mỗi khối một chỉ tiêu. Đổi chỉ tiêu để đổi góc nhìn.</li>
+  <li><b>Bảng xếp hạng:</b> bấm vào <b>tiêu đề cột</b> để sắp xếp tăng/giảm. Ô tìm kiếm nhận <i>Mã NV</i>, <i>Tên</i> hoặc <i>Mã ĐGD</i>.</li>
+  <li><b>Drill-down:</b> bấm vào một dòng để nhảy sang <b>Tra cứu chi tiết</b> với bộ lọc đúng cán bộ đó.</li>
+  <li><b>Xuất Excel:</b> lấy toàn bộ bảng xếp hạng ra file để đưa vào báo cáo thi đua.</li>
+</ul>
+<div class="warn">Nếu trang hiện trống hoặc "Độ phủ 0%", nguyên nhân gần như chắc chắn là <b>chưa nhập Danh mục cán bộ</b> hoặc <b>chưa nhập Danh mục Điểm giao dịch</b>. File Báo cáo 31 không chứa thông tin này. Làm theo mục <a href="#a1-dgd">5.10</a> rồi <a href="#a1-staff">5.9</a>.</div>
+</section>
+
+<!-- 5.7 -->
+<section id="a1-dgd-perf">
+<h3>5.7. Hiệu quả Điểm giao dịch <span class="b b-gray">/snapshot/dgd-bao-cao</span></h3>
+<p>Trang này có <b>cấu trúc y hệt</b> trang Hiệu quả cán bộ, nhưng đơn vị xếp hạng là <b>Điểm giao dịch</b> (ĐGD) thay vì cán bộ.</p>
+
+<div class="mock">
+  <div class="mock-bar"><i></i><i></i><i></i><div class="mock-url">localhost:5173/snapshot/dgd-bao-cao</div></div>
+  <div style="padding:15px;background:var(--bg2)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:11px">
+      <div><div class="mk-head">Báo cáo hiệu quả Điểm giao dịch</div><div class="mk-sub" style="margin:0">12 ĐGD · Phủ 100% thôn</div></div>
+      <span class="btn gh" style="padding:4px 11px;font-size:10.2px">⤓ Xuất Excel</span>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <div class="t">Bảng xếp hạng Điểm giao dịch</div>
+      <div class="tw"><table class="mt">
+        <thead><tr><th>Hạng</th><th>Mã ĐGD</th><th>Tên Điểm giao dịch</th><th>Xã</th><th class="num">Số thôn</th><th class="num">Số KH</th><th class="num">Tổng dư nợ</th><th class="num">NQH%</th><th class="num">TG 105</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>DGD01</td><td>ĐGD xã Định Quán</td><td>Định Quán</td><td class="num">8</td><td class="num">2.148</td><td class="num">84,6 tỷ</td><td class="num neg">0,94%</td><td class="num">3,12 tỷ</td></tr>
+          <tr><td>2</td><td>DGD02</td><td>ĐGD xã La Ngà</td><td>La Ngà</td><td class="num">6</td><td class="num">1.762</td><td class="num">71,2 tỷ</td><td class="num">1,12%</td><td class="num">2,48 tỷ</td></tr>
+          <tr><td>3</td><td>DGD03</td><td>ĐGD xã Phú Hòa</td><td>Phú Hòa</td><td class="num">5</td><td class="num">1.418</td><td class="num">58,4 tỷ</td><td class="num pos">0,58%</td><td class="num">2,06 tỷ</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="mock-cap"><b>Hiệu quả ĐGD.</b> Cùng 5 chỉ tiêu và cùng cách tương tác (sort, tìm kiếm, drill-down, xuất Excel) như trang cán bộ.</div>
+</div>
+
+<div class="note"><b>Chuỗi khớp dữ liệu.</b> Báo cáo 31 chỉ có <b>Mã thôn</b>. Phần mềm nối theo chuỗi: <b>Cán bộ → nhiều ĐGD → mỗi ĐGD nhiều Mã thôn → mã thôn khớp khế ước</b>. Vì vậy một khế ước được quy về ĐGD (và cán bộ) thông qua mã thôn của nó. Nếu mã thôn chưa được gán vào ĐGD nào, khế ước đó rơi vào nhóm "Chưa gán".</div>
+</section>
+
+<!-- 5.8 -->
+<section id="a1-explorer">
+<h3>5.8. Tra cứu chi tiết <span class="b b-gray">/snapshot/du-lieu</span></h3>
+<p>Bảng dữ liệu gốc — nơi xem và lọc từng khế ước một. Đây cũng là đích đến của mọi thao tác drill-down.</p>
+
+<div class="mock">
+  <div class="mock-bar"><i></i><i></i><i></i><div class="mock-url">localhost:5173/snapshot/du-lieu</div></div>
+  <div style="padding:13px;background:var(--bg2)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px">
+      <div><div class="mk-head" style="font-size:14px">Tra cứu chi tiết</div><div class="mk-sub" style="margin:0">Hiển thị 1.284 / 12.480 khế ước</div></div>
+      <span class="btn gh" style="padding:4px 11px;font-size:10.2px">⤓ Xuất báo cáo</span>
+    </div>
+    <div class="card" style="padding:10px;margin-bottom:10px">
+      <div class="inp" style="margin-bottom:9px;font-size:11px">🔍 Tìm tên KH, CMND, số khế ước…</div>
+      <div class="chips" style="margin-bottom:0">
+        <span class="chip">≡ Xã <b>Tất cả</b> ▾</span>
+        <span class="chip">≡ ĐVUT <b>Tất cả</b> ▾</span>
+        <span class="chip">≡ Chương trình <b>Tất cả</b> ▾</span>
+        <span class="chip">≡ Giới tính <b>Tất cả</b> ▾</span>
+        <span class="chip">≡ Nguồn vốn <b>Tất cả</b> ▾</span>
+        <span class="chip">≡ Tổ TK&amp;VV <b>Tất cả</b> ▾</span>
+        <span class="chip">Số dư TG 105 &gt; <b>0</b></span>
+        <span class="chip">NQ11: <b>Tất cả</b> ▾</span>
+        <span class="chip">Cán bộ <b>Tất cả</b> ▾</span>
+        <span class="chip">ĐGD <b>Tất cả</b> ▾</span>
+      </div>
+    </div>
+    <div class="tw"><table class="mt">
+      <thead><tr><th>Số khế ước ↕</th><th>Tên KH ↕</th><th>Xã ↕</th><th>Chương trình ↕</th><th>Tình trạng ↕</th><th class="num">Tổng dư nợ ↕</th><th class="num">QH ↕</th><th class="num">Khoanh ↕</th><th>Ngày vay ↕</th><th>Ngày đến hạn ↕</th><th>ĐVUT ↕</th><th>Tổ ↕</th><th class="num">TG 105 ↕</th><th>Cán bộ ↕</th><th>ĐGD ↕</th></tr></thead>
+      <tbody>
+        <tr><td>6612000123</td><td>Nguyễn Văn A</td><td>Định Quán</td><td>Hộ nghèo</td><td><span class="b b-red">Quá hạn</span></td><td class="num">85.000.000</td><td class="num neg">85.000.000</td><td class="num">—</td><td>12/03/2023</td><td>12/03/2026</td><td>Hội Nông dân</td><td>Tổ 04</td><td class="num">2.140.000</td><td>CB01</td><td>DGD01</td></tr>
+        <tr><td>6612000456</td><td>Trần Thị B</td><td>La Ngà</td><td>HSSV</td><td><span class="b b-blue">Trong hạn</span></td><td class="num">32.500.000</td><td class="num">—</td><td class="num">—</td><td>05/09/2024</td><td>05/09/2028</td><td>Hội Phụ nữ</td><td>Tổ 12</td><td class="num">860.000</td><td>CB02</td><td>DGD02</td></tr>
+        <tr><td>6612000789</td><td>Lê Văn C</td><td>Phú Hòa</td><td>GQVL</td><td><span class="b b-amber">Khoanh</span></td><td class="num">50.000.000</td><td class="num">—
 </div>
 <a href="#gioi-thieu" class="top" title="Lên đầu trang">↑</a>
 </body>
