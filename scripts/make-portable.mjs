@@ -8,14 +8,76 @@ const distDir = path.join(repoRoot, 'dist');
 const outDir = path.join(repoRoot, 'portable', 'VSPPRO');
 const appDir = path.join(outDir, 'app');
 const runtimeDir = path.join(outDir, 'runtime');
+const keepDir = path.join(repoRoot, '.portable-keep-tmp');
+const keepAppDir = path.join(keepDir, 'app');
+const keepAppFiles = [
+  'published.json',
+  'published.json.gz',
+  'published-period.json',
+  'published-period.json.gz',
+  'published-catalog.json',
+  'published-catalog.json.gz',
+  'published-credit-plan.json',
+  'published-credit-plan.json.gz',
+  'config.json',
+];
 
 if (!existsSync(path.join(distDir, 'index.html'))) {
   throw new Error('dist/index.html was not found. Run "npm run build" before packaging.');
 }
 
-await rm(outDir, { recursive: true, force: true });
+async function keepExistingPortableData() {
+  await rm(keepDir, { recursive: true, force: true });
+  if (!existsSync(outDir)) return;
+
+  await mkdir(keepAppDir, { recursive: true });
+  for (const file of keepAppFiles) {
+    const source = path.join(appDir, file);
+    if (existsSync(source)) {
+      await copyFile(source, path.join(keepAppDir, file));
+    }
+  }
+
+  const attachmentsDir = path.join(appDir, 'decision-attachments');
+  if (existsSync(attachmentsDir)) {
+    await cp(attachmentsDir, path.join(keepAppDir, 'decision-attachments'), { recursive: true });
+  }
+
+  const updateSource = path.join(outDir, 'update-source.txt');
+  if (existsSync(updateSource)) {
+    await copyFile(updateSource, path.join(keepDir, 'update-source.txt'));
+  }
+}
+
+async function restorePortableData() {
+  if (!existsSync(keepDir)) return;
+
+  for (const file of keepAppFiles) {
+    const source = path.join(keepAppDir, file);
+    if (existsSync(source)) {
+      await copyFile(source, path.join(appDir, file));
+    }
+  }
+
+  const attachmentsDir = path.join(keepAppDir, 'decision-attachments');
+  if (existsSync(attachmentsDir)) {
+    await cp(attachmentsDir, path.join(appDir, 'decision-attachments'), { recursive: true });
+  }
+
+  const updateSource = path.join(keepDir, 'update-source.txt');
+  if (existsSync(updateSource)) {
+    await copyFile(updateSource, path.join(outDir, 'update-source.txt'));
+  }
+  await rm(keepDir, { recursive: true, force: true });
+}
+
+await keepExistingPortableData();
+await mkdir(outDir, { recursive: true });
 await mkdir(appDir, { recursive: true });
 await mkdir(runtimeDir, { recursive: true });
+await rm(path.join(appDir, 'assets'), { recursive: true, force: true });
+await rm(path.join(appDir, 'index.html'), { force: true });
+await rm(path.join(appDir, 'version.json'), { force: true });
 
 await cp(distDir, appDir, { recursive: true });
 if (existsSync(path.join(repoRoot, 'public', 'config.json'))) {
@@ -27,7 +89,10 @@ await copyFile(path.join(repoRoot, 'setup.ps1'), path.join(outDir, 'setup.ps1'))
 await copyFile(path.join(repoRoot, 'setup.bat'), path.join(outDir, 'setup.bat'));
 
 if (process.platform === 'win32' && existsSync(process.execPath)) {
-  await copyFile(process.execPath, path.join(runtimeDir, 'node.exe'));
+  const runtimeNode = path.join(runtimeDir, 'node.exe');
+  if (!existsSync(runtimeNode)) {
+    await copyFile(process.execPath, runtimeNode);
+  }
 }
 
 await writeFile(
@@ -287,5 +352,7 @@ await writeFile(
   ].join('\r\n'),
   'utf8',
 );
+
+await restorePortableData();
 
 console.log(`Portable package created: ${outDir}`);
