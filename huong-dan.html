@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hướng dẫn sử dụng chi tiết — VSPPRO Dashboard</title>
+<style>
+:root{
+  --brand:#1d4ed8; --brand-d:#1e3a8a; --brand-l:#eff6ff; --brand-m:#dbeafe;
+  --period:#7e22ce; --period-l:#faf5ff; --period-m:#f3e8ff;
+  --plan:#15803d; --plan-l:#f0fdf4; --plan-m:#dcfce7;
+  --ink:#0f172a; --ink2:#334155; --ink3:#64748b; --ink4:#94a3b8;
+  --line:#e2e8f0; --line2:#cbd5e1; --bg:#ffffff; --bg2:#f8fafc; --bg3:#f1f5f9;
+  --rose:#be123c; --rose-l:#fff1f2; --amber:#b45309; --amber-l:#fffbeb;
+  --emerald:#047857; --emerald-l:#ecfdf5;
+  --toc-w:290px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:24px}
+body{margin:0;font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;color:var(--ink);background:var(--bg2);line-height:1.65;font-size:15px}
+
+/* ===== Layout ===== */
+.toc{position:fixed;top:0;left:0;width:var(--toc-w);height:100vh;overflow-y:auto;background:#fff;border-right:1px solid var(--line);padding:20px 0 40px;z-index:50}
+.toc::-webkit-scrollbar{width:7px}.toc::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
+.toc-brand{display:flex;gap:10px;align-items:center;padding:0 18px 16px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.toc-logo{width:34px;height:34px;border-radius:8px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex:none}
+.toc-brand b{display:block;font-size:14px;line-height:1.25}
+.toc-brand span{display:block;font-size:10.5px;color:var(--ink3)}
+.toc h4{margin:14px 18px 6px;font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--ink4);font-weight:700}
+.toc a{display:block;padding:5px 18px 5px 22px;font-size:12.5px;color:var(--ink2);text-decoration:none;border-left:3px solid transparent;line-height:1.4}
+.toc a:hover{background:var(--bg2);color:var(--brand);border-left-color:var(--brand-m)}
+.toc a.sub{padding-left:34px;font-size:11.8px;color:var(--ink3)}
+.content{margin-left:var(--toc-w);padding:0 44px 90px;max-width:1030px}
+
+/* ===== Headings ===== */
+.hero{background:linear-gradient(135deg,#1e3a8a,#1d4ed8 55%,#3b82f6);color:#fff;margin:0 -44px 34px;padding:52px 44px 44px}
+.hero .eyebrow{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.85;font-weight:700}
+.hero h1{margin:12px 0 10px;font-size:34px;line-height:1.2;font-weight:800;letter-spacing:-.02em}
+.hero p{margin:0;font-size:15px;opacity:.92;max-width:640px}
+.hero .meta{margin-top:22px;display:flex;gap:8px;flex-wrap:wrap}
+.hero .meta span{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);border-radius:99px;padding:4px 12px;font-size:11.5px;font-weight:600}
+h2{font-size:24px;font-weight:800;margin:56px 0 6px;padding-top:22px;border-top:2px solid var(--line);letter-spacing:-.015em}
+h2 .n{color:var(--brand);font-weight:800;margin-right:10px}
+h2 + .lead{color:var(--ink3);font-size:14px;margin:0 0 20px}
+h3{font-size:18px;font-weight:700;margin:34px 0 10px;color:var(--ink)}
+h4{font-size:14.5px;font-weight:700;margin:24px 0 8px;color:var(--ink2)}
+p{margin:0 0 12px}
+ul,ol{margin:0 0 14px;padding-left:22px}
+li{margin-bottom:6px}
+a{color:var(--brand)}
+code{background:var(--bg3);border:1px solid var(--line);border-radius:4px;padding:1.5px 5px;font-family:'Cascadia Code',Consolas,monospace;font-size:12.5px;color:#0f172a}
+pre{background:#0f172a;color:#e2e8f0;border-radius:9px;padding:15px 17px;overflow-x:auto;font-size:12.8px;line-height:1.6;margin:0 0 16px;font-family:'Cascadia Code',Consolas,monospace}
+pre code{background:none;border:none;color:inherit;padding:0;font-size:inherit}
+hr{border:none;border-top:1px solid var(--line);margin:34px 0}
+
+/* ===== Callouts ===== */
+.note,.warn,.tip,.danger{border-radius:9px;padding:14px 16px 14px 46px;margin:16px 0;font-size:13.6px;position:relative;border:1px solid;line-height:1.6}
+.note::before,.warn::before,.tip::before,.danger::before{position:absolute;left:15px;top:13px;font-size:15px;font-weight:800}
+.note{background:var(--brand-l);border-color:#bfdbfe;color:#1e3a8a}.note::before{content:'i'}
+.tip{background:var(--emerald-l);border-color:#a7f3d0;color:#065f46}.tip::before{content:'✓'}
+.warn{background:var(--amber-l);border-color:#fde68a;color:#78350f}.warn::before{content:'!'}
+.danger{background:var(--rose-l);border-color:#fecdd3;color:#881337}.danger::before{content:'✕'}
+.note b,.warn b,.tip b,.danger b{font-weight:700}
+
+/* ===== Tables ===== */
+.tbl{width:100%;border-collapse:collapse;margin:14px 0 20px;font-size:13.2px;background:#fff;border-radius:9px;overflow:hidden;box-shadow:0 0 0 1px var(--line)}
+.tbl th{background:var(--bg3);text-align:left;padding:10px 13px;font-weight:700;font-size:11.6px;text-transform:uppercase;letter-spacing:.045em;color:var(--ink2);border-bottom:1px solid var(--line2)}
+.tbl td{padding:9px 13px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink2)}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:#fcfdff}
+.tbl td b,.tbl td strong{color:var(--ink)}
+
+/* ===== Steps ===== */
+.steps{counter-reset:s;list-style:none;padding:0;margin:16px 0 20px}
+.steps>li{counter-increment:s;position:relative;padding:0 0 20px 46px;margin:0}
+.steps>li::before{content:counter(s);position:absolute;left:0;top:-1px;width:29px;height:29px;border-radius:50%;background:var(--brand);color:#fff;font-weight:700;font-size:13.5px;display:flex;align-items:center;justify-content:center}
+.steps>li::after{content:'';position:absolute;left:14px;top:33px;bottom:2px;width:1.5px;background:var(--line)}
+.steps>li:last-child{padding-bottom:0}.steps>li:last-child::after{display:none}
+.steps b{display:block;font-size:14.5px;margin-bottom:3px;color:var(--ink)}
+.steps.p>li::before{background:var(--period)}
+.steps.g>li::before{background:var(--plan)}
+
+/* ===== Cards / grid ===== */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:16px 0}
+.mini{background:#fff;border:1px solid var(--line);border-radius:10px;padding:15px 17px}
+.mini b{display:block;font-size:13.5px;margin-bottom:5px;color:var(--ink)}
+.mini p{margin:0;font-size:12.8px;color:var(--ink3);line-height:1.55}
+.mini.blue{border-left:3px solid var(--brand)}
+.mini.purple{border-left:3px solid var(--period)}
+.mini.green{border-left:3px solid var(--plan)}
+
+/* ===== Badges ===== */
+.b{display:inline-block;border-radius:5px;padding:1.5px 7px;font-size:10.8px;font-weight:700;line-height:1.5;white-space:nowrap}
+.b-blue{background:var(--brand-m);color:#1e40af}
+.b-purple{background:var(--period-m);color:#6b21a8}
+.b-green{background:var(--plan-m);color:#166534}
+.b-gray{background:var(--bg3);color:var(--ink2);border:1px solid var(--line2)}
+.b-red{background:#ffe4e6;color:#9f1239}
+.b-amber{background:#fef3c7;color:#92400e}
+.b-em{background:#d1fae5;color:#065f46}
+
+/* ===== MOCKUP UI ===== */
+.mock{border:1px solid var(--line2);border-radius:11px;overflow:hidden;background:var(--bg2);margin:16px 0 22px;box-shadow:0 2px 10px rgba(15,23,42,.07)}
+.mock-bar{background:#e8edf3;padding:8px 13px;display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--line2)}
+.mock-bar i{width:10px;height:10px;border-radius:50%;display:block;flex:none}
+.mock-bar i:nth-child(1){background:#f87171}.mock-bar i:nth-child(2){background:#fbbf24}.mock-bar i:nth-child(3){background:#34d399}
+.mock-url{margin-left:9px;background:#fff;border:1px solid var(--line2);border-radius:6px;padding:2.5px 11px;font-size:11px;color:var(--ink3);flex:1;font-family:Consolas,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mock-cap{background:#fff;border-top:1px solid var(--line);padding:8px 14px;font-size:11.6px;color:var(--ink3);display:flex;gap:7px;align-items:flex-start}
+.mock-cap b{color:var(--ink2);flex:none}
+.mock-body{display:flex;min-height:230px;background:#fff}
+.mk-side{width:172px;flex:none;background:#fff;border-right:1px solid var(--line);padding:11px 9px;font-size:11px}
+.mk-side .back{color:var(--ink3);font-size:9.8px;padding:4px 6px;margin-bottom:9px;display:block}
+.mk-side .brandrow{display:flex;gap:7px;align-items:center;padding:2px 6px 10px;border-bottom:1px solid var(--line);margin-bottom:9px}
+.mk-side .brandrow em{width:24px;height:24px;border-radius:6px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:11px;font-weight:800;flex:none}
+.mk-side .brandrow div{line-height:1.25}
+.mk-side .brandrow b{font-size:9.5px;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;display:block}
+.mk-side .brandrow span{font-size:11px;font-weight:700;display:block}
+.mk-nav{display:block;padding:6px 8px;border-radius:6px;color:var(--ink2);margin-bottom:2px;line-height:1.35;font-size:11px}
+.mk-nav.on{background:var(--brand-l);color:#1e40af;font-weight:700}
+.mk-nav.on.p{background:var(--period-l);color:#6b21a8}
+.mk-nav.on.g{background:var(--plan-l);color:#166534}
+.mk-main{flex:1;padding:15px;background:var(--bg2);min-width:0}
+.mk-head{font-size:15px;font-weight:800;color:var(--ink);margin-bottom:2px}
+.mk-sub{font-size:11px;color:var(--ink3);margin-bottom:13px}
+.mk-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:9px;margin-bottom:13px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+.kpi .l{font-size:9.3px;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em;font-weight:650;line-height:1.3}
+.kpi .v{font-size:16px;font-weight:800;color:var(--ink);margin-top:3px;letter-spacing:-.02em;white-space:nowrap}
+.kpi .d{font-size:9.6px;color:var(--ink3);margin-top:1px}
+.kpi.red .v{color:var(--rose)}.kpi.green .v{color:var(--emerald)}.kpi.blue .v{color:var(--brand)}
+.card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:11px}
+.card>.t{font-size:11.8px;font-weight:700;color:var(--ink);margin-bottom:9px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card>.t small{font-weight:500;color:var(--ink3);font-size:10px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+/* bars */
+.bars{display:flex;align-items:flex-end;gap:7px;height:104px;padding-top:6px}
+.bars>div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;min-width:0}
+.bars i{display:block;width:100%;border-radius:3px 3px 0 0;background:var(--brand);min-height:3px}
+.bars i.p{background:var(--period)}.bars i.g{background:var(--plan)}.bars i.r{background:#f43f5e}.bars i.a{background:#f59e0b}.bars i.s{background:var(--ink4)}
+.bars span{font-size:8.8px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+/* hbars */
+.hbars{display:flex;flex-direction:column;gap:6px}
+.hbars>div{display:flex;align-items:center;gap:8px;font-size:10.2px}
+.hbars .nm{width:74px;flex:none;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hbars .tr{flex:1;background:var(--bg3);border-radius:4px;height:13px;overflow:hidden}
+.hbars .tr i{display:block;height:100%;background:var(--brand);border-radius:4px}
+.hbars .tr i.p{background:var(--period)}.hbars .tr i.g{background:var(--plan)}.hbars .tr i.r{background:#f43f5e}.hbars .tr i.a{background:#f59e0b}
+.hbars .vv{width:52px;flex:none;text-align:right;font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums}
+/* donut */
+.donut{width:96px;height:96px;border-radius:50%;flex:none;background:conic-gradient(var(--brand) 0 42%,#f43f5e 42% 55%,#f59e0b 55% 68%,#22c55e 68% 100%);position:relative}
+.donut::after{content:'';position:absolute;inset:26px;background:#fff;border-radius:50%}
+.leg{font-size:10.2px;color:var(--ink2);display:flex;flex-direction:column;gap:5px;justify-content:center}
+.leg span{display:flex;align-items:center;gap:6px}
+.leg em{width:8px;height:8px;border-radius:2px;display:block;flex:none}
+/* table mock */
+.mt{width:100%;border-collapse:collapse;font-size:10.4px;background:#fff}
+.mt th{background:var(--bg3);padding:6px 8px;text-align:left;font-weight:700;color:var(--ink2);border-bottom:1px solid var(--line2);font-size:9.6px;white-space:nowrap}
+.mt td{padding:5.5px 8px;border-bottom:1px solid var(--line);color:var(--ink2);white-space:nowrap}
+.mt tr:last-child td{border-bottom:none}
+.mt .num{text-align:right;font-variant-numeric:tabular-nums}
+.mt .neg{color:var(--rose);font-weight:700}
+.mt .pos{color:var(--emerald);font-weight:700}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:7px}
+/* dropzone */
+.dz{border:2px dashed var(--line2);border-radius:11px;padding:30px 20px;text-align:center;background:#fff}
+.dz em{width:40px;height:40px;border-radius:10px;background:var(--brand-l);color:var(--brand);display:flex;align-items:center;justify-content:center;margin:0 auto 11px;font-style:normal;font-size:19px;font-weight:800}
+.dz b{display:block;font-size:13.5px;color:var(--ink)}
+.dz span{display:block;font-size:11px;color:var(--ink3);margin-top:4px}
+.btn{display:inline-block;background:var(--brand);color:#fff;border-radius:7px;padding:6px 14px;font-size:11.5px;font-weight:700}
+.btn.gh{background:#fff;color:var(--ink2);border:1px solid var(--line2)}
+.btn.g{background:var(--plan)}.btn.p{background:var(--period)}
+/* chips */
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px}
+.chip{background:#fff;border:1px solid var(--line2);border-radius:99px;padding:3px 10px;font-size:10.3px;color:var(--ink2);display:inline-flex;gap:5px;align-items:center}
+.chip b{color:var(--ink);font-weight:700}
+.chip.on{background:var(--brand-l);border-color:#bfdbfe;color:#1e40af;font-weight:650}
+.chip.on.p{background:var(--period-l);border-color:#e9d5ff;color:#6b21a8}
+.slot{background:#fff;border:1px solid var(--line2);border-radius:9px;padding:11px;flex:1;min-width:0}
+.slot .h{font-size:9.6px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);font-weight:700;margin-bottom:6px}
+.slot .f{font-size:11px;font-weight:700;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slot .d{font-size:9.8px;color:var(--ink3);margin-top:2px}
+.slot.empty{border-style:dashed;background:var(--bg2)}
+.slot.empty .f{color:var(--ink4);font-weight:600}
+/* modal */
+.modal{background:rgba(15,23,42,.45);padding:26px 18px;display:flex;justify-content:center}
+.modal .box{background:#fff;border-radius:12px;padding:22px;width:100%;max-width:330px;box-shadow:0 12px 34px rgba(0,0,0,.22)}
+.modal .box h5{margin:0 0 4px;font-size:15px;font-weight:800}
+.modal .box p{margin:0 0 14px;font-size:11.6px;color:var(--ink3)}
+.inp{width:100%;border:1px solid var(--line2);border-radius:7px;padding:8px 11px;font-size:12.5px;background:#fff;color:var(--ink4);margin-bottom:13px}
+.modal .acts{display:flex;gap:8px;justify-content:flex-end}
+/* heatmap */
+.hm{display:grid;gap:2.5px;font-size:8.6px}
+.hm i{border-radius:2.5px;height:19px;display:flex;align-items:center;justify-content:center;color:#fff;font-style:normal;font-weight:650}
+/* matrix */
+.mx{width:100%;border-collapse:collapse;font-size:9.8px;text-align:center}
+.mx th,.mx td{border:1px solid var(--line);padding:6px 4px}
+.mx th{background:var(--bg3);font-weight:700;color:var(--ink2)}
+.mx td{font-variant-numeric:tabular-nums}
+/* flow */
+.flow{display:flex;align-items:center;gap:0;flex-wrap:wrap;font-size:10.2px}
+.flow>div{background:#fff;border:1px solid var(--line2);border-radius:7px;padding:7px 11px;text-align:center;line-height:1.35}
+.flow>div b{display:block;font-size:11px;color:var(--ink)}
+.flow>div span{color:var(--ink3);font-size:9.4px}
+.flow>em{color:var(--ink4);font-style:normal;padding:0 7px;font-size:14px;flex:none}
+/* pill sync */
+.pill{display:inline-flex;gap:5px;align-items:center;background:var(--emerald-l);border:1px solid #a7f3d0;color:#065f46;border-radius:99px;padding:2.5px 9px;font-size:9.8px;font-weight:700}
+.pill.idle{background:var(--bg3);border-color:var(--line2);color:var(--ink3)}
+/* toc top button */
+.top{position:fixed;right:26px;bottom:26px;width:42px;height:42px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:19px;box-shadow:0 4px 14px rgba(29,78,216,.35);z-index:60}
+/* keyboard */
+kbd{background:#fff;border:1px solid var(--line2);border-bottom-width:2px;border-radius:5px;padding:1px 6px;font-size:11.5px;font-family:Consolas,monospace;color:var(--ink);font-weight:600}
+/* anchor offset */
+section{scroll-margin-top:20px}
+/* ===== Responsive ===== */
+@media(max-width:1080px){
+  .toc{position:static;width:auto;height:auto;border-right:none;border-bottom:1px solid var(--line);padding-bottom:18px}
+  .content{margin-left:0;padding:0 20px 70px}
+  .hero{margin:0 -20px 30px;padding:40px 20px 34px}
+  .grid3{grid-template-columns:1fr}
+  .mk-side{display:none}
+  .mock-body{display:block}
+}
+@media(max-width:680px){.grid2,.row2,.row3{grid-template-columns:1fr}.hero h1{font-size:26px}}
+/* ===== Print ===== */
+@media print{
+  .toc,.top{display:none}
+  .content{margin-left:0;padding:0;max-width:none}
+  body{background:#fff;font-size:11.5pt}
+  .hero{margin:0 0 20px;padding:26px;border-radius:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  h2{page-break-after:avoid;margin-top:26px;padding-top:14px}
+  h3,h4{page-break-after:avoid}
+  .mock,.tbl,.note,.warn,.tip,.danger,.mini{page-break-inside:avoid}
+  .mock,.tbl,pre,.kpi,.card,.btn,.pill,.b,.chip,.donut,.hm i,.mt th,.mx th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  a{color:var(--ink);text-decoration:none}
+  section{page-break-inside:auto}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ TOC ============ -->
+<nav class="toc">
+  <div class="toc-brand">
+    <div class="toc-logo">V</div>
+    <div><b>VSPPRO Dashboard</b><span>Hướng dẫn sử dụng chi tiết</span></div>
+  </div>
+
+  <h4>Mở đầu</h4>
+  <a href="#gioi-thieu">1. Giới thiệu phần mềm</a>
+  <a href="#cai-dat">2. Cài đặt &amp; khởi chạy</a>
+  <a href="#dang-nhap">3. Đăng nhập &amp; phân quyền</a>
+  <a href="#lobby">4. Trang chủ (Lobby)</a>
+
+  <h4>Ứng dụng 1 — Phân tích một kỳ</h4>
+  <a href="#app1">5. Tổng quan ứng dụng 1</a>
+  <a href="#a1-nhap" class="sub">5.1 Nhập Báo cáo 31</a>
+  <a href="#a1-overview" class="sub">5.2 Tổng quan</a>
+  <a href="#a1-npl" class="sub">5.3 Báo cáo nợ quá hạn</a>
+  <a href="#a1-khoanh" class="sub">5.4 Dư nợ khoanh</a>
+  <a href="#a1-compare" class="sub">5.5 Báo cáo so sánh</a>
+  <a href="#a1-staff-perf" class="sub">5.6 Hiệu quả cán bộ</a>
+  <a href="#a1-dgd-perf" class="sub">5.7 Hiệu quả ĐGD</a>
+  <a href="#a1-explorer" class="sub">5.8 Tra cứu chi tiết</a>
+  <a href="#a1-staff" class="sub">5.9 Danh mục cán bộ</a>
+  <a href="#a1-dgd" class="sub">5.10 Điểm giao dịch</a>
+  <a href="#a1-doanhso" class="sub">5.11 Báo cáo doanh số</a>
+
+  <h4>Ứng dụng 2 — So sánh hai kỳ</h4>
+  <a href="#app2">6. Tổng quan ứng dụng 2</a>
+  <a href="#a2-nhap" class="sub">6.1 Nạp 3 slot dữ liệu</a>
+  <a href="#a2-dienbien" class="sub">6.2 Diễn biến</a>
+  <a href="#a2-matran" class="sub">6.3 Ma trận chuyển nhóm</a>
+  <a href="#a2-chatluong" class="sub">6.4 Chất lượng tài sản</a>
+  <a href="#a2-top" class="sub">6.5 Top tăng / giảm</a>
+  <a href="#a2-hdt" class="sub">6.6 Hội đoàn thể &amp; Tổ</a>
+  <a href="#a2-cb-dgd" class="sub">6.7 So sánh cán bộ &amp; ĐGD</a>
+  <a href="#a2-kheuoc" class="sub">6.8 Bảng khế ước biến động</a>
+  <a href="#a2-kh" class="sub">6.9 Outreach &amp; khách hàng</a>
+
+  <h4>Ứng dụng 3 — Kế hoạch tín dụng</h4>
+  <a href="#app3">7. Tổng quan ứng dụng 3</a>
+  <a href="#a3-xa" class="sub">7.1 Danh mục xã</a>
+  <a href="#a3-qd" class="sub">7.2 Quyết định</a>
+  <a href="#a3-kh" class="sub">7.3 Kế hoạch</a>
+  <a href="#a3-tt" class="sub">7.4 Thực tế</a>
+  <a href="#a3-nq11" class="sub">7.5 Nghiệp vụ NQ11</a>
+  <a href="#a3-bc" class="sub">7.6 Báo cáo</a>
+  <a href="#a3-th" class="sub">7.7 Báo cáo thực hiện</a>
+
+  <h4>Tính năng dùng chung</h4>
+  <a href="#filter">8. Bộ lọc &amp; Drill-down</a>
+  <a href="#export">9. Xuất Excel &amp; PDF</a>
+  <a href="#backup">10. Sao lưu &amp; khôi phục</a>
+  <a href="#share">11. Chia sẻ link</a>
+  <a href="#sync">12. Xuất bản tự động</a>
+
+  <h4>Tham chiếu</h4>
+  <a href="#data-rules">13. Quy ước dữ liệu</a>
+  <a href="#excel-ref">14. Định dạng file Excel</a>
+  <a href="#password">15. Đổi mật khẩu quản trị</a>
+  <a href="#troubleshoot">16. Xử lý sự cố</a>
+  <a href="#checklist">17. Checklist vận hành</a>
+</nav>
+
+<div class="content">
+
+<!-- ============ HERO ============ -->
+<div class="hero">
+  <div class="eyebrow">Ngân hàng Chính sách Xã hội · VBSP Định Quán</div>
+  <h1>Hướng dẫn sử dụng chi tiết<br>VSPPRO Dashboard</h1>
+  <p>Tài liệu vận hành đầy đủ cho 3 ứng dụng con: Phân tích một kỳ, So sánh giữa hai kỳ và Kế hoạch tín dụng. Kèm mô phỏng giao diện từng màn hình, quy ước dữ liệu và xử lý sự cố.</p>
+  <div class="meta">
+    <span>26 màn hình</span>
+    <span>3 ứng dụng con</span>
+    <span>Chạy 100% cục bộ</span>
+    <span>Phiên bản tài liệu 1.0</span>
+  </div>
+</div>
+
+<!-- ============ 1. GIỚI THIỆU ============ -->
+<section id="gioi-thieu">
+<h2><span class="n">1</span>Giới thiệu phần mềm</h2>
+<p class="lead">VSPPRO Dashboard là công cụ phân tích danh mục tín dụng, đọc trực tiếp file Excel <b>Báo cáo 31</b> của NHCSXH và dựng thành các báo cáo trực quan.</p>
+
+<h3>1.1. Phần mềm làm được gì</h3>
+<div class="grid3">
+  <div class="mini blue"><b>Phân tích một kỳ</b><p>Từ 1 file Báo cáo 31, dựng 8 chỉ số tổng quan, báo cáo nợ quá hạn, dư nợ khoanh, hiệu quả cán bộ / Điểm giao dịch và tra cứu từng khế ước.</p></div>
+  <div class="mini purple"><b>So sánh giữa hai kỳ</b><p>Nạp 2–3 kỳ dữ liệu để xem diễn biến dư nợ, ma trận chuyển nhóm nợ, khách hàng vào/ra và xếp hạng biến động mạnh nhất.</p></div>
+  <div class="mini green"><b>Kế hoạch tín dụng</b><p>Quản lý Quyết định giao chỉ tiêu, nhập kế hoạch theo xã × chương trình × nguồn vốn, đối chiếu với thực tế và tính số còn phải thực hiện.</p></div>
+</div>
+
+<h3>1.2. Ba màu chủ đạo — quy ước nhận diện</h3>
+<p>Mỗi ứng dụng con có một màu riêng, dùng nhất quán trên thẻ ở trang chủ, thanh menu và các nút hành động. Nhìn màu là biết đang ở ứng dụng nào.</p>
+<table class="tbl">
+  <thead><tr><th style="width:32%">Ứng dụng</th><th style="width:18%">Màu</th><th>Địa chỉ (route)</th></tr></thead>
+  <tbody>
+    <tr><td><b>Phân tích một kỳ</b></td><td><span class="b b-blue">Xanh dương</span></td><td><code>/snapshot/...</code></td></tr>
+    <tr><td><b>So sánh giữa hai kỳ</b></td><td><span class="b b-purple">Tím</span></td><td><code>/period/...</code></td></tr>
+    <tr><td><b>Kế hoạch tín dụng</b></td><td><span class="b b-green">Xanh lá</span></td><td><code>/credit-plan/...</code></td></tr>
+  </tbody>
+</table>
+
+<h3>1.3. Đặc điểm kỹ thuật cần biết</h3>
+<ul>
+  <li><b>Xử lý hoàn toàn trên máy bạn.</b> File Excel không được tải lên bất kỳ máy chủ nào. Toàn bộ việc đọc và tính toán diễn ra trong trình duyệt.</li>
+  <li><b>Mỗi ứng dụng lưu dữ liệu riêng.</b> Nạp file vào "Phân tích một kỳ" không ảnh hưởng đến "So sánh hai kỳ" và ngược lại. Bộ lọc cũng tách biệt.</li>
+  <li><b>Chạy nền bằng Web Worker.</b> File Excel lớn (15.000+ khế ước) được đọc ở tiến trình riêng nên giao diện không bị đơ.</li>
+  <li><b>Bảng ảo hóa.</b> Trang "Tra cứu chi tiết" chỉ render các dòng đang nhìn thấy, nên cuộn mượt dù dữ liệu rất lớn.</li>
+  <li><b>Có chế độ tối (Dark mode).</b> Nút hình mặt trăng/mặt trời ở góc trên phải trang chủ và ở chân thanh menu.</li>
+</ul>
+
+<div class="note"><b>Dữ liệu cá nhân.</b> Báo cáo 31 chứa tên khách hàng, số CMND, địa chỉ, số điện thoại. Không đẩy file Excel gốc lên GitHub, Zalo công khai hay email không mã hóa. Xem thêm mục <a href="#share">11. Chia sẻ link</a>.</div>
+
+<h3>1.4. Hai cách chạy phần mềm</h3>
+<table class="tbl">
+  <thead><tr><th style="width:24%">Cách</th><th>Dành cho ai</th><th style="width:26%">Yêu cầu</th></tr></thead>
+  <tbody>
+    <tr><td><b>Bản portable</b><br><span class="b b-em">Khuyên dùng</span></td><td>Cán bộ nghiệp vụ chỉ cần mở ra dùng. Nháy đúp <code>Mo VSPPRO.bat</code> trong thư mục <code>portable\VSPPRO</code>.</td><td>Không cần cài gì thêm</td></tr>
+    <tr><td><b>Bản phát triển</b></td><td>Người cần cập nhật code từ GitHub hoặc chỉnh sửa phần mềm.</td><td>Cần Node.js 18+</td></tr>
+  </tbody>
+</table>
+</section>
+
+<!-- ============ 2. CÀI ĐẶT ============ -->
+<section id="cai-dat">
+<h2><span class="n">2</span>Cài đặt &amp; khởi chạy</h2>
+<p class="lead">Hướng dẫn chạy phần mềm trên máy Windows. Bỏ qua mục này nếu bạn dùng bản portable.</p>
+
+<h3>2.1. Kiểm tra Node.js</h3>
+<p>Mở <b>PowerShell</b> (nút Start → gõ <code>PowerShell</code> → Enter) rồi kiểm tra:</p>
+<pre><code>node --version
+npm --version</code></pre>
+<ul>
+  <li>Hiện dạng <code>v24.21.0</code> và <code>11.x.x</code> → đã có sẵn, sang mục 2.3.</li>
+  <li>Báo <code>not recognized</code> → đọc mục 2.2.</li>
+</ul>
+
+<h3>2.2. Cài Node.js (chỉ làm 1 lần)</h3>
+<ol class="steps">
+  <li><b>Tải bộ cài</b>Vào <code>https://nodejs.org/</code>, bấm nút <b>LTS</b> (bản ổn định) để tải file <code>.msi</code>.</li>
+  <li><b>Cài đặt</b>Mở file vừa tải, bấm <b>Next</b> liên tục và giữ nguyên mọi tùy chọn mặc định đến khi <b>Finish</b>.</li>
+  <li><b>Đóng và mở lại PowerShell</b>Bắt buộc. Windows chỉ nạp lại biến môi trường PATH cho cửa sổ mở <i>sau</i> khi cài. Nếu vẫn lỗi, khởi động lại máy.</li>
+  <li><b>Kiểm tra lại</b>Gõ <code>node --version</code>. Hiện số phiên bản là thành công.</li>
+</ol>
+
+<div class="warn"><b>Node đã cài nhưng vẫn báo "not recognized"?</b> Đây là lỗi PATH, không phải thiếu Node. Kiểm tra bằng lệnh đường dẫn tuyệt đối: <code>&amp; "C:\Program Files\nodejs\node.exe" --version</code>. Nếu lệnh này ra đúng số phiên bản thì Node đã cài — chỉ cần khởi động lại máy, hoặc dùng cách xử lý tạm ở mục <a href="#troubleshoot">16</a>.</div>
+
+<h3>2.3. Cài thư viện và khởi chạy</h3>
+<pre><code>cd d:\VBSPProject
+npm install
+npm run dev</code></pre>
+<p>Khi màn hình hiện:</p>
+<pre><code>  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://192.168.x.x:5173/</code></pre>
+<p>→ mở trình duyệt (Chrome/Edge) và vào <code>http://localhost:5173/</code>.</p>
+
+<table class="tbl">
+  <thead><tr><th style="width:30%">Lệnh</th><th>Khi nào dùng</th></tr></thead>
+  <tbody>
+    <tr><td><code>npm install</code></td><td>Chỉ chạy <b>một lần duy nhất</b> sau khi tải code về, hoặc sau khi cập nhật code từ GitHub.</td></tr>
+    <tr><td><code>npm run dev</code></td><td>Mỗi lần muốn mở phần mềm. Mở tại <code>localhost:5173</code>, chỉ máy này truy cập được.</td></tr>
+    <tr><td><code>npm run lan</code></td><td>Mở cho các máy khác <b>trong cùng mạng nội bộ</b> truy cập qua IP.</td></tr>
+    <tr><td><code>npm run share</code></td><td>Mở ra <b>internet</b> qua Cloudflare Tunnel — dùng khi cần chia sẻ cho người ngoài mạng cơ quan.</td></tr>
+  </tbody>
+</table>
+
+<p>Ngoài ra có thể nháy đúp các file có sẵn trong thư mục dự án:</p>
+<ul>
+  <li><code>start-dev.bat</code> — khởi chạy chế độ phát triển, cho phép truy cập qua mạng LAN.</li>
+  <li><code>Chay VSPPRO.bat</code> — chạy bản portable.</li>
+  <li><code>build-portable.bat</code> — đóng gói bản portable để chép sang máy khác.</li>
+</ul>
+
+<div class="tip"><b>Từ lần thứ hai trở đi</b> chỉ cần <code>npm run dev</code> (hoặc nháy đúp <code>start-dev.bat</code>). Không cần cài lại thư viện.</div>
+
+<h3>2.4. Dừng phần mềm</h3>
+<p>Quay lại cửa sổ PowerShell đang chạy, nhấn <kbd>Ctrl</kbd> + <kbd>C</kbd>. Nếu được hỏi <code>Terminate batch job (Y/N)?</code> thì gõ <code>Y</code> rồi Enter.</p>
+
+<h3>2.5. Cập nhật code từ GitHub</h3>
+<pre><code>cd d:\VBSPProject
+git pull
+npm install
+npm run dev</code></pre>
+<div class="warn">Luôn chạy lại <code>npm install</code> sau <code>git pull</code> — phiên bản mới có thể thêm thư viện mới. Nếu không chạy, app sẽ báo lỗi thiếu module.</div>
+</section>
+
+<!-- ============ 3. ĐĂNG NHẬP ============ -->
+<section id="dang-nhap">
+<h2><span class="n">3</span>Đăng nhập &amp; phân quyền</h2>
+<p class="lead">Phần mềm có 2 vai trò. Mặc định mọi người mở lên đều là <b>Người xem</b>; muốn nhập liệu phải mở khóa <b>Quản trị viên</b>.</p>
+
+<h3>3.1. So sánh hai vai trò</h3>
+<table class="tbl">
+  <thead><tr><th style="width:38%">Thao tác</th><th style="width:31%"><span class="b b-gray">Người xem</span></th><th><span class="b b-em">Quản trị viên</span></th></tr></thead>
+  <tbody>
+    <tr><td>Xem toàn bộ báo cáo, biểu đồ, tra cứu</td><td>✔ Được</td><td>✔ Được</td></tr>
+    <tr><td>Xuất Excel / PDF</td><td>✔ Được</td><td>✔ Được</td></tr>
+    <tr><td>Lọc, sắp xếp, drill-down</td><td>✔ Được</td><td>✔ Được</td></tr>
+    <tr><td>Nhập / thay / xóa file Excel</td><td>✕ Không thấy nút</td><td>✔ Được</td></tr>
+    <tr><td>Thêm sửa Quyết định, Kế hoạch, Danh mục xã</td><td>✕ Không</td><td>✔ Được</td></tr>
+    <tr><td>Thêm sửa Danh mục cán bộ / Điểm giao dịch</td><td>✕ Không</td><td>✔ Được</td></tr>
+    <tr><td>Đính kèm file PDF vào Quyết định</td><td>✕ Không</td><td>✔ Được</td></tr>
+    <tr><td>Menu <b>Sao lưu</b> trên trang chủ</td><td>✕ Ẩn</td><td>✔ Hiện</td></tr>
+    <tr><td>Thấy danh sách "tệp gần đây"</td><td>✕ Ẩn</td><td>✔ Hiện</td></tr>
+    <tr><td>Dữ liệu hiển thị</td><td>Bản <b>đã xuất bản</b> do quản trị viên đồng bộ</td><td>Bản đang mở trên máy mình</td></tr>
+  </tbody>
+</table>
+
+<div class="note"><b>Vai trò lưu theo máy + trình duyệt.</b> Trạng thái đăng nhập được ghi trong <code>localStorage</code> của trình duyệt. Nghĩa là: bạn đăng nhập quản trị trên máy A thì máy B vẫn là người xem; và nếu đổi trình duyệt (Chrome → Edge) thì phải đăng nhập lại.</div>
+
+<h3>3.2. Mở khóa chế độ quản trị</h3>
+<ol class="steps">
+  <li><b>Tìm nút đăng nhập</b>Ở góc trên bên phải <b>Trang chủ</b>, bấm nút <span class="b b-gray">Mở chế độ quản trị</span>. Nút này cũng xuất hiện ngay trên màn hình trống khi chưa có dữ liệu.</li>
+  <li><b>Nhập mật khẩu</b>Hộp thoại <b>"Chế độ quản trị"</b> hiện ra. Gõ mật khẩu vào ô. Bấm biểu tượng con mắt để hiện/ẩn mật khẩu đã gõ.</li>
+  <li><b>Xác nhận</b>Bấm <span class="b b-blue">Mở khóa</span>. Nút sẽ chuyển thành "Đang kiểm tra…" trong giây lát.</li>
+  <li><b>Kiểm tra kết quả</b>Thành công: nhãn góc phải đổi từ <span class="b b-gray">Người xem</span> sang <span class="b b-em">Quản trị viên</span>, và các nút nhập file hiện ra. Thất bại: dòng chữ đỏ <i>"Mật khẩu không đúng"</i>.</li>
+</ol>
+
+<div class="mock">
+  <div class="mock-bar"><i></i><i></i><i></i><div class="mock-url">localhost:5173/</div></div>
+  <div class="modal">
+    <div class="box">
+      <h5>Chế độ quản trị</h5>
+      <p>Nhập mật khẩu để mở khóa quyền nhập và xuất bản dữ liệu</p>
+      <div class="inp">••••••••••</div>
+      <div class="acts"><span class="btn gh">Hủy</span><span class="btn">Mở khóa</span></div>
+    </div>
+  </div>
+  <div class="mock-cap"><b>Hộp thoại đăng nhập.</b> Nhấn <kbd>Esc</kbd> hoặc nút "Hủy" để đóng. Mật khẩu được băm SHA-256 rồi so khớp — phần mềm không lưu mật khẩu dạng chữ.</div>
+</div>
+
+<h3>3.3. Thoát chế độ quản trị</h3>
+<p>Bấm nút <span class="b b-gray">Thoát quản trị</span> ở cùng vị trí. Phần mềm trở về vai trò người xem. Dữ liệu đang mở <b>vẫn còn</b>, chỉ là các nút nhập/sửa bị ẩn đi.</p>
+
+<div class="danger"><b>Giới hạn bảo mật cần nắm rõ.</b> Phần mềm không có máy chủ, không có phiên đăng nhập, nên <b>không thể đăng xuất từ xa</b>. Phân quyền chỉ chặn <i>thao tác</i> (nhập/xóa/sửa), <b>không chặn truy cập kỹ thuật</b>: người xem vẫn có thể mở DevTools (<kbd>F12</kbd>) và thấy dữ liệu thô đã tải về máy họ. Chỉ chia sẻ link cho người được phép xem dữ liệu.</div>
+
+<h3>3.4. Nhiều quản trị viên</h3>
+<p>Có thể chia sẻ mật khẩu cho nhiều người cùng làm quản trị. Tuy nhiên chỉ có <b>một bộ dữ liệu xuất bản chung</b> — ai đồng bộ sau thì dữ liệu của người đó ghi đè. Xem mục <a href="#sync">12</a>.</p>
+</section>
+
+<!-- ============ 4. LOBBY ============ -->
+<section id="lobby">
+<h2><span class="n">4</span>Trang chủ (Lobby)</h2>
+<p class="lead">Màn hình đầu tiên khi mở phần mềm — nơi chọn công việc cần làm.</p>
+
+<div class="mock">
+  <div class="mock-bar"><i></i><i></i><i></i><div class="mock-url">localhost:5173/</div></div>
+  <div style="background:#fff;border-bottom:1px solid var(--line);padding:9px 15px;display:flex;align-items:center;gap:9px">
+    <div style="width:30px;height:30px;border-radius:8px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex:none">V</div>
+    <div style="line-height:1.2"><b style="font-size:12.5px;display:block">VSPPRO</b><span style="font-size:9.8px;color:var(--ink3)">Phân tích danh mục tín dụng</span></div>
+    <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+      <span class="b b-em">Quản trị viên</span>
+      <span class="chip" style="padding:4px 7px">🌙</span>
+      <span class="chip">💾 Sao lưu</span>
+      <span class="btn gh" style="padding:4px 10px">Thoát quản trị</span>
+    </div>
+  </div>
+  <div style="padding:22px 18px;background:var(--bg2)">
+    <div style="font-size:9.8px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--brand)">Ngân hàng Chính sách Xã hội</div>
+    <div class="mk-head" style="font-size:20px;margin:6px 0 3px">Chọn công việc cần thực hiện</div>
+    <div class="mk-sub" style="margin-bottom:16px">Dữ liệu được xử lý ngay trên máy này. Mỗi khu vực lưu bộ dữ liệu và bộ lọc riêng.</div>
+    <div class="row3">
+      <div class="card" style="border-color:#bfdbfe;box-shadow:0 0 0 1px #dbeafe;margin:0">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <div style="width:34px;height:34px;border-radius:8px;background:var(--brand-l);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800">📊</div>
+          <span class="b b-em">Sẵn sàng</span>
+        </div>
+        <b style="display:block;font-size:13.5px;margin:12px 0 5px">Phân tích một kỳ</b>
+        <p style="font-size:10.4px;color:var(--ink3);margin:0 0 9px;line-height:1.5">Xem tổng quan, nợ quá hạn, dư nợ khoanh, hiệu quả cán bộ và tra cứu từng khế ước.</p>
+        <div style="border-top:1px solid var(--line);padding-top:8px;font-size:9.8px;color:var(--ink3)">12.480 khế ước · 31/08/2026</div>
+        <div style="margin-top:6px;font-size:11px;font-weight:700;color:var(--brand)">Mở báo cáo →</div>
+      </div>
+      <div class="card" style="margin:0">
+        <div style="width:34px;height:34px;border-radius:8px;background:var(--period-l);color:var(--period);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800">⇄</div>
+        <b style="display:block;font-size:13.5px;margin:12px 0 5px">So sánh giữa hai kỳ</b>
+        <p style="font-size:10.4px;color:var(--ink3);margin:0 0 9px;line-height:1.5">Theo dõi thay đổi danh mục giữa hai kỳ, chuyển nhóm nợ, khách hàng vào/ra.</p>
+        <div style="border-top:1px solid var(--line);padding-top:8px;font-size:9.8px;color:var(--ink3)">Sẵn sàng nhập từ 2 đến 3 kỳ dữ liệu</div>
+        <div style="margin-top:6px;font-size:11px;font-weight:700;color:var(--period)">Nhập dữ liệu →</div>
+      </div>
+      <div class="card" style="margin:0">
+        <div style="width:34px;height:34px;border-radius:8px;background:var(--plan-l);color:var(--plan);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800">📋</div>
+        <b style="display:block;font-size:13.5px;margin:12px 0 5px">Kế hoạch tín dụng</b>
+        <p style="font-size:10.4px;color:var(--ink3);margin:0 0 9px;line-height:1.5">Quản lý quyết định, giao kế hoạch và đối chiếu với dư nợ thực tế theo xã.</p>
+        <div style="border-top:1px solid var(--line);padding-top:8px;font-size:9.8px;color:var(--ink3)">18 mục kế hoạch · 42 nhóm thực tế</div>
+        <div style="margin-top:6px;font-size:11px;font-weight:700;color:var(--plan)">Mở kế hoạch →</div>
+      </div>
+    </div>
+  </div>
+  <div class="mock-cap"><b>Trang chủ ở vai trò Quản trị viên.</b> Thẻ có viền màu + nhãn "Sẵn sàng" nghĩa là khu vực đó đã có dữ liệu. Dòng chữ nhỏ ở đáy thẻ cho biết số khế ước và ngày số liệu.</div>
+</div>
+
+<h3>4.1. Đọc trạng thái trên mỗi thẻ</h3>
+<table class="tbl">
+  <thead><tr><th style="width:34%">Dòng trạng thái</th><th>Ý nghĩa</th></tr></thead>
+  <tbody>
+    <tr><td><code>12.480 khế ước · 31/08/2026</code></td><td>Đã có dữ liệu. Nhấn vào để mở báo cáo.</td></tr>
+    <tr><td><code>Sẵn sàng nhập tệp Báo cáo 31</code></td><td>Bạn là quản trị viên, khu vực này còn trống.</td></tr>
+    <tr><td><code>3 tệp gần đây có thể mở lại</code></td><td>Có file đã nạp trước đó, vào là mở lại được ngay không cần chọn file.</td></tr>
+    <tr><td><code>Chưa có dữ liệu được xuất bản</code></td><td>Bạn là người xem và quản trị viên chưa đồng bộ dữ liệu cho khu vực này.</td></tr>
+  </tbody>
+</table>
+
+<h3>4.2. Các nút trên thanh tiêu đề</h3>
+<table class="tbl">
+  <thead><tr><th style="width:26%">Nút</th><th>Chức năng</th></tr></thead>
+  <tbody>
+    <tr><td><span class="b b-gray">Người xem / Quản trị viên</span></td><td>Nhãn vai trò hiện tại. Chỉ hiển thị, không bấm được.</td></tr>
+    <tr><td>🌙 / ☀️</td><td>Chuyển giao diện tối / sáng. Áp dụng cho toàn bộ phần mềm.</td></tr>
+    <tr><td><span class="b b-gray">💾 Sao lưu</span></td><td>Chỉ hiện với quản trị viên. Xuất / khôi phục bản sao lưu — xem mục <a href="#backup">10</a>.</td></tr>
+    <tr><td><span class="b b-gray">Mở chế độ quản trị</span></td><td>Đăng nhập. Đổi thành <b>Thoát quản trị</b> khi đã đăng nhập.</td></tr>
+  </tbody>
+</table>
+</section>
+
+<!-- MORE -->
+</div>
+<a href="#gioi-thieu" class="top" title="Lên đầu trang">↑</a>
+</body>
+</html>
