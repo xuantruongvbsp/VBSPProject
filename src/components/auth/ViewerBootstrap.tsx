@@ -12,6 +12,7 @@ import { usePeriodStore } from '@/store/usePeriodStore';
 import { useStaffStore } from '@/store/useStaffStore';
 import { useTxnPointStore } from '@/store/useTxnPointStore';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
+import { usePublishedMetaStore } from '@/store/usePublishedMetaStore';
 import {
   fetchPublishedSnapshot,
   fetchPublishedPeriod,
@@ -38,7 +39,10 @@ export function ViewerBootstrap() {
     if (snapshotRows.length === 0) {
       fetchPublishedSnapshot()
         .then((d) => {
-          if (d) setSnapshot(d.rows, d.ngaySoLieu);
+          if (d) {
+            setSnapshot(d.rows, d.ngaySoLieu);
+            usePublishedMetaStore.getState().setSnapshotAt(d.publishedAt);
+          }
         })
         .catch((e) => console.warn('[viewer] không tải được snapshot', e));
     }
@@ -52,6 +56,7 @@ export function ViewerBootstrap() {
           // trỏ vào slot trống.
           setPeriodSlots(d.slots);
           setPeriodComparePair(d.comparePair);
+          usePublishedMetaStore.getState().setPeriodAt(d.publishedAt);
         })
         .catch((e) => console.warn('[viewer] không tải được period', e));
     }
@@ -73,6 +78,7 @@ export function ViewerBootstrap() {
     fetchPublishedCreditPlan()
       .then((d) => {
         if (!d) return;
+        usePublishedMetaStore.getState().setCreditPlanAt(d.publishedAt);
         useCreditPlanStore.setState({
           xaCatalog: d.xaCatalog ?? [],
           decisions: d.decisions,

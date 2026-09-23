@@ -243,8 +243,10 @@ export function Lobby() {
           </button>
         </div>
 
-        <p className="mt-8 text-center text-[11px] text-slate-400 dark:text-slate-500">
-          Created by Tuấn Kiệt · VBSP Định Quán
+        <p className="mt-8 text-center text-[11px] leading-5 text-slate-400 dark:text-slate-500">
+          PHÒNG KẾ HOẠCH - TÍN DỤNG
+          <br />
+          Chi nhánh Ngân hàng Chính sách xã hội thành phố Đồng Nai
         </p>
       </main>
 

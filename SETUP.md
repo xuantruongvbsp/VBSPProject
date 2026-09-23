@@ -12,7 +12,8 @@ Nếu người chia sẻ gửi cho bạn một thư mục tên **VSPPRO** đã �
 
 1. Copy nguyên thư mục **VSPPRO** vào máy.
 2. Mở thư mục đó.
-3. Bấm đúp file **Mo VSPPRO.bat**.
+3. Bấm đúp file **VSPPRO.bat** (menu chính) → gõ `1` rồi Enter để khởi động server.
+   - Menu còn có: `2` đổi mật khẩu quản trị · `3` dừng server · `4` thêm Firewall rule · `5` kiểm tra cập nhật · `6` thoát.
 4. Giữ cửa sổ đen đang mở trong lúc dùng app.
 
 Nếu trình duyệt không tự mở, nhìn trong cửa sổ đen sẽ có dòng địa chỉ dạng:
@@ -22,6 +23,18 @@ http://127.0.0.1:4173/
 ```
 
 Copy địa chỉ đó vào Chrome hoặc Edge.
+
+> **Dùng cho đồng nghiệp cùng mạng LAN:** cửa sổ đen còn in các địa chỉ LAN (dạng `http://192.168.x.x:4173/`) — đồng nghiệp mở địa chỉ đó là xem được. Nếu họ không vào được, chạy `Them Firewall Rule.bat` (chuột phải → Run as administrator) một lần.
+>
+> **Bảo mật:** chỉ máy chủ mới xuất bản được dữ liệu; đồng nghiệp chỉ xem. Nên đặt mật khẩu quản trị từ 8 ký tự trở lên.
+
+**Cập nhật phiên bản mới (một chạm):**
+
+1. Máy dev chạy `build-portable.bat` → copy thư mục `portable\VSPPRO` vào thư mục chia sẻ (ví dụ `\\FILESERVER\Share\VSPPRO`).
+2. Máy chủ mở `VSPPRO.bat` → chọn `5. Kiem tra cap nhat` → thấy bản mới thì gõ `Y`.
+3. Đồng nghiệp thấy banner "Chủ máy đã cập nhật bản mới" → bấm "Tải lại".
+
+Trước lần đầu dùng, máy chủ cần ghi đúng một dòng đường dẫn thư mục chia sẻ vào file `update-source.txt` (nằm cạnh `VSPPRO.bat`).
 
 ---
 

@@ -20,6 +20,8 @@ import { cn } from '@/lib/utils';
 import { useDataStore } from '@/store/useDataStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import { useIsOwner } from '@/store/useAuthStore';
+import { usePublishedMetaStore } from '@/store/usePublishedMetaStore';
+import { PublishedAtBadge } from '@/components/auth/PublishedAtBadge';
 import { fmtDate } from '@/lib/format';
 import { DataAutoSync } from '@/components/owner/DataAutoSync';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -42,6 +44,7 @@ export function AppShell() {
   const { rows, ngaySoLieu, reset } = useDataStore();
   const navigate = useNavigate();
   const isOwner = useIsOwner();
+  const snapshotAt = usePublishedMetaStore((s) => s.snapshotAt);
   const { theme, toggle: toggleTheme } = useThemeStore();
   const [changeFileOpen, setChangeFileOpen] = useState(false);
   return (
@@ -111,6 +114,11 @@ export function AppShell() {
           <div className="text-xs text-slate-500 dark:text-slate-400">
             Ngày số liệu: {fmtDate(ngaySoLieu)}
           </div>
+          {!isOwner && snapshotAt && (
+            <div className="mt-2">
+              <PublishedAtBadge publishedAt={snapshotAt} />
+            </div>
+          )}
           {isOwner && (
             <>
               <button
@@ -124,6 +132,9 @@ export function AppShell() {
               </div>
             </>
           )}
+          <div className="mt-3 min-w-0 truncate text-[10px] text-slate-400 dark:text-slate-500">
+            v{__APP_BUILD__.version} · {__APP_BUILD__.buildId}
+          </div>
         </div>
       </aside>
 
@@ -146,6 +157,11 @@ export function AppShell() {
             {rows.length.toLocaleString('vi-VN')} khế ước · {fmtDate(ngaySoLieu)}
           </div>
         </div>
+        {!isOwner && snapshotAt && (
+          <div className="shrink-0">
+            <PublishedAtBadge publishedAt={snapshotAt} compact />
+          </div>
+        )}
         {isOwner && (
           <button
             type="button"

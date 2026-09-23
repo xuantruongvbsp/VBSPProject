@@ -15,6 +15,8 @@ import { cn } from '@/lib/utils';
 import { useCreditPlanStore } from '@/store/useCreditPlanStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import { useIsOwner } from '@/store/useAuthStore';
+import { usePublishedMetaStore } from '@/store/usePublishedMetaStore';
+import { PublishedAtBadge } from '@/components/auth/PublishedAtBadge';
 import { CreditPlanAutoSync } from '@/components/owner/CreditPlanAutoSync';
 import { ViewerEmptyState } from '@/components/auth/ViewerEmptyState';
 
@@ -37,6 +39,7 @@ export function CreditPlanShell() {
   const decisions = useCreditPlanStore((s) => s.decisions);
   const { theme, toggle: toggleTheme } = useThemeStore();
   const isOwner = useIsOwner();
+  const creditPlanAt = usePublishedMetaStore((s) => s.creditPlanAt);
 
   // Người xem chưa thấy dữ liệu nào — owner chưa nhập kế hoạch nào lên server.
   // (Khác Snapshot/Period: ở đây "chưa có dữ liệu" = không có decisions/plans
@@ -127,8 +130,16 @@ export function CreditPlanShell() {
               NQ11 · {nq11TotalRows.toLocaleString('vi-VN')} món / {nq11Summaries.length} xã
             </div>
           )}
+          {!isOwner && creditPlanAt && (
+            <div className="mt-2">
+              <PublishedAtBadge publishedAt={creditPlanAt} />
+            </div>
+          )}
           <div className="mt-2">
             <CreditPlanAutoSync />
+          </div>
+          <div className="mt-3 min-w-0 truncate text-[10px] text-slate-400 dark:text-slate-500">
+            v{__APP_BUILD__.version} · {__APP_BUILD__.buildId}
           </div>
         </div>
       </aside>
@@ -149,6 +160,11 @@ export function CreditPlanShell() {
           </div>
           <div className="text-sm font-bold text-slate-800 dark:text-slate-100">Kế hoạch tín dụng</div>
         </div>
+        {!isOwner && creditPlanAt && (
+          <div className="shrink-0">
+            <PublishedAtBadge publishedAt={creditPlanAt} compact />
+          </div>
+        )}
         <button
           type="button"
           onClick={toggleTheme}

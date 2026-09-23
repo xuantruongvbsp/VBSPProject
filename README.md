@@ -41,12 +41,45 @@ Trên máy dùng để đóng gói, làm một lần:
    sang máy Windows khác.
 5. Trên máy nhận, mở:
    ```
-   Mo VSPPRO.bat
+   VSPPRO.bat
    ```
+   rồi chọn **1** để khởi động server (đây là menu chính). `Mo VSPPRO.bat` vẫn chạy server trực tiếp nếu bạn thích.
 
 App sẽ tự mở trong trình duyệt ở địa chỉ nội bộ dạng `http://127.0.0.1:4173/`. Khi dùng xong, đóng cửa sổ đen hoặc nhấn `Ctrl + C`.
 
 > Thư mục `portable\VSPPRO` đã chứa bản build, server cục bộ và `node.exe` tối thiểu để chạy app. Đừng xóa các thư mục `app`, `runtime` hoặc file `server.mjs` bên trong đó.
+
+### Chia sẻ cho đồng nghiệp cùng mạng LAN
+
+Sau khi server chạy, cửa sổ đen sẽ in danh sách địa chỉ LAN (dạng `http://192.168.x.x:4173/`). Đồng nghiệp mở một địa chỉ đó trên trình duyệt của họ là xem được dữ liệu.
+
+- Nếu đồng nghiệp không truy cập được, chạy **`Them Firewall Rule.bat`** (chuột phải → **Run as administrator**) một lần để mở cổng qua Windows Firewall.
+- **Bảo mật:** chỉ máy chủ (`localhost`) mới **xuất bản** được dữ liệu; đồng nghiệp chỉ xem. File `config.json` (chứa hash mật khẩu) không được gửi ra LAN.
+
+### Cập nhật phiên bản mới (giữ dữ liệu)
+
+Cách cập nhật **một chạm** từ một thư mục chia sẻ trên mạng LAN:
+
+1. Trên **máy dev**: chạy `build-portable.bat` để tạo `portable\VSPPRO` mới (kèm file `app\version.json`).
+2. Copy thư mục `portable\VSPPRO` vừa build vào thư mục chia sẻ, ví dụ `\\FILESERVER\Share\VSPPRO`.
+3. Trên **máy chủ**: mở `VSPPRO.bat` → chọn **`5. Kiem tra cap nhat`**. Nếu thấy bản mới, gõ `Y` để cập nhật.
+
+Để bước 3 hoạt động, máy chủ cần chỉnh file **`update-source.txt`** nằm cạnh `VSPPRO.bat` — ghi đúng một dòng là đường dẫn thư mục chia sẻ chứa bản mới (không bỏ dấu ngoặc kép):
+
+```text
+\\FILESERVER\Share\VSPPRO
+```
+
+hoặc một ổ đĩa cục bộ:
+
+```text
+D:\Builds\VSPPRO
+```
+
+Script tự dừng server nếu đang chạy, giữ nguyên dữ liệu đã xuất bản, mật khẩu quản trị và chính file `update-source.txt`.
+
+- **Người xem (viewer):** khi máy chủ đã cập nhật, tab đang mở sẽ tự hiện banner **"Chủ máy đã cập nhật bản mới"** — chỉ cần bấm **"Tải lại"**, không phải làm gì thêm.
+- **Xem phiên bản đang chạy:** nhìn dòng `v... · ...` ở cuối thanh bên trái của app, hoặc dòng `Version: ...` trong cửa sổ đen của server.
 
 ---
 

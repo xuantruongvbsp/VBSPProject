@@ -54,6 +54,28 @@ const MAX_ATTACHMENT_BYTES = 30 * 1024 * 1024;
 // traversal khi nhận id từ URL ngoài.
 const SAFE_ID_REGEX = /^[a-zA-Z0-9-]{1,64}$/;
 
+// Khi dev/preview server được expose ra mạng (`--host` / host 0.0.0.0 hoặc IP
+// cụ thể), chỉ cho phép máy chủ (loopback) ghi publish — tránh người khác cùng
+// LAN ghi đè/xóa dữ liệu. Mặc định Vite chỉ bind localhost nên không cần siết.
+function isLoopback(req: IncomingMessage): boolean {
+  const addr = req.socket?.remoteAddress || '';
+  const normalized = addr.replace(/^::ffff:/i, '');
+  return normalized === '127.0.0.1' || normalized === '::1';
+}
+
+function isWriteMethod(method: string | undefined): boolean {
+  const m = (method || 'GET').toUpperCase();
+  return m === 'POST' || m === 'PUT' || m === 'DELETE';
+}
+
+function isExposedHost(host: unknown): boolean {
+  if (host === true) return true;
+  if (typeof host === 'string') {
+    return host !== '127.0.0.1' && host !== 'localhost' && host !== '::1';
+  }
+  return false;
+}
+
 function readBody(req: IncomingMessage): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
@@ -94,6 +116,33 @@ function writeJson(res: ServerResponse, code: number, body: unknown) {
   res.statusCode = code;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.end(JSON.stringify(body));
+}
+
+// Serve /version.json KHÔNG cache — nếu rơi vào static mặc định của Vite sẽ bị
+// cache lâu → viewer so version sai. Route này mở cho mọi IP (viewer cần đọc).
+// Ở dev chưa build nên chưa có version.json → trả 404, client phải chịu được.
+function handleVersionJson(req: IncomingMessage, res: ServerResponse, targetDir: string) {
+  if (req.method !== 'GET') {
+    res.statusCode = 405;
+    res.end();
+    return;
+  }
+  const filepath = path.join(targetDir, 'version.json');
+  if (!fs.existsSync(filepath)) {
+    res.statusCode = 404;
+    res.end();
+    return;
+  }
+  try {
+    const content = fs.readFileSync(filepath, 'utf8');
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
+    res.end(content);
+  } catch {
+    res.statusCode = 500;
+    res.end();
+  }
 }
 
 async function readAttachmentBody(req: IncomingMessage): Promise<Buffer> {
@@ -159,9 +208,17 @@ async function handleAttachment(
 async function handle(
   req: IncomingMessage,
   res: ServerResponse,
-  targetDir: string
+  targetDir: string,
+  enforceLocalOnly = false
 ): Promise<void> {
   const url = (req.url || '').split('?')[0];
+
+  if (enforceLocalOnly && isWriteMethod(req.method) && !isLoopback(req)) {
+    writeJson(res, 403, {
+      error: 'Chỉ chủ máy (localhost) mới được xuất bản dữ liệu.',
+    });
+    return;
+  }
 
   // Routes động cho file đính kèm PDF: /__publish/decision-attachment/<id>
   if (url.startsWith(ATTACHMENT_PREFIX)) {
@@ -225,10 +282,16 @@ export function publishPlugin(): Plugin {
     configureServer(server: ViteDevServer) {
       // Chế độ dev: ghi vào public/ — Vite sẽ tự phục vụ ngay
       const publicDir = server.config.publicDir || path.resolve('public');
+      const enforce = isExposedHost(server.config.server.host) &&
+        process.env.VSPPRO_ALLOW_REMOTE_PUBLISH !== '1';
       server.middlewares.use((req, res, next) => {
         const url = (req.url || '').split('?')[0];
+        if (url === '/version.json') {
+          handleVersionJson(req, res, publicDir);
+          return;
+        }
         if (url in ROUTES || url.startsWith(ATTACHMENT_PREFIX)) {
-          handle(req, res, publicDir);
+          handle(req, res, publicDir, enforce);
           return;
         }
         next();
@@ -238,10 +301,16 @@ export function publishPlugin(): Plugin {
     configurePreviewServer(server: PreviewServer) {
       // Chế độ preview: ghi vào dist/ vì public/ không còn được phục vụ
       const distDir = server.config.build.outDir || path.resolve('dist');
+      const enforce = isExposedHost(server.config.preview.host) &&
+        process.env.VSPPRO_ALLOW_REMOTE_PUBLISH !== '1';
       server.middlewares.use((req, res, next) => {
         const url = (req.url || '').split('?')[0];
+        if (url === '/version.json') {
+          handleVersionJson(req, res, distDir);
+          return;
+        }
         if (url in ROUTES || url.startsWith(ATTACHMENT_PREFIX)) {
-          handle(req, res, distDir);
+          handle(req, res, distDir, enforce);
           return;
         }
         next();

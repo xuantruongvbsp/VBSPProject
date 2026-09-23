@@ -57,6 +57,43 @@ export async function deleteAttachmentBlob(decisionId: string): Promise<void> {
   });
 }
 
+/** Liệt kê toàn bộ blob PDF đang có trong IndexedDB (key = decisionId). */
+export async function listAllAttachmentBlobs(): Promise<Array<{ decisionId: string; blob: Blob }>> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const entries: Array<{ decisionId: string; blob: Blob }> = [];
+    const tx = db.transaction(STORE, 'readonly');
+    const req = tx.objectStore(STORE).openCursor();
+    req.onsuccess = () => {
+      const cursor = req.result;
+      if (cursor) {
+        const blob = cursor.value as Blob | undefined;
+        if (blob) entries.push({ decisionId: String(cursor.key), blob });
+        cursor.continue();
+      } else {
+        resolve(entries);
+      }
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+/** Thay toàn bộ blob PDF trong một giao dịch — dùng khi khôi phục bản sao lưu. */
+export async function saveAttachmentBlobs(
+  entries: Array<{ decisionId: string; blob: Blob }>
+): Promise<void> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    const store = tx.objectStore(STORE);
+    store.clear();
+    for (const e of entries) store.put(e.blob, e.decisionId);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+}
+
 /** Mở PDF trong tab mới. Trả về URL tạo ra để caller có thể revoke sau. */
 export async function openAttachmentInNewTab(decisionId: string): Promise<string | null> {
   const blob = await getAttachmentBlob(decisionId);
